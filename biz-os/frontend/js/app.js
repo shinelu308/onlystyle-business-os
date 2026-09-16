@@ -2,7 +2,7 @@
 (function() {
   // 页面定义（角色从 API 动态加载）
   var pages = {
-    dashboard: { title: '工作台', render: renderDashboard },
+    dashboard: { title: '数据看板', render: renderDashboard },
     suppliers: { title: '资源管理', render: renderSuppliers },
     spatial: { title: '项目管理', render: renderSpatial },
     customers: { title: '客户管理', render: renderCustomers },
@@ -13,7 +13,7 @@
 
   // 顶栏面包屑的根节点（设计稿 .crumb：根 › 当前页）
   var CRUMB_ROOT = {
-    dashboard: '工作台',
+    dashboard: '数据看板',
     customers: '业务管理', contracts: '业务管理',
     suppliers: '资源台账', spatial: '资源台账',
     content: '增长与内容', settings: '系统'
@@ -157,7 +157,7 @@
     }, 50);
   }
 
-  /** 面包屑：根 === 当前页时收起根节点，避免「工作台 › 工作台」这种废话 */
+  /** 面包屑：根 === 当前页时收起根节点，避免「数据看板 › 数据看板」这种废话 */
   function updateCrumb(rootText, titleText) {
     var crumb = document.querySelector('.crumb');
     if (!crumb) return;

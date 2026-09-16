@@ -120,6 +120,8 @@ async function initializeDatabase() {
   try { _db.run("ALTER TABLE contracts ADD COLUMN billing_cycle TEXT DEFAULT '月'"); } catch(e) { /* 已存在则忽略 */ }
   // 迁移：为 contracts 表添加 renewed_from 列（续约来源合同ID，用于撤销续约）
   try { _db.run("ALTER TABLE contracts ADD COLUMN renewed_from TEXT DEFAULT NULL"); } catch(e) { /* 已存在则忽略 */ }
+  // 迁移：为 contracts 表添加 plan_name 列（套餐/服务名称，数据看板表格第 3 列）
+  try { _db.run("ALTER TABLE contracts ADD COLUMN plan_name TEXT DEFAULT ''"); } catch(e) { /* 已存在则忽略 */ }
   // 迁移：为 supplier_lines 表添加设备照片、安装位置、备注列
   try { _db.run("ALTER TABLE supplier_lines ADD COLUMN device_photos TEXT DEFAULT '[]'"); } catch(e) { /* 已存在则忽略 */ }
   try { _db.run("ALTER TABLE supplier_lines ADD COLUMN install_location TEXT DEFAULT ''"); } catch(e) { /* 已存在则忽略 */ }

@@ -1150,184 +1150,175 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 .dept-tab-name { font-weight: 600; font-size: 14px; }
 .dept-tab-meta { font-size: 12px; color: var(--text-secondary); }
 
-/* ===== Dashboard Premium Styles ===== */
-/* Stats Grid - Premium */
-.dashboard-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
+/* ===== 数据看板 v2（ONLYSTYLE 设计体系）===== */
+/* 来源：design/mockups/dashboard-redesign/dashboard-v2.css —— 与效果图同源，勿手改此处后忘记同步 */
+
+/* ============================================================
+   数据看板 v2 —— ONLYSTYLE 设计体系
+   依据：design/mockups/dashboard-redesign/参考设计稿
+   用法：确认后整段追加进 biz-os/frontend/css/style.css
+   前缀：.dash-* / .kpi* / .dcard* / .ct-* / .rail / .todo* / .bar*
+   注意：只新增，不改动任何既有规则（旧 .dboard-* 在切换完成后删除）
+   ============================================================ */
+
+/* ---------- 1. 页面标题区 ---------- */
+.dash-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.dash-title{font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--gray-900);line-height:1.2}
+.dash-scope{margin-top:6px;font-size:12.5px;color:var(--gray-500)}
+.dash-scope b{color:var(--gray-700);font-weight:600}
+.dash-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* 时间范围胶囊组 */
+.dash-range{display:flex;gap:2px;padding:3px;background:var(--gray-100);border:1px solid var(--border);border-radius:var(--r-full)}
+.range-chip{height:28px;padding:0 15px;border:0;background:transparent;border-radius:var(--r-full);
+  font-family:inherit;font-size:12.5px;color:var(--gray-500);cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+.range-chip:hover{color:var(--gray-800)}
+.range-chip.on{background:#fff;color:var(--gray-900);font-weight:600;box-shadow:var(--shadow-sm)}
+
+/* ---------- 2. KPI 卡片（顶部渐变细线 —— 设计稿纪律的 4 处之一） ---------- */
+.kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.kpi{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px 18px 15px;box-shadow:var(--shadow-sm)}
+.kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:2.5px;background:var(--brand-gradient)}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:20px}
+.kpi-label{font-size:12.5px;color:var(--gray-500);white-space:nowrap}
+.kpi-val{margin-top:11px;font-size:30px;font-weight:700;letter-spacing:-.025em;color:var(--gray-900);
+  line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi-pre{font-size:17px;font-weight:600;color:var(--gray-500);margin-right:3px}
+.kpi-unit{margin-left:5px;font-size:14px;font-weight:500;color:var(--gray-400)}
+/* 百分号/千分号这类「跟着数字读」的单位不留空档：75 % → 75% */
+.kpi-unit.tight{margin-left:0}
+.kpi-foot{margin-top:10px;font-size:12px;color:var(--gray-500);white-space:nowrap}
+.kpi-up{color:var(--success);font-weight:700}
+.kpi-dn{color:var(--danger);font-weight:700}
+.kpi-emph{color:var(--warning);font-weight:700}
+
+/* ---------- 3. 柔和标签（底 + 同色描边，对齐 onlystyle .comp-tag-*） ---------- */
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--r-full);
+  font-size:11px;font-weight:600;white-space:nowrap;line-height:1}
+.tag-blue {background:var(--blue-50);   color:var(--blue-600);  box-shadow:inset 0 0 0 1px var(--blue-100)}
+.tag-cyan {background:var(--cyan-50);   color:var(--cyan-700);  box-shadow:inset 0 0 0 1px var(--cyan-100)}
+.tag-amber{background:var(--warning-bg);color:#B45309;          box-shadow:inset 0 0 0 1px #FDE68A}
+.tag-red  {background:var(--danger-bg); color:#B91C1C;          box-shadow:inset 0 0 0 1px #FECACA}
+.tag-green{background:var(--success-bg);color:#15803D;          box-shadow:inset 0 0 0 1px #BBF7D0}
+.tag-gray {background:var(--gray-100);  color:var(--gray-600);  box-shadow:inset 0 0 0 1px var(--gray-200)}
+
+/* ---------- 4. 两栏网格 ---------- */
+.dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+
+/* ---------- 5. 卡片 ---------- */
+.dcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);overflow:hidden}
+.dcard-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.dcard-title{font-size:14px;font-weight:650;color:var(--gray-900)}
+.dcard-sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--gray-400)}
+.dcard-more{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--gray-500)}
+.dcard-link{color:var(--blue-500);font-weight:600;text-decoration:none;white-space:nowrap}
+.dcard-link:hover{text-decoration:underline}
+.dcard-cnt{display:inline-flex;align-items:center;height:19px;padding:0 8px;border-radius:var(--r-full);
+  background:var(--danger-bg);color:#B91C1C;font-family:var(--mono);font-size:11px;font-weight:700}
+
+/* ---------- 6. 到期提醒表 ---------- */
+.ct-wrap{overflow-x:auto}
+.ct-table{width:100%;border-collapse:collapse}
+.ct-table th{padding:9px 12px;background:var(--gray-50);border-bottom:1px solid var(--border);
+  font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--gray-400);text-align:left;white-space:nowrap}
+.ct-table th:first-child{padding-left:18px}
+.ct-table th:last-child{padding-right:18px;text-align:right}
+.ct-table td{padding:11px 12px;border-top:1px solid var(--border);font-size:13px;
+  color:var(--gray-700);vertical-align:middle;white-space:nowrap}
+.ct-table td:first-child{padding-left:18px}
+.ct-table td:last-child{padding-right:18px;text-align:right}
+.ct-table tbody tr:hover{background:var(--gray-50)}
+/* 紧急行左侧竖色条 */
+.ct-table tr.hot td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+.ct-table tr.warm td:first-child{box-shadow:inset 3px 0 0 var(--warning)}
+
+.ct-cust{display:flex;align-items:center;gap:10px}
+.ct-av{width:30px;height:30px;flex:none;border-radius:var(--r-md);display:flex;
+  align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
+/* min-width:0 才能让下面的 ellipsis 生效（flex 子项默认 min-width:auto 不肯收缩） */
+.ct-info{min-width:0}
+/* ⚠️ display:block 不能省 —— .ct-nm/.ct-no 是 <span>，行内元素会并排成一行，
+   变成「公司名合同号」黏在一起（1× 缩略图完全看不出，2× 才现形） */
+.ct-nm{display:block;font-size:13px;font-weight:600;color:var(--gray-900);line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ct-no{display:block;margin-top:2px;font-family:var(--mono);font-size:10.5px;color:var(--gray-400);line-height:1.2}
+.mono-c{font-family:var(--mono);font-size:12px;color:var(--gray-600)}
+
+/* 剩余天数 */
+.days{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12.5px;font-weight:700}
+.days i{width:6px;height:6px;flex:none;border-radius:50%}
+.days.red   {color:#DC2626} .days.red i   {background:#DC2626}
+.days.amber {color:#D97706} .days.amber i {background:#D97706}
+.days.green {color:#16A34A} .days.green i {background:#16A34A}
+
+.act{display:inline-flex;align-items:center;gap:10px}
+.act a{color:var(--blue-500);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}
+.act a:hover{text-decoration:underline}
+.act a.mut{color:var(--gray-500);font-weight:500}
+
+/* ---------- 7. 右栏 ---------- */
+.rail{display:flex;flex-direction:column;gap:16px}
+.todo{display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border)}
+.todo:first-of-type{border-top:0}
+.todo-ico{width:20px;height:20px;flex:none;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:700;line-height:1}
+.todo-ico.red  {background:var(--danger-bg);color:#B91C1C}
+.todo-ico.amber{background:var(--warning-bg);color:#B45309}
+.todo-ico.green{background:var(--success-bg);color:#15803D}
+.todo-t{display:block;font-size:12.5px;color:var(--gray-800);line-height:1.5}
+.todo-m{display:block;margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--gray-400);line-height:1.35}
+.todo{text-decoration:none;cursor:pointer}
+.todo:hover{background:var(--gray-50)}
+.todo-t b{font-weight:700;color:var(--danger)}
+.todo-m b{color:var(--gray-600);font-weight:600}
+
+.bar{padding:13px 18px;border-top:1px solid var(--border)}
+.bar:first-of-type{border-top:0}
+.bar-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:7px}
+.bar-nm{font-size:12.5px;color:var(--gray-700);white-space:nowrap}
+.bar-v{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--gray-900);white-space:nowrap}
+.bar-track{height:7px;border-radius:var(--r-full);background:var(--gray-100);overflow:hidden}
+.bar-fill{height:100%;border-radius:var(--r-full);background:var(--brand-gradient)}
+
+/* ---------- 8. 空态（真实数据下的样子） ---------- */
+.dash-empty{padding:34px 18px;text-align:center}
+.dash-empty-ic{width:34px;height:34px;margin:0 auto 10px;border-radius:50%;background:var(--success-bg);
+  display:flex;align-items:center;justify-content:center}
+.dash-empty-t{font-size:13px;color:var(--gray-600);font-weight:600}
+.dash-empty-s{margin-top:4px;font-size:12px;color:var(--gray-400)}
+
+/* ---------- 9. 响应式收口 ---------- */
+@media (max-width:1280px){
+  .kpi-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dash-grid{grid-template-columns:minmax(0,1fr)}
 }
-.dboard-stat {
-  background: var(--surface);
-  padding: 0;
-  overflow: hidden;
-  transition: box-shadow .25s ease, transform .25s ease;
-  position: relative;
-  border-radius: var(--r-xl);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-}
-.dboard-stat:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,.08);
-  transform: translateY(-2px);
-}
-.dboard-stat-bar {
-  height: 3px;
-  width: 100%;
-}
-.dboard-stat-body {
-  padding: 18px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.dboard-stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.dboard-stat-icon svg { width: 20px; height: 20px; }
-.dboard-stat-info { flex: 1; min-width: 0; }
-.dboard-stat-number {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -.02em;
-  font-family: var(--mono);
-}
-.dboard-stat-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-top: 2px;
-  letter-spacing: .3px;
-  text-transform: uppercase;
+@media (max-width:720px){
+  .kpi-row{grid-template-columns:minmax(0,1fr)}
+  .dash-head{flex-direction:column;align-items:stretch}
+  .dash-acts{justify-content:flex-start}
 }
 
-/* Dashboard Section - Premium */
-.dboard-section {
-  margin-bottom: 28px;
-}
-.dboard-section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding-left: 14px;
-  position: relative;
-}
-.dboard-section-header::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 4px;
-  bottom: 4px;
-  width: 3px;
-  border-radius: 2px;
-}
-.dboard-section-header.red::before { background: linear-gradient(180deg, #ef4444, #f87171); }
-.dboard-section-header.yellow::before { background: linear-gradient(180deg, #f59e0b, #fbbf24); }
-.dboard-section-header.blue::before { background: linear-gradient(180deg, #3b82f6, #60a5fa); }
-.dboard-section-header.purple::before { background: linear-gradient(180deg, #8b5cf6, #a78bfa); }
-.dboard-section-header h2 {
-  font-size: 15px;
-  margin: 0;
-  font-family: var(--display);
-  font-weight: 700;
-}
-.dboard-section-header .dboard-section-count {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--bg);
-  padding: 1px 10px;
-  border-radius: 20px;
-  margin-left: auto;
-}
-
-/* Dashboard Alert Card - Premium */
-.dboard-alert {
-  background: var(--surface);
-  padding: 16px 20px;
-  margin-bottom: 10px;
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  position: relative;
-  overflow: hidden;
-  transition: box-shadow .2s ease;
-  border-radius: var(--r-lg);
-}
-.dboard-alert:hover { box-shadow: 0 3px 8px rgba(0,0,0,.07); }
-.dboard-alert::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-}
-.dboard-alert.red::before { background: linear-gradient(180deg, #ef4444, #fca5a5); }
-.dboard-alert.yellow::before { background: linear-gradient(180deg, #f59e0b, #fcd34d); }
-.dboard-alert.green::before { background: linear-gradient(180deg, #10b981, #6ee7b7); }
-.dboard-alert.blue::before { background: linear-gradient(180deg, #3b82f6, #93c5fd); }
-.dboard-alert .dboard-alert-title {
-  font-weight: 600;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.dboard-alert .dboard-alert-desc {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 3px;
-}
-.dboard-alert .dboard-alert-meta {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-  opacity: .7;
-}
-.dboard-alert-tag {
-  display: inline-block;
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .2px;
-  white-space: nowrap;
-  border-radius: var(--r-full);
-}
-.dboard-alert-tag.danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.dboard-alert-tag.warning { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-.dboard-alert-tag.success { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
-.dboard-alert-tag.info { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-
-/* Dashboard Table - Premium */
-.dboard-table-wrap {
+/* ===== 通用表格容器 .tbl-wrap =====
+   原先挂在 .dboard-table-wrap 名下，但它其实被非看板页面共用（如系统设置-组织架构权限矩阵），
+   不是看板专属，故改为中性类名。看板自己的表格用 .ct-wrap / .ct-table。 */
+.tbl-wrap {
   background: var(--surface);
   border: 1px solid var(--border);
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0,0,0,.04);
   border-radius: var(--r-xl);
 }
-.dboard-table-wrap table {
+.tbl-wrap table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13px;
 }
-.dboard-table-wrap thead th {
-  background: #f8fafc;
+.tbl-wrap thead th {
+  background: var(--gray-50);
   padding: 10px 14px;
   font-size: 11px;
   font-weight: 600;
@@ -1340,68 +1331,16 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
   text-transform: uppercase;
   color: var(--gray-400);
 }
-.dboard-table-wrap tbody td {
+.tbl-wrap tbody td {
   padding: 10px 14px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--gray-100);
   vertical-align: middle;
 }
-.dboard-table-wrap tbody tr:last-child td { border-bottom: none; }
-.dboard-table-wrap tbody tr { transition: background .15s ease; }
-.dboard-table-wrap tbody tr:hover { background: #fafbfc; }
-.dboard-table-wrap tbody tr.row-expired { background: #fef2f2; }
-.dboard-table-wrap tbody tr.row-expired:hover { background: #fee2e2; }
-
-/* Dashboard Renew Button - Premium */
-.dboard-renew {
-  background: linear-gradient(135deg, #059669, #10b981);
-  color: #fff;
-  padding: 5px 14px;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-  border-radius: var(--r-full);
-}
-.dboard-renew:hover {
-  background: linear-gradient(135deg, #047857, #059669);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(5,150,105,.25);
-}
-
-/* Dashboard Empty State - Premium */
-.dboard-empty {
-  background: var(--surface);
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  padding: 24px 20px;
-  text-align: center;
-}
-.dboard-empty .dboard-empty-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--success-bg);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-.dboard-empty .dboard-empty-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-.dboard-empty .dboard-empty-sub {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-  opacity: .7;
-}
+.tbl-wrap tbody tr { transition: background .15s ease; }
+.tbl-wrap tbody tr:hover { background: var(--gray-50); }
+.tbl-wrap tbody tr:last-child td { border-bottom: none; }
+.tbl-wrap tbody tr.row-expired { background: var(--danger-bg); }
+.tbl-wrap tbody tr.row-expired:hover { background: #FEE2E2; }
 
 /* ===== WeChat Staff Grid（管理通知接收人）===== */
 .wechat-staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }

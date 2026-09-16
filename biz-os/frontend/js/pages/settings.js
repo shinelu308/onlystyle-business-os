@@ -75,7 +75,7 @@ function _renderSettingsTab(tab) {
 
 // 页面定义列表（给权限矩阵用）
 var PAGE_LABELS = {
-  dashboard: '工作台', suppliers: '资源管理', spatial: '项目管理',
+  dashboard: '数据看板', suppliers: '资源管理', spatial: '项目管理',
   customers: '客户管理', contracts: '合同管理', content: '内容管理', settings: '系统设置'
 };
 
@@ -181,7 +181,7 @@ function renderRolePermEditor(rolePerms) {
   }
 
   // 可编辑权限矩阵
-  var matrixHtml = '<div class="dboard-table-wrap" style="margin-top:12px"><table><thead><tr><th style="min-width:70px">角色</th>';
+  var matrixHtml = '<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th style="min-width:70px">角色</th>';
   for (var pi = 0; pi < pageKeys.length; pi++) {
     matrixHtml += '<th style="text-align:center;font-size:10px;padding:10px 4px;cursor:pointer" onclick="toggleAllRoleForPage(\'' + pageKeys[pi] + '\')" title="点击切换此模块全选/全不选">' + (PAGE_LABELS[pageKeys[pi]] || pageKeys[pi]) + '</th>';
   }
