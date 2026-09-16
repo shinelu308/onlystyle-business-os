@@ -1,0 +1,17 @@
+# 依赖与构建产物
+node_modules/
+dist/
+
+# 截图 / 临时
+outputs/
+*.local
+
+# 编辑器
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# 日志
+npm-debug.log*
+yarn-error.log*

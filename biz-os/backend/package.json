@@ -1,0 +1,18 @@
+{
+  "name": "broadband-it-service-os",
+  "version": "1.0.0",
+  "description": "智能业务管理系统 - 宽带转售与IT外包服务OS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3",
+    "sql.js": "^1.10.0",
+    "xlsx": "^0.18.5"
+  }
+}

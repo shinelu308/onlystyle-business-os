@@ -1,0 +1,22 @@
+{
+  "name": "onlystyle-website",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ONLYSTYLE 官网（Vue3 + Vite + 预渲染）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 3201",
+    "prerender": "node scripts/prerender.js",
+    "build:full": "vite build && node scripts/prerender.js"
+  },
+  "dependencies": {
+    "vue": "^3.4.38",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "vite": "^5.4.10"
+  }
+}

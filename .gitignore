@@ -1,0 +1,46 @@
+# ============================================================
+# 根级 .gitignore —— 多业务线系统（biz-os）+ ONLYSTYLE 官网（website）
+# ============================================================
+
+# ----- 依赖 -----
+node_modules/
+
+# ----- 构建产物 -----
+website/dist/
+
+# ----- 设计工作区：架构文档 / 设计稿 / 效果图 / 审计截图（约 83 MB）-----
+# 只留在本地，不进库以保持仓库轻快。
+# 若要把架构文档一起纳入版本管理，删掉下面这行、改用：
+#   design/
+#   !design/*.md
+#   !design/mockups/*.html
+design/
+
+# ----- 数据库：含 content_token 与业务数据，绝不入库 -----
+biz-os/backend/*.db
+biz-os/backend/*.db.*
+biz-os/backend/uploads/
+
+# ----- WorkBuddy 工具状态（会话记录 / 记忆 / 临时；记忆文件内含令牌）-----
+.workbuddy/
+
+# ----- 浏览器 profile 与本地临时 -----
+.diag-profile*/
+.chrome-profile/
+outputs/
+*.local
+
+# ----- 日志 -----
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ----- 编辑器 / 系统 -----
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# ----- 杂项：shell 重定向误产生的垃圾文件 -----
+$null

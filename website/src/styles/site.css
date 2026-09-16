@@ -1,0 +1,746 @@
+/* ============================================================
+   工程自有样式：设计稿没覆盖到的部分写在这里
+   （design-system.css 是设计稿原样搬运，不要手改它）
+   ============================================================ */
+
+/* ─── 路由版基础：nav 是 fixed，内页要给顶部留位 ─── */
+.page {
+  padding-top: var(--nav-h);
+}
+
+/* 首页 Hero 是全屏的，不需要留位；设计稿的 .hero 自己处理了 */
+.page-home {
+  padding-top: 0;
+}
+
+/* ─── 当前路由高亮（设计稿是单页锚点，没有"当前页"概念） ─── */
+.nav-links a.router-link-active {
+  color: var(--cyan);
+}
+
+/* ─── 内页页头 ─── */
+.page-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 104px 0 72px;
+  background: var(--dark);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.page-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(80% 120% at 78% 0%, rgba(31, 91, 255, 0.16) 0%, transparent 62%);
+  pointer-events: none;
+}
+.page-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+.page-crumb {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+.page-crumb a:hover {
+  color: var(--cyan);
+}
+.page-crumb span {
+  margin: 0 8px;
+  opacity: 0.5;
+}
+.page-title {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 18px;
+}
+.page-sub {
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--text-body);
+  max-width: 640px;
+}
+
+/* ─── 通用内容区 ─── */
+.section {
+  padding: 88px 0;
+}
+.section-alt {
+  background: var(--dark-2);
+}
+.section-tight {
+  padding: 64px 0;
+}
+
+/* ─── 通用卡片（内页用，比首页的卡片更朴素） ─── */
+.info-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  padding: 32px;
+  transition: border-color 0.25s, transform 0.25s, background 0.25s;
+}
+.info-card:hover {
+  border-color: rgba(59, 224, 255, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateY(-3px);
+}
+.info-grid {
+  display: grid;
+  gap: 24px;
+}
+.info-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.info-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.info-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ─── 富文本正文（案例/新闻详情用） ─── */
+.prose {
+  font-size: 15.5px;
+  line-height: 1.9;
+  color: var(--text-body);
+}
+.prose h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 32px 0 14px;
+}
+.prose p {
+  margin-bottom: 16px;
+}
+.prose ul {
+  padding-left: 20px;
+  margin-bottom: 16px;
+}
+.prose li {
+  margin-bottom: 8px;
+}
+.prose strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ─── 表单（线索提交） ─── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+  margin-bottom: 8px;
+}
+.field label .req {
+  color: var(--cyan);
+  margin-left: 4px;
+}
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 13px 15px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.7;
+}
+.field input::placeholder,
+.field textarea::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  outline: none;
+  border-color: rgba(59, 224, 255, 0.5);
+  background: rgba(255, 255, 255, 0.07);
+}
+.field.has-error input,
+.field.has-error textarea {
+  border-color: rgba(255, 92, 92, 0.6);
+}
+.field-error {
+  font-size: 12.5px;
+  color: #ff8a8a;
+  margin-top: 6px;
+  min-height: 16px;
+}
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+.form-note {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.form-result {
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 14px;
+  margin-top: 16px;
+}
+.form-result.ok {
+  background: rgba(22, 163, 74, 0.12);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  color: #7ee2a8;
+}
+.form-result.err {
+  background: rgba(255, 92, 92, 0.1);
+  border: 1px solid rgba(255, 92, 92, 0.3);
+  color: #ff9a9a;
+}
+
+/* ─── 备案号（设计稿漏了，中国大陆站点必须有） ─── */
+.footer-icp a {
+  color: inherit;
+  transition: color 0.2s;
+}
+.footer-icp a:hover {
+  color: var(--cyan);
+}
+
+/* ─── 筛选标签（案例页） ─── */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+.filter-btn {
+  font-size: 14px;
+  color: var(--text-body);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-btn);
+  padding: 9px 22px;
+  transition: all 0.2s;
+}
+.filter-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.filter-btn.on {
+  color: #fff;
+  background: var(--brand-gradient);
+  border-color: transparent;
+  box-shadow: 0 4px 18px rgba(31, 91, 255, 0.3);
+}
+
+/* ─── 空状态 ─── */
+.empty-state {
+  text-align: center;
+  padding: 72px 24px;
+  border: 1px dashed var(--card-border);
+  border-radius: var(--radius-card);
+  color: var(--text-muted);
+  font-size: 14.5px;
+}
+
+/* ─── 移动端菜单：必须不透明 ───
+   设计系统给的是 rgba(7,18,41,0.97) + backdrop-filter:blur(24px)。
+   实测（A/B 对照截图）叠在 <video> 背景上时 backdrop-filter 的表现不可靠，
+   下面 Hero 的大字会明显透上来（远强于 0.97 alpha 该有的 3%）。
+   这是个下拉面板，没有理由半透明 —— 直接改成实色。
+   另加 max-height + 滚动，避免横屏/小屏时菜单被裁掉。 */
+.nav-mobile {
+  background: var(--dark);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  max-height: calc(100vh - var(--nav-h));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── 滚动进场（只作用于视口下方的元素，见 composables/useReveal.js） ─── */
+.reveal-ready {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.reveal-ready.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ─── 按钮禁用态（提交中） ─── */
+.btn-primary:disabled,
+.btn-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ─── 首页案例卡：产品名 + 底部"查看全部" ─── */
+.case-product {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 2px 0 18px;
+}
+.section-more {
+  text-align: center;
+  margin-top: 48px;
+}
+
+/* ─── 关于我们 ─── */
+.about-intro {
+  align-items: start;
+  gap: 48px;
+}
+.about-intro .section-title {
+  margin-bottom: 0;
+}
+.vision-card {
+  padding: 36px 32px;
+}
+.vision-label {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 14px;
+}
+.vision-text {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+.value-card {
+  text-align: left;
+}
+.value-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 18px 0 8px;
+}
+.value-desc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-body);
+}
+
+/* ─── 解决方案页 ─── */
+.svc-block {
+  padding: 32px;
+}
+.svc-block-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.svc-block-title {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.svc-block-desc {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-body);
+}
+.svc-points {
+  list-style: none;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--card-border);
+  display: grid;
+  gap: 11px;
+}
+.svc-points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-body);
+}
+.svc-points .dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+}
+.ind-card {
+  text-align: center;
+}
+.ind-card .service-icon {
+  margin: 0 auto;
+}
+.ind-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 18px 0 10px;
+}
+.ind-desc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-body);
+}
+
+/* ─── 案例列表（横向卡） ─── */
+.cases-list {
+  display: grid;
+  gap: 24px;
+}
+.case-row {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.case-row-cover {
+  position: relative;
+  min-height: 240px;
+  background: var(--dark-3);
+}
+.case-row-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.case-row-body {
+  padding: 32px 34px;
+}
+.case-row-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 14px 0 8px;
+}
+.case-row-sub {
+  font-size: 14.5px;
+  color: var(--text-body);
+  margin-bottom: 22px;
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--card-border);
+}
+.metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.metric-label {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ─── 洞察动态 ─── */
+.news-list {
+  display: grid;
+  gap: 24px;
+}
+.news-row {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.news-cover {
+  position: relative;
+  min-height: 200px;
+  background: var(--dark-3);
+}
+.news-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.news-body {
+  padding: 28px 32px;
+}
+.news-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.news-cat {
+  font-size: 12.5px;
+  padding: 4px 12px;
+  border-radius: var(--radius-btn);
+  color: var(--cyan);
+  background: rgba(59, 224, 255, 0.08);
+  border: 1px solid rgba(59, 224, 255, 0.2);
+}
+.news-date {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+/* 多端分发溯源：文章来自哪个平台（原创不显示） */
+.news-source {
+  font-size: 12px;
+  padding: 2px 9px;
+  border-radius: var(--radius-btn);
+  color: var(--text-muted);
+  border: 1px solid var(--card-border);
+}
+.news-title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+.news-excerpt {
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--text-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.news-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--cyan);
+  margin-top: 18px;
+}
+.insight-card {
+  display: flex;
+  flex-direction: column;
+}
+.insight-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+.insight-desc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-body);
+  flex: 1;
+}
+.section-note {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 32px;
+}
+
+/* ─── 联系我们 ─── */
+.contact-card {
+  text-align: left;
+}
+.contact-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 16px 0 8px;
+}
+.contact-value {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+.contact-value.link {
+  transition: color 0.2s;
+}
+.contact-value.link:hover {
+  color: var(--cyan);
+}
+.contact-split {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+.contact-aside {
+  display: grid;
+  gap: 24px;
+}
+.aside-block {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+}
+.aside-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+.map-box {
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--dark-3);
+  border: 1px solid var(--card-border);
+}
+.map-canvas {
+  width: 100%;
+  height: 240px;
+}
+.map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 36px 20px;
+  text-align: center;
+}
+.map-addr {
+  font-size: 14.5px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+.map-btn {
+  font-size: 13.5px;
+  padding: 10px 22px;
+}
+.map-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.qr-box {
+  text-align: center;
+}
+.qr-box img {
+  width: 168px;
+  height: 168px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+}
+.qr-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 14px;
+}
+
+/* ─── 合作伙伴：源图是白底画布，改成白色圆角 chip 才压得住深色底 ─── */
+.partners-row {
+  gap: 16px;
+}
+.partner-item {
+  /* 覆盖设计系统的纯文字样式（含那条竖线分隔符） */
+  padding: 0;
+  background: #fff;
+  border-radius: 12px;
+  height: 62px;
+  width: 168px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.88;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.partner-item::after {
+  content: none !important;
+}
+.partner-item:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+.partner-item img {
+  display: block;
+  height: 30px;
+  width: auto;
+}
+.partner-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* ─── CTA 附加电话 ─── */
+.cta-contact {
+  margin-top: 22px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.cta-contact a {
+  color: var(--cyan);
+}
+
+/* ─── 404 ─── */
+.notfound-code {
+  font-size: 96px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 16px;
+}
+
+/* ─── 响应式 ─── */
+@media (max-width: 1024px) {
+  .info-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .page-title { font-size: 42px; }
+  .case-row { grid-template-columns: 260px 1fr; }
+  .news-row { grid-template-columns: 240px 1fr; }
+  .contact-split { grid-template-columns: 1fr; gap: 40px; }
+  .about-intro { gap: 24px; }
+  .partner-item { width: 148px; height: 56px; }
+  .partner-item img { height: 26px; }
+}
+@media (max-width: 768px) {
+  .page-hero { padding: 72px 0 48px; }
+  .page-title { font-size: 32px; }
+  .page-sub { font-size: 15px; }
+  .notfound-code { font-size: 64px; }
+  .section { padding: 56px 0; }
+  .info-grid-2,
+  .info-grid-3,
+  .info-grid-4 { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .info-card { padding: 24px; }
+  .case-row,
+  .news-row { grid-template-columns: 1fr; }
+  .case-row-cover,
+  .news-cover { min-height: 190px; }
+  .case-row-body,
+  .news-body { padding: 24px; }
+  .metric-grid { grid-template-columns: 1fr; gap: 12px; }
+  .vision-text { font-size: 17px; }
+  .partners-row { gap: 10px; }
+  .partner-item { width: 132px; height: 50px; }
+  .partner-item img { height: 22px; }
+}
+

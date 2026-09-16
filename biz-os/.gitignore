@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.DS_Store
+.codebuddy/
+backend/_test_*.js
+backend/uploads/
+*.backup
