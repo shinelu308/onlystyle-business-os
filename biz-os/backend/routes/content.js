@@ -46,13 +46,24 @@ const mapPage = (r) => ({
   },
 });
 
+/**
+ * buildSite 只允许导出的顶层组（白名单）。
+ * 🔴 这里必须是白名单、不能是黑名单：content_settings 是一张通用 KV 表，
+ *    由后台「系统设置」页写入，除了官网字段还躺着 admin.content_token
+ *    （= /api/content/admin/* 全部写接口的共享令牌 + 内容鉴权的签名密钥）
+ *    和 system 组内部键。而 /api/content/site 与 /bootstrap 都是公开无鉴权接口，
+ *    早期只过滤 /^content\./，导致令牌被公开 JSON 原样吐出 → 拿到即可改站。
+ *    新增官网字段时，把它的组名加到这里即可。
+ */
+const SITE_GROUPS = ['brand', 'contact', 'legal', 'seo', 'nav', 'footer'];
+
 /** KV 设置 → 扁平对象（brand.name → { brand: { name } }） */
 function buildSite(db) {
-  const rows = db.all('SELECT key, value, grp FROM content_settings');
+  const rows = db.all('SELECT key, value FROM content_settings');
   const out = {};
   for (const r of rows) {
-    if (/^content\./.test(r.key)) continue; // 内部键不外泄
     const [k1, k2] = r.key.split('.');
+    if (SITE_GROUPS.indexOf(k1) === -1) continue; // 白名单外一律不外泄
     if (!out[k1]) out[k1] = {};
     out[k1][k2 || 'value'] = r.value;
   }
