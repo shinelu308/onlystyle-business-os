@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONLYSTYLE 业务系统 · 云服务器一键部署手册</title>
+<style>
+  :root{
+    --brand-gradient:linear-gradient(135deg,#1F5BFF 0%,#3BE0FF 100%);
+    --ink-900:#071229; --ink-700:#1c2b4a; --ink-500:#4a5a76; --ink-400:#6b7a94;
+    --line:#e4e9f2; --line-soft:#eef2f8;
+    --bg:#f6f8fc; --card:#ffffff;
+    --blue:#1F5BFF; --cyan:#3BE0FF;
+    --red:#d92d20; --red-bg:#fef3f2; --red-line:#fda29b;
+    --amber:#b54708; --amber-bg:#fffaeb; --amber-line:#fec84b;
+    --green:#067647; --green-bg:#ecfdf3; --green-line:#75e0a7;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; scroll-padding-top:80px}
+  body{margin:0;background:var(--bg);color:var(--ink-700);font-family:var(--sans);
+       font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+
+  /* ---------- 顶栏 ---------- */
+  header.top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);
+    backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  header.top .bar{max-width:1180px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:14px}
+  .logo{width:34px;height:34px;border-radius:10px;background:var(--brand-gradient);
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:none}
+  .brandtxt{font-weight:800;letter-spacing:.04em;color:var(--ink-900);font-size:15px}
+  .brandtxt em{font-style:normal;background:var(--brand-gradient);-webkit-background-clip:text;
+    background-clip:text;-webkit-text-fill-color:transparent}
+  header.top .sub{color:var(--ink-400);font-size:12.5px;margin-left:auto;font-family:var(--mono)}
+
+  /* ---------- 布局 ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px 96px;display:grid;
+    grid-template-columns:212px minmax(0,1fr);gap:40px;align-items:start}
+  nav.toc{position:sticky;top:76px;padding:22px 0;font-size:13.5px}
+  nav.toc a{display:block;padding:5px 0 5px 12px;color:var(--ink-500);text-decoration:none;
+    border-left:2px solid transparent;transition:.15s}
+  nav.toc a:hover{color:var(--ink-900)}
+  nav.toc a.on{color:var(--blue);border-left-color:var(--blue);font-weight:600}
+  nav.toc .grp{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-400);
+    margin:18px 0 6px 12px;font-weight:700}
+  nav.toc .grp:first-child{margin-top:0}
+
+  /* ---------- Hero ---------- */
+  .hero{grid-column:1/-1;padding:52px 0 8px}
+  .hero h1{margin:0 0 10px;font-size:34px;line-height:1.25;letter-spacing:-.01em;color:var(--ink-900);font-weight:800}
+  .hero p.lead{margin:0;font-size:16px;color:var(--ink-500);max-width:760px}
+  .facts{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:28px 0 8px}
+  .fact{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden}
+  .fact::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:var(--brand-gradient)}
+  .fact .k{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-400);font-weight:700}
+  .fact .v{font-size:22px;font-weight:800;color:var(--ink-900);font-family:var(--mono);
+    letter-spacing:-.02em;margin-top:6px;line-height:1.25}
+  .fact .d{font-size:12.5px;color:var(--ink-400);margin-top:4px}
+
+  main{min-width:0}
+  section{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:30px 34px;margin:0 0 20px}
+  section.flat{background:transparent;border:0;padding:0 0 4px}
+  h2{margin:0 0 6px;font-size:22px;color:var(--ink-900);font-weight:800;letter-spacing:-.01em;
+    display:flex;align-items:baseline;gap:11px;scroll-margin-top:84px}
+  h2 .n{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;background:var(--blue);
+    border-radius:8px;padding:2px 8px;letter-spacing:.02em;flex:none;transform:translateY(-2px)}
+  section>p:first-of-type{margin-top:12px}
+  h3{margin:26px 0 8px;font-size:16px;color:var(--ink-900);font-weight:700}
+  h4{margin:18px 0 6px;font-size:14px;color:var(--ink-700);font-weight:700}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:5px 0}
+  a{color:var(--blue)}
+  code{font-family:var(--mono);font-size:.88em;background:var(--line-soft);border:1px solid var(--line);
+    border-radius:5px;padding:1px 5px;color:var(--ink-900);white-space:nowrap}
+  strong{color:var(--ink-900);font-weight:700}
+  kbd{font-family:var(--mono);font-size:11.5px;background:#fff;border:1px solid var(--line);
+    border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--ink-900);white-space:nowrap}
+  hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+
+  /* ---------- 代码块 ---------- */
+  .cb{position:relative;margin:12px 0}
+  .cb pre{margin:0;background:var(--ink-900);color:#dbe4f4;border-radius:12px;padding:15px 52px 15px 16px;
+    overflow-x:auto;font-family:var(--mono);font-size:12.8px;line-height:1.7}
+  .cb pre::-webkit-scrollbar{height:8px}
+  .cb pre::-webkit-scrollbar-thumb{background:#2c3e63;border-radius:4px}
+  /* ⚠️ 两条都必须重置：
+     ① 全局 code{white-space:nowrap} 会连进 pre code，把多行脚本/日志压成一行；
+     ② 提示框里的 .note.* code{background:rgba(255,255,255,.7)} 特异性(0,2,1) 高于
+        .cb pre code(0,1,2)，会给深色代码块套一层浅色底、把文字冲淡。
+        所以补一个 .note .cb pre code(0,3,1) 把它压住。 */
+  .cb pre code,
+  .note .cb pre code{white-space:pre;background:transparent;border:0;padding:0;
+    color:inherit;font-size:inherit;border-radius:0}
+  .cb .cp{position:absolute;top:9px;right:9px;background:rgba(255,255,255,.13);color:#e6edfa;border:0;
+    border-radius:7px;padding:4px 10px;font-size:11.5px;cursor:pointer;font-family:var(--sans);
+    transition:.15s;white-space:nowrap}
+  .cb .cp:hover{background:rgba(255,255,255,.26)}
+  .cb .cp.done{background:var(--green);color:#fff}
+  .cb .lb{position:absolute;top:-9px;left:14px;background:var(--ink-900);color:#8fa3c6;font-size:10.5px;
+    padding:1px 8px;border-radius:5px;font-family:var(--mono);letter-spacing:.04em;
+    border:1px solid #2b3c5e}
+
+  /* ---------- 卡片 / 表格 ---------- */
+  .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0}
+  .mini{border:1px solid var(--line);border-radius:12px;padding:15px 17px;background:#fcfdff}
+  .mini h4{margin:0 0 6px}
+  .mini p{margin:4px 0;font-size:13.5px;color:var(--ink-500)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--line-soft);color:var(--ink-900);font-weight:700;font-size:12.5px;
+    letter-spacing:.02em;white-space:nowrap}
+  td code{white-space:nowrap}
+  tbody tr:hover{background:#fafcff}
+  .tw{overflow-x:auto}
+
+  /* ---------- 提示框 ---------- */
+  .note{border-radius:12px;padding:14px 17px;margin:16px 0;font-size:14px;border:1px solid}
+  .note .t{font-weight:700;display:block;margin-bottom:4px;color:var(--ink-900)}
+  .note p:first-of-type{margin-top:0} .note p:last-child{margin-bottom:0}
+  .note.danger{background:var(--red-bg);border-color:var(--red-line);color:#7a271a}
+  .note.warn{background:var(--amber-bg);border-color:var(--amber-line);color:#7a2e0e}
+  .note.tip{background:var(--green-bg);border-color:var(--green-line);color:#054f31}
+  .note.info{background:#eff6ff;border-color:#a4c9ff;color:#1e3a8a}
+  .note.danger code,.note.warn code,.note.tip code,.note.info code{background:rgba(255,255,255,.7);
+    border-color:rgba(0,0,0,.09);color:inherit}
+  .note.danger strong,.note.warn strong,.note.tip strong,.note.info strong{color:inherit}
+
+  /* ---------- 步骤 ---------- */
+  ol.steps{list-style:none;counter-reset:s;padding:0;margin:16px 0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 20px 44px;border-left:2px solid var(--line);
+    margin:0 0 0 15px}
+  ol.steps>li:last-child{border-left-color:transparent;padding-bottom:0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:-16px;top:-2px;width:30px;height:30px;
+    border-radius:50%;background:#fff;border:2px solid var(--blue);color:var(--blue);font-weight:800;
+    font-size:13px;display:grid;place-items:center;font-family:var(--mono)}
+  ol.steps>li.done::before{background:var(--blue);color:#fff}
+  ol.steps>li h4{margin:2px 0 5px}
+
+  .pill{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1.5px 9px;
+    letter-spacing:.03em;vertical-align:middle}
+  .pill.b{background:#e8efff;color:#1F5BFF;border:1px solid #b9cfff}
+  .pill.g{background:var(--green-bg);color:var(--green);border:1px solid var(--green-line)}
+  .pill.r{background:var(--red-bg);color:var(--red);border:1px solid var(--red-line)}
+  .pill.a{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-line)}
+  .pill.n{background:var(--line-soft);color:var(--ink-400);border:1px solid var(--line)}
+
+  .flow{margin:18px 0;border:1px solid var(--line);border-radius:14px;background:#fbfdff;padding:6px}
+  .flow svg{display:block;width:100%;height:auto}
+
+  footer{grid-column:1/-1;text-align:center;color:var(--ink-400);font-size:12.5px;
+    padding:26px 0 0;border-top:1px solid var(--line);margin-top:8px}
+  footer code{font-size:11.5px}
+
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr;gap:0}
+    nav.toc{display:none}
+    .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid2{grid-template-columns:1fr}
+    section{padding:24px 20px}
+    .hero h1{font-size:26px}
+  }
+  @media print{
+    body{background:#fff;font-size:12px}
+    nav.toc,header.top .sub{display:none}
+    .wrap{display:block;max-width:none;padding:0}
+    section{break-inside:avoid;border:1px solid #ddd;box-shadow:none;page-break-inside:avoid}
+    .cb .cp{display:none}
+    .cb pre{background:#f5f5f5;color:#111;border:1px solid #ddd}
+    a{color:#000;text-decoration:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="bar">
+    <div class="logo">OS</div>
+    <div class="brandtxt">ONLY<em>STYLE</em> 部署手册</div>
+    <div class="sub">v1.0 · 2026-09-16</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>把业务系统部署到云服务器 —— 小白照着做就行</h1>
+    <p class="lead">
+      这套系统由两部分组成：<strong>官网</strong>（给人看的展示站）和 <strong>后台</strong>（给你自己用的管理系统）。
+      它们共用同一个后端，所以<strong>只需要一台服务器</strong>就能全跑起来。
+      下面是完整的操作步骤，从「买什么样的服务器」一直到「日常怎么备份」。
+    </p>
+  </div>
+
+  <div class="facts">
+    <div class="fact">
+      <div class="k">买什么</div>
+      <div class="v">2核2G</div>
+      <div class="d">轻量应用服务器 · Ubuntu 22.04</div>
+    </div>
+    <div class="fact">
+      <div class="k">花多少</div>
+      <div class="v">¥38~99<span style="font-size:13px">/年</span></div>
+      <div class="d">新用户首年 · 续费约 ¥300/年</div>
+    </div>
+    <div class="fact">
+      <div class="k">多久</div>
+      <div class="v">5<span style="font-size:13px">分钟</span></div>
+      <div class="d">买完机器之后，双击一下就好</div>
+    </div>
+    <div class="fact">
+      <div class="k">你要会什么</div>
+      <div class="v">0</div>
+      <div class="d">不用会命令，不用装软件</div>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <div class="grp">准备</div>
+    <a href="#s1">1 · 买一台服务器</a>
+    <a href="#s2">2 · 域名与备案</a>
+    <a href="#s3">3 · 买完先做两件事</a>
+    <div class="grp">开跑</div>
+    <a href="#s4">4 · 一键部署</a>
+    <a href="#s5">5 · 验证清单</a>
+    <div class="grp">用起来</div>
+    <a href="#s6">6 · 日常运维</a>
+    <a href="#s7">7 · 数据安全</a>
+    <a href="#s8">8 · 故障速查</a>
+    <a href="#s9">9 · 后续可选</a>
+    <div class="grp">附录</div>
+    <a href="#a1">A · 目录与端口</a>
+    <a href="#a2">B · 脚本做了什么</a>
+    <a href="#a3">C · FAQ</a>
+  </nav>
+
+  <main>
+
+    <!-- ================= 1 ================= -->
+    <section id="s1">
+      <h2><span class="n">01</span>买一台服务器</h2>
+      <p>
+        去 <strong>腾讯云</strong> 或 <strong>阿里云</strong> 官网，搜「<strong>轻量应用服务器</strong>」——
+        注意是「轻量应用服务器」而不是「云服务器 ECS/CVM」。轻量的好处是：控制台简单、自带网页终端、
+        防火墙是图形化点选的，最适合新手。
+      </p>
+
+      <h3>推荐配置</h3>
+      <div class="tw">
+      <table>
+        <thead><tr><th>项目</th><th>选这个</th><th>为什么</th></tr></thead>
+        <tbody>
+          <tr><td>产品</td><td>轻量应用服务器</td><td>控制台最简单，比同配置的 ECS/CVM 便宜三成以上</td></tr>
+          <tr><td>地域</td><td><strong>中国香港</strong> 或 上海/广州</td><td>看下一节「域名与备案」再决定</td></tr>
+          <tr><td>镜像</td><td><strong>Ubuntu 22.04 LTS</strong></td><td>本手册的脚本在 Ubuntu/Debian/CentOS 上都能跑，但 Ubuntu 最省事</td></tr>
+          <tr><td>CPU / 内存</td><td><strong>2 核 2 GB</strong></td><td>最低 1 核 1 GB 也能跑（详见下方说明）</td></tr>
+          <tr><td>系统盘</td><td>40~60 GB SSD</td><td>项目本体只有约 27 MB，40 GB 绰绰有余</td></tr>
+          <tr><td>带宽</td><td>3~5 Mbps</td><td>内部小团队办公够用；对外公开访问量大再考虑升配或上 CDN</td></tr>
+          <tr><td>时长</td><td>先买 1 年</td><td>很多优惠是首年价，续费会涨</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="note tip">
+        <span class="t">1 核 1 GB 够不够？</span>
+        <p>
+          够。因为「构建官网」这一步是在<strong>你自己的电脑上</strong>完成的，服务器只负责跑现成的代码，
+          不需要编译。1 核 1 GB 跑 Node 后端 + nginx 完全没压力。
+          之所以推荐 2 GB，是因为网页构建（vite build）如果在服务器上跑，1 GB 内存容易中途失败 ——
+          买大一点省心，差价也就几十块。
+        </p>
+      </div>
+
+      <h3>价格参考（2026 年 9 月）</h3>
+      <p>下面是大致行情，<strong>实际以官网实时价格为准</strong>：</p>
+      <div class="tw">
+      <table>
+        <thead><tr><th>配置</th><th>新用户首年</th><th>续费参考</th></tr></thead>
+        <tbody>
+          <tr><td>轻量 2核2G3M</td><td><strong>约 ¥38~99 / 年</strong>（秒杀/入门款）</td><td>约 ¥300 / 年</td></tr>
+          <tr><td>轻量 2核4G5M</td><td>约 ¥188 / 年</td><td>约 ¥400 / 年</td></tr>
+          <tr><td>轻量 4核8G12M</td><td>约 ¥880 / 年</td><td>约 ¥1200 / 年</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="note warn">
+        <span class="t">别被「38 元/年」骗了 —— 这是首年价</span>
+        <p>
+          那个超低价是<strong>新用户首年秒杀</strong>，第二年续费通常涨到 ¥300 左右。
+          下单前看清楚两件事：<strong>① 是不是新用户专享；② 续费价是多少</strong>。
+          有些机型标着「同价续费」，那种更划算。
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 2 ================= -->
+    <section id="s2">
+      <h2><span class="n">02</span>域名与备案：你这种情况怎么选</h2>
+      <p>
+        你的情况是：<strong>有域名，但没备案</strong>。这个组合决定了下面的选择，
+        因为国内服务器有一条硬规矩：
+      </p>
+      <div class="note danger">
+        <span class="t">硬规矩：中国大陆的服务器，用域名访问 80 / 443 端口必须完成 ICP 备案</span>
+        <p>
+          不备案的话，用域名打开会直接被拦掉。<strong>但是</strong>——
+          用 <code>http://公网IP:8080</code> 这种「IP + 非 80 端口」的方式访问，是不受影响的，完全能用。
+        </p>
+      </div>
+
+      <div class="flow">
+        <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+          <defs>
+            <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L7,3 z" fill="#6b7a94"/>
+            </marker>
+          </defs>
+
+          <rect x="270" y="10" width="140" height="40" rx="10" fill="#e8efff" stroke="#b9cfff"/>
+          <text x="340" y="35" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1F5BFF">有域名 · 未备案</text>
+
+          <line x1="340" y1="50" x2="340" y2="72" stroke="#6b7a94" stroke-width="1.4" marker-end="url(#ar)"/>
+          <rect x="246" y="74" width="188" height="38" rx="10" fill="#ffffff" stroke="#e4e9f2"/>
+          <text x="340" y="98" text-anchor="middle" font-size="13" font-weight="600" fill="#1c2b4a">现在就要上线？</text>
+
+          <!-- left: HK -->
+          <line x1="246" y1="93" x2="150" y2="146" stroke="#6b7a94" stroke-width="1.4" marker-end="url(#ar)"/>
+          <text x="176" y="115" font-size="11.5" fill="#067647" font-weight="700">要，且要用域名</text>
+          <rect x="14" y="148" width="272" height="132" rx="12" fill="#ecfdf3" stroke="#75e0a7"/>
+          <text x="30" y="172" font-size="12.5" font-weight="800" fill="#067647">方案 A · 买中国香港节点（推荐）</text>
+          <text x="30" y="194" font-size="11.5" fill="#054f31">· 免备案，域名解析过去即可用</text>
+          <text x="30" y="213" font-size="11.5" fill="#054f31">· 可以走 80 / 443，能上 HTTPS 小锁</text>
+          <text x="30" y="232" font-size="11.5" fill="#054f31">· 国内访问延迟略高（约 +30~60ms）</text>
+          <text x="30" y="251" font-size="11.5" fill="#054f31">· 价格比大陆节点贵一些</text>
+          <text x="30" y="270" font-size="11.5" fill="#067647" font-weight="700">→ 唯一能马上用上域名的路</text>
+
+          <!-- right: mainland -->
+          <line x1="434" y1="93" x2="530" y2="146" stroke="#6b7a94" stroke-width="1.4" marker-end="url(#ar)"/>
+          <text x="470" y="115" font-size="11.5" fill="#b54708" font-weight="700">先跑起来就行</text>
+          <rect x="394" y="148" width="272" height="132" rx="12" fill="#fffaeb" stroke="#fec84b"/>
+          <text x="410" y="172" font-size="12.5" font-weight="800" fill="#b54708">方案 B · 买大陆节点 + IP 访问</text>
+          <text x="410" y="194" font-size="11.5" fill="#7a2e0e">· 便宜、国内快</text>
+          <text x="410" y="213" font-size="11.5" fill="#7a2e0e">· 域名单独留着，等备案完再接</text>
+          <text x="410" y="232" font-size="11.5" fill="#7a2e0e">· 访问地址长这样：</text>
+          <text x="410" y="251" font-size="11.5" fill="#7a2e0e" font-family="ui-monospace,monospace">  http://1.2.3.4:8080</text>
+          <text x="410" y="270" font-size="11.5" fill="#b54708" font-weight="700">→ 备案通过后再切域名，不用重装</text>
+        </svg>
+      </div>
+
+      <h3>两个方案怎么选</h3>
+      <div class="tw">
+      <table>
+        <thead><tr><th></th><th>方案 A · 中国香港</th><th>方案 B · 大陆节点</th></tr></thead>
+        <tbody>
+          <tr><td>域名直接可用</td><td><span class="pill g">可以</span></td><td><span class="pill r">要先备案</span></td></tr>
+          <tr><td>HTTPS 小锁</td><td><span class="pill g">随时可上</span></td><td><span class="pill a">备案后才能上</span></td></tr>
+          <tr><td>国内访问速度</td><td>慢一点，日常够用</td><td><span class="pill g">最快</span></td></tr>
+          <tr><td>价格</td><td>略贵</td><td><span class="pill g">便宜</span></td></tr>
+          <tr><td>适合谁</td><td>想马上用域名对外展示</td><td>内部先用、对外不着急</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="note info">
+        <span class="t">建议：先按方案 B 跑通，再决定要不要搬</span>
+        <p>
+          部署脚本和系统本身<strong>不依赖域名</strong>，两种方案装的东西一模一样。
+          所以最省心的路线是：先用大陆节点 + <code>IP:8080</code> 把系统跑通、确认没问题，
+          之后要么走备案，要么把服务器换成中国香港节点 —— 都是重新双击一次部署脚本的事，数据可以整包搬过去。
+        </p>
+      </div>
+
+      <h3>如果决定去备案</h3>
+      <ul>
+        <li>在云厂商控制台找「<strong>备案</strong>」入口，全程在线提交，不用寄材料</li>
+        <li>要求：服务器<strong>购买时长 ≥ 3 个月</strong>；域名在你名下；域名后缀在工信部许可列表内</li>
+        <li>周期：一般 <strong>1~20 个工作日</strong>，各省管局速度不同</li>
+        <li>备案期间服务器照常用，不影响你用 IP 访问</li>
+      </ul>
+    </section>
+
+    <!-- ================= 3 ================= -->
+    <section id="s3">
+      <h2><span class="n">03</span>买完先做两件事</h2>
+      <p>服务器开好之后，先别急着部署，去控制台做这两件事。加起来 3 分钟。</p>
+
+      <ol class="steps">
+        <li>
+          <h4>设置 root 密码</h4>
+          <p>
+            控制台 → 找到你的实例 → 「更多」→「<strong>重置密码</strong>」→ 设一个你自己记得住的密码 →
+            <strong>然后关机再开机</strong>（不是重启，是关机再开机，否则密码不生效）。
+          </p>
+          <p>新买的机器通常需要你先设密码才能用 SSH 登录，这一步不能跳。</p>
+        </li>
+        <li>
+          <h4>放行两个端口</h4>
+          <p>
+            控制台 → 实例 → 「<strong>防火墙</strong>」→「添加规则」，加上这两条：
+          </p>
+          <div class="tw">
+          <table>
+            <thead><tr><th>协议</th><th>端口</th><th>用途</th><th>要不要加</th></tr></thead>
+            <tbody>
+              <tr><td>TCP</td><td><code>8080</code></td><td>官网（对外展示）</td><td><span class="pill g">必须加</span></td></tr>
+              <tr><td>TCP</td><td><code>8081</code></td><td>后台（你自己用）</td><td><span class="pill g">必须加</span></td></tr>
+              <tr><td>TCP</td><td><code>22</code></td><td>远程登录，一般默认就开着</td><td><span class="pill b">通常已有</span></td></tr>
+              <tr><td>TCP</td><td><code>3100</code></td><td>后端内部端口</td><td><span class="pill r">千万别加</span></td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div class="note danger">
+            <span class="t">为什么 3100 绝对不能放行</span>
+            <p>
+              这个系统的「宽带业务」接口目前<strong>没有登录鉴权</strong>，谁能访问 3100 谁就能直接读写你的客户和合同数据。
+              我们让后端只监听在本机内部（<code>127.0.0.1</code>），外面必须先经过 nginx 那道带密码的门。
+              所以：<strong>3100 不出现在云防火墙里，就等于外面碰不到它。</strong>
+            </p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="note tip">
+        <span class="t">顺手记下公网 IP</span>
+        <p>
+          实例列表里那个「公网 IP」（形如 <code>123.45.67.89</code>）待会儿要填进配置。
+          这个 IP 会跟着实例走，只要不销毁实例就不会变。
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 4 ================= -->
+    <section id="s4">
+      <h2><span class="n">04</span>一键部署</h2>
+      <p>
+        部署工具已经放在项目的 <code>deploy/</code> 文件夹里。整套流程是：
+        <strong>在你电脑上把项目打包 → 传到服务器 → 服务器自己装好一切</strong>。
+        你只需要双击一个文件。
+      </p>
+
+      <h3>第一步：填一行配置</h3>
+      <p>
+        打开 <code>deploy</code> 文件夹，双击 <code>deploy.bat</code>。
+        <strong>第一次</strong>它会自动生成一个 <code>deploy.config.txt</code>，然后提示你去填。
+        用记事本打开它，只有这一行是必须改的：
+      </p>
+      <div class="cb">
+        <span class="lb">deploy.config.txt</span>
+        <button class="cp">复制</button>
+<pre><code>SERVER_IP=123.45.67.89</code></pre>
+      </div>
+      <p>
+        把 <code>123.45.67.89</code> 换成你自己的公网 IP，保存。
+        其他行<strong>先全部不用管</strong>（端口、口令之类的都有默认值）。
+      </p>
+
+      <h3>第二步：再双击一次</h3>
+      <p>保存后，再双击一次 <code>deploy.bat</code>。接下来你会看到它在自动干活：</p>
+      <div class="cb">
+        <button class="cp">复制</button>
+<pre><code>  ONLYSTYLE 业务系统 · 一键部署
+  项目目录：E:\开发项目\WorkBuddy\...
+
+==&gt; 1/6  读取部署配置
+    * root@123.45.67.89:22   官网 8080 / 后台 8081
+
+==&gt; 2/6  构建官网（website -&gt; dist）
+    * 构建完成
+
+==&gt; 3/6  打包安装包
+    * 原始 24.1 MB  →  压缩后 23.2 MB
+
+==&gt; 4/6  准备免密登录密钥
+    ! 首次连接：请按提示输入一次服务器密码
+      （接下来会装上免密密钥，以后就不用再输了）
+
+==&gt; 5/6  上传安装包到服务器
+
+==&gt; 6/6  在服务器上执行部署（约 2~5 分钟）
+    * nginx 已启动：官网 8080 / 后台 8081
+    ...
+  部署成功！</code></pre>
+      </div>
+
+      <div class="note info">
+        <span class="t">关于那个密码</span>
+        <p>
+          <strong>只有第一次会问你要密码</strong>（第 3 步设的那个 root 密码）。
+          脚本会顺手装一把专属密钥，之后每次部署都是<strong>双击即完成，不再问密码</strong>。
+        </p>
+        <p>
+          密码输入时屏幕上不会显示任何字符，这是正常的，照打然后回车就行。
+        </p>
+      </div>
+
+      <h3>就这么简单</h3>
+      <p>绿色的「部署成功！」出来之后，会有两个地址：</p>
+      <div class="grid2">
+        <div class="mini">
+          <h4>官网 <span class="pill b">给别人看</span></h4>
+          <p><code>http://123.45.67.89:8080</code></p>
+          <p>ONLYSTYLE 展示站：首页、服务、案例、关于我们、联系我们</p>
+        </div>
+        <div class="mini">
+          <h4>后台 <span class="pill a">给你自己用</span></h4>
+          <p><code>http://123.45.67.89:8081</code></p>
+          <p>数据看板、客户、合同、内容管理。会先弹一个账号密码框</p>
+        </div>
+      </div>
+
+      <div class="note tip">
+        <span class="t">后台的账号密码</span>
+        <p>
+          用户名默认 <code>onlystyle</code>。密码如果没在配置里写，脚本会<strong>随机生成一个 14 位密码，
+          并在部署结束的绿框里打印出来</strong> —— 记得抄下来。
+          忘了也没事，重新跑一次部署脚本会在新输出里再显示一次，或者按第 6 节的办法改掉。
+        </p>
+      </div>
+
+      <h3>试试别的方式（可选）</h3>
+      <div class="tw">
+      <table>
+        <thead><tr><th>我想要…</th><th>怎么做</th></tr></thead>
+        <tbody>
+          <tr><td>先看看会传什么，不连服务器</td><td><code>node deploy.cjs --dry-run</code></td></tr>
+          <tr><td>跳过官网构建（用上次的产物）</td><td><code>node deploy.cjs --skip-build</code></td></tr>
+          <tr><td>换官网端口</td><td>改配置里的 <code>WEB_PORT</code></td></tr>
+          <tr><td>同时配域名和 HTTPS</td><td>配置里填 <code>DOMAIN=你的域名</code>、<code>USE_HTTPS=1</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <!-- ================= 5 ================= -->
+    <section id="s5">
+      <h2><span class="n">05</span>验证清单</h2>
+      <p>照着顺序点一遍，全绿就说明整套系统真的通了。</p>
+      <div class="tw">
+      <table>
+        <thead><tr><th>#</th><th>打开这个</th><th>应该看到</th><th>不对的话</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>http://IP:8080</code></td>
+            <td>官网首页，图片文字都正常</td>
+            <td>看第 8 节 →「两个地址都打不开」</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>http://IP:8080/api/content/home</code></td>
+            <td>一大串 JSON 数据（<strong>这是关键一步</strong>）</td>
+            <td>说明 nginx 没反代到后端 → 看日志</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><code>http://IP:8081</code></td>
+            <td>先弹账号密码框，输了之后进数据看板</td>
+            <td>密码错 → 重跑部署脚本看新密码</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>后台改一条内容 → 刷官网</td>
+            <td>官网跟着变了</td>
+            <td>按 <kbd>Ctrl</kbd>+<kbd>F5</kbd> 硬刷新再试</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>在服务器上跑 <code>pm2 list</code></td>
+            <td><code>onlystyle-api</code> 是绿色的 <code>online</code></td>
+            <td>是红色 <code>errored</code> → 看 <code>pm2 logs</code></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="note info">
+        <span class="t">第 4 条是最重要的一条</span>
+        <p>
+          它验证的是「<strong>后台改的东西，前台真的会变</strong>」——
+          也就是整套内容中台的闭环。这条通过，说明数据库、接口、官网三者都是通的。
+        </p>
+        <p>
+          官网接口带了 60 秒缓存，所以改完可能要等一会儿或者硬刷新才看得到，这是正常设计，不是 bug。
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 6 ================= -->
+    <section id="s6">
+      <h2><span class="n">06</span>日常运维：记住这几条命令就够</h2>
+      <p>
+        这些命令要在<strong>服务器上</strong>执行。怎么进服务器？
+        云控制台 → 实例 → 「<strong>登录</strong>」，会打开一个网页版终端，直接就能敲命令。
+      </p>
+
+      <h3>最常用的五条</h3>
+      <div class="cb">
+        <span class="lb">服务器终端</span>
+        <button class="cp">复制</button>
+<pre><code>pm2 list                                  # 看服务活着没（online 就对了）
+pm2 logs onlystyle-api --lines 50         # 看最近 50 行日志（排查问题必用）
+pm2 restart onlystyle-api                 # 重启后端
+onlystyle-backup                          # 手动备份一次数据
+systemctl restart nginx                   # 重启 nginx（改了网站配置后用）</code></pre>
+      </div>
+
+      <h3>更新网站内容 / 改代码之后</h3>
+      <p>
+        不需要登录服务器。<strong>在本机重新双击一次 <code>deploy.bat</code> 就行</strong> ——
+        脚本是「幂等」的，可以反复执行，会覆盖掉旧代码，但<strong>不会动你的数据</strong>（见下一节）。
+      </p>
+
+      <h3>改后台密码</h3>
+      <p>在本机的 <code>deploy.config.txt</code> 里写上：</p>
+      <div class="cb">
+        <span class="lb">deploy.config.txt</span>
+        <button class="cp">复制</button>
+<pre><code>ADMIN_PASS=你的新密码</code></pre>
+      </div>
+      <p>保存后重新双击 <code>deploy.bat</code>，密码就换好了。</p>
+
+      <h3>改访问端口</h3>
+      <p>
+        改配置里的 <code>WEB_PORT</code> / <code>ADMIN_PORT</code>，重新部署。
+        <strong>但别忘了去云控制台防火墙放行新端口</strong>，否则改了也进不去。
+      </p>
+    </section>
+
+    <!-- ================= 7 ================= -->
+    <section id="s7">
+      <h2><span class="n">07</span>数据安全（这一节请认真看）</h2>
+
+      <div class="note tip">
+        <span class="t">好消息：这个系统的数据就是一个文件</span>
+        <p>
+          它用的是 SQLite（准确说是 <code>sql.js</code>），<strong>没有单独的数据库服务器</strong>。
+          你所有的客户、合同、内容，都在一个大约 240 KB 的文件里：
+        </p>
+        <div class="cb">
+          <button class="cp">复制</button>
+<pre><code>/opt/onlystyle/app/biz-os/backend/broadband_os.db</code></pre>
+        </div>
+        <p>
+          「备份数据」= 复制这个文件。就这么简单。上传的图片素材在同一层目录的 <code>uploads/</code> 里。
+        </p>
+      </div>
+
+      <h3>已经帮你配好自动备份</h3>
+      <ul>
+        <li><strong>每天凌晨 3:00</strong> 自动打包一次数据库 + 上传素材</li>
+        <li>存放在 <code>/opt/onlystyle/backups/</code>，<strong>只保留最近 14 份</strong>（更早的自动删）</li>
+        <li>想立刻备份：在服务器上敲 <code>onlystyle-backup</code></li>
+      </ul>
+
+      <h3>建议你额外做一件事</h3>
+      <p>
+        服务器如果整台挂了（或者误删实例），本地那份也一起没了。所以<strong>每个月下载一份到你自己电脑</strong>：
+      </p>
+      <div class="cb">
+        <span class="lb">在你自己的电脑上执行</span>
+        <button class="cp">复制</button>
+<pre><code>&gt; scp root@123.45.67.89:/opt/onlystyle/backups/*.tar.gz D:\备份\</code></pre>
+      </div>
+      <p>（Windows 自带 <code>scp</code>，直接在自己的终端里敲就行，会问一次服务器密码。）</p>
+
+      <div class="note danger">
+        <span class="t">两个绝对不能做的事</span>
+        <p>
+          <strong>① 不要删除 <code>/opt/onlystyle/</code> 这个目录。</strong>
+          全站的数据、上传的图片、程序本体都在里面，删了等于整站归零（只能靠备份恢复）。
+        </p>
+        <p>
+          <strong>② 不要用你电脑上的数据库去覆盖线上。</strong>
+          你本机的数据库是<strong>开发时的旧快照</strong>，覆盖上去会把线上真实数据全部冲掉。
+          部署脚本已经帮你设了保护：<strong>如果服务器上已经有数据库，它绝不会覆盖</strong>，
+          而是把你传上去的那份改名成 <code>broadband_os.db.incoming</code> 放着不动。
+          看到这个文件说明保护生效了，确认不需要就可以删掉。
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 8 ================= -->
+    <section id="s8">
+      <h2><span class="n">08</span>故障速查</h2>
+      <p>按「症状」找，基本都在里面。</p>
+      <div class="tw">
+      <table>
+        <thead><tr><th>症状</th><th>最可能的原因</th><th>怎么修</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>两个地址都打不开</strong><br><span class="pill r">最常见</span></td>
+            <td>云控制台防火墙没放行端口（十次里有九次是这个）</td>
+            <td>控制台 → 防火墙 → 加规则放行 <code>8080</code> 和 <code>8081</code></td>
+          </tr>
+          <tr>
+            <td>浏览器一直转圈，最后超时</td>
+            <td>端口放行了，但服务没起来</td>
+            <td><code>pm2 list</code> 看看是不是 <code>errored</code>，再 <code>pm2 logs onlystyle-api --lines 50</code></td>
+          </tr>
+          <tr>
+            <td>官网能打开，但页面是白屏</td>
+            <td>官网构建产物没传上去</td>
+            <td>本机重新双击 <code>deploy.bat</code>（注意看第 2 步构建有没有报错）</td>
+          </tr>
+          <tr>
+            <td>官网能打开，但 <code>/api/...</code> 返回 502</td>
+            <td>nginx 正常，后端挂了</td>
+            <td><code>pm2 restart onlystyle-api</code>，还不行就看日志</td>
+          </tr>
+          <tr>
+            <td>官网能打开，但页面没有内容</td>
+            <td>接口没反代成功</td>
+            <td>先单独访问 <code>http://IP:8080/api/content/home</code>，确认能出 JSON</td>
+          </tr>
+          <tr>
+            <td>后台能改，官网死活不变</td>
+            <td>浏览器缓存了旧内容（接口有 60 秒缓存）</td>
+            <td>按 <kbd>Ctrl</kbd>+<kbd>F5</kbd> 硬刷新；等 1 分钟再试</td>
+          </tr>
+          <tr>
+            <td>后台的图片传上去不显示</td>
+            <td><code>uploads</code> 目录权限问题</td>
+            <td>服务器上执行 <code>chmod -R a+rX /opt/onlystyle/app</code></td>
+          </tr>
+          <tr>
+            <td>提示 <code>Permission denied (publickey,password)</code></td>
+            <td>root 密码没设，或 22 端口没放行</td>
+            <td>回第 3 节：重置密码 + 关机再开机 + 放行 22</td>
+          </tr>
+          <tr>
+            <td>提示 <code>取不到 Node 下载地址</code></td>
+            <td>服务器连不上外网</td>
+            <td>检查云防火墙的「出网」规则，或先用 <code>curl -I https://www.baidu.com</code> 测一下</td>
+          </tr>
+          <tr>
+            <td>打开是 nginx 的欢迎页</td>
+            <td>系统自带的默认站点抢了请求</td>
+            <td>服务器上执行 <code>rm -f /etc/nginx/sites-enabled/default &amp;&amp; systemctl restart nginx</code></td>
+          </tr>
+          <tr>
+            <td>上传大文件（比如视频）失败</td>
+            <td>nginx 请求体大小限制</td>
+            <td>脚本已设成 20 MB；更大的话改 <code>client_max_body_size</code> 后重启 nginx</td>
+          </tr>
+          <tr>
+            <td>合同状态在早上不对劲</td>
+            <td>服务器时区不是东八区</td>
+            <td>脚本已自动设成 <code>Asia/Shanghai</code>；用 <code>date</code> 确认一下</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="note info">
+        <span class="t">还是搞不定？</span>
+        <p>
+          把这三样发我，基本能定位：
+          <strong>①</strong> 服务器上 <code>pm2 logs onlystyle-api --lines 80</code> 的输出；
+          <strong>②</strong> <code>nginx -t</code> 的输出；
+          <strong>③</strong> 你双击部署时那个黑窗口里的完整文字。
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 9 ================= -->
+    <section id="s9">
+      <h2><span class="n">09</span>后续可选（不着急）</h2>
+      <p>先跑通，这些等有需要的时候再做。</p>
+
+      <h3>上一个 HTTPS 小锁</h3>
+      <p>前提是域名已经能访问（即：中国香港节点，或大陆节点已备案完成）。然后：</p>
+      <div class="cb">
+        <span class="lb">deploy.config.txt</span>
+        <button class="cp">复制</button>
+<pre><code>DOMAIN=example.com
+USE_HTTPS=1</code></pre>
+      </div>
+      <p>
+        重新双击 <code>deploy.bat</code>。脚本会额外生成 <code>example.com</code>、<code>www.example.com</code>（官网）
+        和 <code>admin.example.com</code>（后台）三个站点，并自动申请一个免费的
+        Let's Encrypt 证书，<strong>自动续期，永久免费</strong>。
+      </p>
+      <p>用之前先确认：域名的 DNS 解析里，这三条记录都指向了服务器公网 IP。</p>
+
+      <h3>其他可以慢慢加的</h3>
+      <div class="tw">
+      <table>
+        <thead><tr><th>想做</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>给宽带业务接口加真正的登录鉴权</td><td>目前用 nginx 的密码框兜着，属于「先锁上门」；正式的多角色权限是下一阶段的事</td></tr>
+          <tr><td>官网做搜索引擎优化（预渲染）</td><td>项目里预留了 <code>scripts/prerender.js</code>，还没实现</td></tr>
+          <tr><td>字体自托管</td><td>目前回落到系统字体，装上品牌字体会更统一</td></tr>
+          <tr><td>把上传素材搬去对象存储</td><td>图片视频多了以后，能省服务器带宽</td></tr>
+          <tr><td>加监控告警</td><td>服务挂了自动发消息给你</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="note warn">
+        <span class="t">一个已经知道的小毛病</span>
+        <p>
+          后端的自动状态更新（每天 9:00 那次）用了一个会在特定情况下差一天的取日期写法，
+          理论上在东八区凌晨 0:00~8:00 之间可能让合同状态判断错一天。
+          脚本已经把服务器时区设对了，所以只在很窄的时间窗口有点影响。
+          <strong>这是个独立的代码修复，需要你确认后我再动源码</strong>——目前没有改动任何业务代码。
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 附录 A ================= -->
+    <section id="a1">
+      <h2><span class="n">A</span>目录与端口一览</h2>
+
+      <h3>服务器上的目录</h3>
+      <div class="cb">
+        <button class="cp">复制</button>
+<pre><code>/opt/onlystyle/
+├── app/                          ← 程序本体
+│   ├── biz-os/
+│   │   ├── backend/              ← Node 后端（跑在 3100，只对本机开放）
+│   │   │   ├── broadband_os.db   ← 🔴 你的全部业务数据（约 240 KB）
+│   │   │   ├── uploads/          ← 后台传的图片素材
+│   │   │   ├── routes/           ← 各个接口
+│   │   │   └── server.js
+│   │   └── frontend/             ← 后台管理界面
+│   └── website/
+│       └── dist/                 ← 官网构建产物（nginx 直接读这里）
+├── backups/                      ← 每天 3:00 的自动备份（留 14 份）
+├── logs/                         ← 后端日志
+└── ecosystem.config.js           ← pm2 进程守护配置</code></pre>
+      </div>
+      <p>系统里还有一个命令：<code>/usr/local/bin/onlystyle-backup</code>（就是那个手动备份）。</p>
+
+      <h3>端口</h3>
+      <div class="tw">
+      <table>
+        <thead><tr><th>端口</th><th>谁在监听</th><th>对外</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><code>8080</code></td><td>nginx</td><td><span class="pill g">开放</span></td><td>官网首页（静态 + 反代接口）</td></tr>
+          <tr><td><code>8081</code></td><td>nginx</td><td><span class="pill a">开放·带密码</span></td><td>后台管理界面</td></tr>
+          <tr><td><code>3100</code></td><td>Node 后端</td><td><span class="pill r">仅本机</span></td><td>所有数据接口的真实入口</td></tr>
+          <tr><td><code>22</code></td><td>sshd</td><td><span class="pill b">开放</span></td><td>远程登录（部署脚本要用）</td></tr>
+          <tr><td><code>80 / 443</code></td><td>nginx</td><td><span class="pill n">配域名后</span></td><td>域名访问与 HTTPS</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <!-- ================= 附录 B ================= -->
+    <section id="a2">
+      <h2><span class="n">B</span>那个脚本到底做了什么</h2>
+      <p>
+        整个过程分成两半：你电脑上的 <code>deploy.cjs</code>，和服务器上的 <code>bootstrap.sh</code>。
+        它一共做这些事，都是自动的：
+      </p>
+
+      <h3>在你电脑上（约 1 分钟）</h3>
+      <ol>
+        <li>读取 <code>deploy.config.txt</code></li>
+        <li>构建官网（<code>vite build</code> → <code>website/dist</code>）</li>
+        <li>打包「后端 + 后台界面 + 官网产物 + 数据库」，<strong>排除</strong>掉 <code>node_modules</code>、开发素材和历史备份快照（24 MB → 压缩后 23 MB）</li>
+        <li>生成一把仅用于部署的 SSH 密钥，装到服务器上实现免密登录</li>
+        <li>把安装包和脚本上传到服务器的 <code>/tmp/</code></li>
+      </ol>
+
+      <h3>在服务器上（约 2~5 分钟）</h3>
+      <ol class="steps">
+        <li><h4>识别系统</h4><p>自动判断是 apt 还是 yum/dnf，Ubuntu、Debian、CentOS 都能跑</p></li>
+        <li><h4>把时区设成 Asia/Shanghai</h4>
+          <p>不能省。后端有「每天 9:00 自动检查合同到期」的定时任务，时区错了状态就会差一天。</p></li>
+        <li><h4>装基础软件</h4><p>nginx、curl、tar、xz、openssl、证书包</p></li>
+        <li><h4>装 Node.js 22</h4>
+          <p>走国内镜像 <code>registry.npmmirror.com</code>，比官方源快很多。已经装过就跳过。</p></li>
+        <li><h4>解包代码</h4>
+          <p>
+            放到 <code>/opt/onlystyle/app</code>。
+            <strong>如果服务器上已经有数据库，会先备份一份，然后保留线上那份</strong>，
+            把你上传的改名为 <code>.incoming</code>，绝不覆盖。
+          </p></li>
+        <li><h4>装后端依赖 + 配进程守护</h4>
+          <p>
+            用 <code>pm2</code> 托管后端，<strong>崩溃自动重启、开机自动启动</strong>。
+            同时把后端改成只监听 <code>127.0.0.1</code>，外面碰不到 3100。
+          </p></li>
+        <li><h4>写 nginx 配置</h4>
+          <p>
+            <code>8080</code> 给官网（静态文件 + 把 <code>/api</code>、<code>/uploads</code> 转给后端），
+            <code>8081</code> 给后台（全量转给后端，并加一道账号密码），配了域名就再加三个域名站点。
+          </p></li>
+        <li><h4>装备份</h4>
+          <p>写一个 <code>onlystyle-backup</code> 命令，并注册每天 3:00 的定时任务，保留最近 14 份。</p></li>
+        <li><h4>放行本机防火墙</h4>
+          <p>如果服务器自己开了 ufw/firewalld，会自动放行 22、8080、8081。</p></li>
+        <li><h4>可选：申请 HTTPS 证书</h4>
+          <p>只有配置里填了域名并开了 <code>USE_HTTPS</code> 才会做。</p></li>
+      </ol>
+
+      <div class="note info">
+        <span class="t">它是幂等的</span>
+        <p>
+          「幂等」= 跑一百次和跑一次的结果一样。<strong>随时可以重新双击部署，把服务器刷成最新状态。</strong>
+          已经装好的不会重复装、不会报错，唯一会「覆盖」的是代码，而<strong>数据永远受保护</strong>。
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 附录 C ================= -->
+    <section id="a3">
+      <h2><span class="n">C</span>常见疑问</h2>
+
+      <h4>必须买云服务器吗？能不能用宝塔面板那种图形化的？</h4>
+      <p>
+        可以用宝塔，但没必要。宝塔省下的是「装环境」的功夫，而我们的脚本已经把这步自动化了；
+        用宝塔反而要多点十几下鼠标，而且宝塔本身是个额外的安全面。脚本这条路更快也更干净。
+      </p>
+
+      <h4>能不能不用服务器，用 Vercel / Zeabur 这类托管平台？</h4>
+      <p>
+        技术上可以，但<strong>不推荐</strong>。这套系统用的是「单文件 SQLite + 本地 uploads 目录」，
+        托管平台讲究无状态，必须额外买持久化卷才能保住数据，配置反而更麻烦、还可能丢数据。
+        而且国内访问这些平台的速度通常不理想。
+      </p>
+
+      <h4>用一个域名同时放官网和后台行吗？</h4>
+      <p>
+        行，但建议用子域名分开，比如官网 <code>www.example.com</code>、后台 <code>admin.example.com</code>。
+        脚本就是这个方案。好处是后台那道密码门可以单独加，不会影响官网访客。
+      </p>
+
+      <h4>我本机上的演示数据（30 个客户 / 46 份合同）会一起传上去吗？</h4>
+      <p>
+        <strong>首次部署会传上去</strong>（这样你一打开就有东西看，不是空壳）。
+        之后每次重新部署都<strong>不会再覆盖</strong>线上的数据。
+        想把演示数据清掉：<code>node design/mockups/dashboard-redesign/seed-demo-data.cjs --reset</code>，
+        但这个命令要停掉本地后端才能跑，而且<strong>只影响本机</strong>，线上要清得单独处理 ——
+        需要的话告诉我。
+      </p>
+
+      <h4>我电脑上要装什么吗？</h4>
+      <p>
+        只要能跑 Node.js（脚本会自己找）和系统自带的 <code>ssh</code>/<code>scp</code>/<code>tar</code>。
+        Windows 10 及以上这些都自带，<strong>不用额外装任何东西</strong>。
+      </p>
+
+      <h4>部署失败了怎么办？会不会把服务器搞坏？</h4>
+      <p>
+        不会。脚本每一步都会检查，出错就停下并告诉你卡在哪一步。
+        它是幂等的，修好问题重新双击就行，<strong>不会因为「跑到一半」而留下坏掉的状态</strong>。
+        而且它<strong>从不删除</strong>任何数据 —— 唯一会覆盖的是程序代码。
+      </p>
+
+      <h4>一年之后要续费多少？</h4>
+      <p>
+        看机型。新用户首年的低价通常不延续，续费价大约 ¥300/年左右（2核2G）。
+        有几个办法：关注「同价续费」的机型、买 3 年/5 年的长期套餐（常低至 2 折）、或者到期前迁移到新活动机型 ——
+        因为这套部署是一键的，换服务器成本很低（数据整包搬走即可）。
+      </p>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>
+      ONLYSTYLE 业务系统 · 云服务器部署手册 ·
+      配套脚本位于 <code>deploy/</code> · 本手册可离线阅读，也可直接打印
+    </p>
+    <p style="margin-top:4px">
+      价格与政策信息随时会变，下单前请以云厂商官网为准。
+    </p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  // ---- 代码块复制按钮 ----
+  document.querySelectorAll('.cb').forEach(function (box) {
+    var btn = box.querySelector('.cp');
+    var pre = box.querySelector('pre');
+    if (!btn || !pre) return;
+    btn.addEventListener('click', function () {
+      var text = pre.innerText.replace(/\u00a0/g, ' ');
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = '已复制';
+        btn.classList.add('done');
+        setTimeout(function () { btn.textContent = old; btn.classList.remove('done'); }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+      } else {
+        fallback(text, done);
+      }
+    });
+  });
+  function fallback(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  // ---- 目录高亮 ----
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var targets = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  var spy = function () {
+    // 用 getBoundingClientRect 而不是 offsetTop —— 不受 offsetParent 影响，更准
+    var idx = 0;
+    targets.forEach(function (t, i) {
+      if (t && t.getBoundingClientRect().top <= 130) idx = i;
+    });
+    links.forEach(function (a, i) { a.classList.toggle('on', i === idx); });
+  };
+  var tick = false;
+  window.addEventListener('scroll', function () {
+    if (tick) return;
+    tick = true;
+    requestAnimationFrame(function () { spy(); tick = false; });
+  }, { passive: true });
+  spy();
+})();
+</script>
+</body>
+</html>
