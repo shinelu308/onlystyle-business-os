@@ -785,6 +785,17 @@ label.required::after, .form-group label.required::after, .settings-field label.
   background: var(--brand-gradient);
   border-radius: var(--r-lg);
 }
+
+/* 换上透明 logo 后，原来的「品牌渐变小方块」会和蓝 logo 蓝压蓝看不清；
+   但也不能换成浅色方块 —— 那等于把刚去掉的「白块」又加回来。
+   登录页本身是深色卡片，直接让透明 logo 落在卡片上，与官网导航/页脚/侧栏口径一致。
+   （顺带少掉一处不该出现的品牌渐变：渐变只该在侧栏 logo / 菜单指示条 / 主按钮 / KPI 细线）*/
+.login-logo.has-img {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.login-logo.has-img img {width:48px;height:48px;}
 .login-header h2 {
   font-size: 22px; font-weight: 700;
   color: #f1f5f9;
@@ -994,13 +1005,23 @@ label.required::after, .form-group label.required::after, .settings-field label.
 .logo-section-header { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
 .logo-section-header > div:first-child { flex: 1; }
 .logo-section-header .settings-desc { margin-bottom: 0; }
-.logo-upload-preview {
-  width: 90px; height: 36px; border: 1px solid var(--border); border-radius: 6px;
+/* 品牌图形预览：深色底 / 浅色底并排 —— 白底图的问题只会在深色底暴露，
+   所以两个底都要给运营看到，不能只给一个浅色预览。 */
+.logo-preview-pair { display: flex; gap: 8px; flex-shrink: 0; }
+.logo-preview-tile { display: flex; flex-direction: column; gap: 4px; }
+.logo-preview-cap { font-size: 10px; color: var(--text-secondary); letter-spacing: .04em; }
+.logo-preview-stage {
+  width: 74px; height: 40px; border: 1px solid var(--border); border-radius: 6px;
   display: flex; align-items: center; justify-content: center; overflow: hidden;
-  background: #f8fafc; flex-shrink: 0;
 }
-.logo-upload-preview img { max-width: 82px; max-height: 32px; object-fit: contain; }
-.logo-upload-preview span { color: var(--text-secondary); font-size: 11px; }
+.logo-preview-stage.dark { background: #071229; }
+.logo-preview-stage.light { background: #fff; }
+.logo-preview-stage img { max-width: 66px; max-height: 34px; object-fit: contain; }
+.logo-preview-stage span { color: var(--text-secondary); font-size: 11px; }
+.logo-warn {
+  margin: 0 0 12px; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.55;
+  background: #FFF8E8; border: 1px solid #F0DCA8; color: #8A5A08;
+}
 .logo-upload-compact {
   border: 1.5px dashed var(--border); border-radius: 8px; padding: 10px 16px;
   display: flex; align-items: center; gap: 10px; cursor: pointer;
@@ -1899,6 +1920,12 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 
 .logo-mark {display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
+
+/* 品牌图形（上传图）：侧栏与登录页共用同一张，尺寸在这里统一，
+   免得不同素材把侧栏头部撑高或把登录卡片挤变形。
+   写死 width/height 而不是 max-* —— 上传图的像素尺寸不可控。 */
+.logo-mark img {width:26px;height:26px;object-fit:contain;display:block;}
+.login-logo img {width:34px;height:34px;object-fit:contain;display:block;}
 
 .status-chip {display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;
   border:1px solid var(--border);border-radius:var(--r-full);background:var(--gray-50);

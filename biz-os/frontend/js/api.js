@@ -293,7 +293,8 @@ function applyBrandingSettings() {
     // 浏览器标题
     if (map.site_name) document.title = map.site_name;
     // 侧边栏品牌字：ONLYSTYLE 的 STYLE 要单独渐变（设计稿 .sb-brand-name span），
-    // 所以这里必须写 innerHTML —— 用 textContent 会把 <span> 抹掉，渐变就没了
+    // 所以这里必须写 innerHTML —— 用 textContent 会把 <span> 抹掉，渐变就没了。
+    // 切分规则（按 STYLE 后缀、不按长度折半）与后端 buildSite 逐字一致。
     if (map.site_abbreviation) {
       var ab = String(map.site_abbreviation);
       var m = ab.match(/^(.*?)(STYLE)$/i);
@@ -303,11 +304,16 @@ function applyBrandingSettings() {
     }
     // 侧边栏副标题
     if (map.logo_subtitle) $('sidebarSub').textContent = map.logo_subtitle;
-    // 侧栏品牌标记固定用设计稿的渐变描边 logo（系统身份，不随上传图变）；
-    // 上传的 logo_url 只作用于登录页，见下方 loginLogo
-    // 登录页 Logo
+    // 品牌图形：侧栏与登录页共用同一张，都跟着「系统设置 → 品牌标识 → Logo」走。
+    // 以前侧栏刻意忽略上传图、写死 SVG，所以「后台换了 logo 侧栏不动」——
+    // 现在只保留「没上传图时回落到 index.html 里的矢量兜底」这一条差异。
     if (map.logo_url) {
-      $('loginLogo').innerHTML = '<img src="' + escapeHtml(map.logo_url) + '" alt="logo" style="height:44px;max-width:150px;object-fit:contain">';
+      var lu = escapeHtml(map.logo_url);
+      $('sidebarLogo').innerHTML = '<img src="' + lu + '" alt="">';
+      $('loginLogo').innerHTML = '<img src="' + lu + '" alt="logo">';
+      // 登录页那个 56×56 是「品牌渐变小方块」，塞进一张透明 logo 会蓝压蓝看不清底，
+      // 换图后改成中性浅底（同时也少掉一处不该有的品牌渐变）。
+      $('loginLogo').className = 'login-logo has-img';
     }
     // 登录页标题
     if (map.company_name) $('loginTitle').textContent = map.company_name;

@@ -3,5 +3,20 @@ node_modules/
 .DS_Store
 .codebuddy/
 backend/_test_*.js
-backend/uploads/
+# ----- 上传目录：默认全部忽略（本机开发素材 / 用户上传 / 截图）-----
+# ⚠️ 但**品牌图形**必须入库：它是随包发布的线上必需品
+#    （官网导航 + 页脚 + 后台侧栏 + 登录页四处共用同一张，
+#      deploy.cjs 会把它单独拷进安装包）。不入库的后果：
+#    别人 clone 后 node deploy/selfcheck.cjs 第 8 节必红，也打不出完整安装包。
+#
+# 🔴 这里必须写 uploads/* 而不是 uploads/：
+#    写成 uploads/ 是「排除整个目录」，git 根本不会进这个目录，
+#    下面的 !例外 一起失效 —— .gitignore 最经典的坑。
+# 🔴 同理，根级 .gitignore 里也不要再写一遍 biz-os/backend/uploads/。
+#
+# 文件名是内容寻址的（logo_brand.<sha256前8位>.png）：/uploads/* 带 immutable
+# 一年缓存，换图必须换名才能让老访客看到 —— 所以例外规则用通配。
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/logo_brand.*.png
 *.backup

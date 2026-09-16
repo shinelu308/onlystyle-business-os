@@ -189,6 +189,55 @@ check(!/[^\x00-\x7F]/.test(fs.readFileSync(path.join(ROOT, 'deploy', 'deploy.bat
       'deploy.bat 是纯 ASCII（不会被代码页搞坏）');
 
 // ---------------------------------------------------------------------------
+// 8. 品牌素材必须随包发布
+//    uploads 整体被排除（本机开发素材），但品牌图形是线上必需品：
+//    express.static 挂在 /uploads/，两套 nginx 都反代了 /uploads。
+//    漏掉这步，线上官网与后台四处全是裂图。
+//    ⚠️ 文件名是**内容寻址**的：logo_brand.<sha256前8位>.png。
+//       /uploads/* 的缓存头是 `public, max-age=31536000, immutable`，
+//       固定名换图 = 老访客一年看不到更新。所以这里按哈希名扫描，不写死文件名。
+// ---------------------------------------------------------------------------
+console.log('\n\x1b[1m[8] 品牌素材随包发布\x1b[0m');
+check(/name !== 'uploads'/.test(deploySrc), 'beSkip 仍然排除整个 uploads 目录');
+check(/BRAND_ASSET = \/\^logo_brand/.test(deploySrc), 'deploy.cjs 定义了品牌素材白名单 BRAND_ASSET');
+const brandCopyAt = deploySrc.indexOf('BRAND_ASSET.test(f)');
+const tarAt = deploySrc.indexOf("spawnSync(tarBin");
+check(brandCopyAt > 0, '打包流程里有品牌素材拷贝步骤');
+check(brandCopyAt > 0 && tarAt > 0 && brandCopyAt < tarAt, '拷贝发生在打包 tar 之前（顺序不能反）');
+check(/\.\(png\|svg\|webp\)\$\/i/.test(deploySrc), '白名单只放行 png/svg/webp（不会把整个 uploads 带出去）');
+// 不只看文本：把 deploy.cjs 里的白名单正则抠出来，直接拿真实文件名试一遍 ——
+// 只断言「源码里有 [0-9a-f]{8}」抓不住「正则写错、匹配不上真实文件名」这类错。
+const brandReSrc = (deploySrc.match(/const BRAND_ASSET = (\/[^\n]*?\/[a-z]*);/) || [])[1] || '';
+let brandRe = null;
+try { brandRe = new Function('return ' + brandReSrc)(); } catch (e) { brandRe = null; }
+check(brandRe instanceof RegExp, '能从 deploy.cjs 抠出 BRAND_ASSET 正则源码并构造成功', brandReSrc || '抠不到');
+check(!!brandRe && !brandRe.test('logo_brand.png') && brandRe.test('logo_brand.deadbeef.png'),
+      '白名单拒绝固定名 logo_brand.png、只接受 8 位哈希名（否则 immutable 缓存永远读旧图）');
+
+// 本机资产：应当「恰好一个哈希名，且没有旧的固定名」
+const brandDir = path.join(ROOT, 'biz-os', 'backend', 'uploads');
+const brandFiles = (brandRe && fs.existsSync(brandDir))
+  ? fs.readdirSync(brandDir).filter((f) => brandRe.test(f))
+  : [];
+check(brandFiles.length === 1, '本机 uploads 里有且仅有一个内容寻址品牌素材 logo_brand.<hash>.png',
+      brandFiles.length ? brandFiles.join(', ') : '一个都没找到');
+check(!fs.existsSync(path.join(brandDir, 'logo_brand.png')),
+      '旧的固定名 logo_brand.png 已清除（两套命名共存时线上取哪张不确定）');
+if (brandFiles.length) {
+  const localLogo = path.join(brandDir, brandFiles[0]);
+  const lb = fs.readFileSync(localLogo);
+  const isPng = lb[0] === 0x89 && lb[1] === 0x50 && lb[2] === 0x4E && lb[3] === 0x47;
+  check(isPng, '品牌素材是真 PNG（不是被改名 / 被压平的 JPG）');
+  // PNG IHDR 的 colorType 在第 25 字节：6 = RGBA（带透明通道）
+  check(lb[25] === 6, 'PNG colorType = 6（RGBA，带透明通道）—— 否则深色底会是一块白方块',
+        'colorType = ' + lb[25]);
+  check(lb.length < 600 * 1024, '品牌素材体积合理（< 600KB）', (lb.length / 1024).toFixed(1) + ' KB');
+  // 名字里的哈希必须真的等于内容哈希，否则「换图不换名」会悄悄回归
+  const sha = require('crypto').createHash('sha256').update(lb).digest('hex').slice(0, 8);
+  check(brandFiles[0].indexOf(sha) > 0, '文件名哈希 = 文件内容 sha256 前 8 位', brandFiles[0]);
+}
+
+// ---------------------------------------------------------------------------
 if (process.argv.includes('--dump')) {
   console.log('\n===== onlystyle-web.conf =====\n' + webOut);
   console.log('\n===== onlystyle-proxy.inc =====\n' + proxyOut);

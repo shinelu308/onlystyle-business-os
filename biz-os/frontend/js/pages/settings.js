@@ -477,20 +477,35 @@ function renderGeneralTab(container) {
   API.get('/api/settings/group/general').then(function(data) {
     function getVal(key) { for (var i = 0; i < data.length; i++) { if (data[i].setting_key === key) return data[i].setting_value; } return ''; }
     var logoVal = getVal('logo_url');
+    // 没有透明通道的格式，放到深色底（官网导航/页脚、后台侧栏）就是一块白方块。
+    // 这里直接给运营指出来，省得又变成「改了没看到」。
+    var logoOpaque = /\.(jpe?g|gif)$/i.test(logoVal);
+    var logoExt = (logoVal.match(/\.(\w+)$/) || [])[1] || '';
+    function logoTile(cap, cls) {
+      return '<div class="logo-preview-tile">' +
+        '<span class="logo-preview-cap">' + cap + '</span>' +
+        '<div class="logo-preview-stage ' + cls + '" data-logo-stage>' +
+          (logoVal ? '<img src="' + escapeHtml(logoVal) + '?t=' + Date.now() + '" alt="">' : '<span>无</span>') +
+        '</div></div>';
+    }
     var logoCard =
       '<div class="settings-card settings-card-compact">' +
         '<div class="settings-card-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>' +
         '<div class="settings-card-body">' +
           '<div class="logo-section-header">' +
-            '<div><h4>品牌标识</h4><p class="settings-desc">Logo 将显示在侧边栏和登录页面</p></div>' +
-            '<div class="logo-upload-preview" id="logoPreview">' +
-              (logoVal ? '<img src="' + escapeHtml(logoVal) + '?t=' + Date.now() + '">' : '<span>无</span>') +
+            '<div><h4>品牌标识</h4><p class="settings-desc">这一张图同时用在 <b>官网顶部导航 / 官网页脚 / 后台侧边栏 / 登录页</b> 四处 —— 改一次，四处同步。</p></div>' +
+            '<div class="logo-preview-pair">' +
+              logoTile('深色底', 'dark') +
+              logoTile('浅色底', 'light') +
             '</div>' +
           '</div>' +
+          (logoOpaque
+            ? '<div class="logo-warn">⚠️ 当前是 <b>.' + escapeHtml(logoExt) + '</b> —— 这种格式<b>没有透明通道</b>，放到深色底上会变成一块白方块（官网导航、页脚、后台侧栏都是深色）。请换成<b>透明底 PNG</b>。</div>'
+            : '') +
           '<div class="logo-upload-compact" id="logoUploadZone">' +
             '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
             '<span>点击或拖拽上传 Logo</span>' +
-            '<small>自动压缩至 2MB 以下</small>' +
+            '<small>建议透明底 PNG · 512×512 以上 · 超 2MB 自动压缩</small>' +
           '</div>' +
           '<input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/gif" style="display:none">' +
           '<div id="logoUploadProgress" class="logo-upload-status"></div>' +
@@ -551,13 +566,16 @@ function renderGeneralTab(container) {
             var img = new Image();
             img.onload = function() {
               var canvas = document.createElement('canvas');
-              var MAX_W = 400;
+              var MAX_W = 512;
               var w = img.width, h = img.height;
               if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W; }
               canvas.width = w; canvas.height = h;
               var ctx = canvas.getContext('2d');
               ctx.drawImage(img, 0, 0, w, h);
-              base64 = canvas.toDataURL('image/jpeg', 0.8);
+              // 🔴 压缩必须按原格式走：JPEG 没有透明通道，
+              //    把一张透明 PNG 压成 JPEG 会直接丢掉 alpha → 深色底又变白方块。
+              var isPngish = /^image\/(png|webp|svg\+xml)$/.test(file.type) || /\.(png|webp|svg)$/i.test(file.name);
+              base64 = isPngish ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85);
               progress.textContent = '已压缩至 ' + Math.round(base64.length * 3 / 4 / 1024) + 'KB，上传中...';
               doUpload(base64);
             };
@@ -570,13 +588,22 @@ function renderGeneralTab(container) {
         reader.readAsDataURL(file);
         function doUpload(data) {
           API.post('/api/settings/upload-logo', { image_data: data }).then(function(result) {
-            if (result.success) {
-              document.getElementById('logoUrlInput').value = result.url;
-              document.getElementById('logoPreview').innerHTML = '<img src="' + result.url + '?t=' + Date.now() + '">';
-              progress.className = 'logo-upload-status success';
-              progress.textContent = '✅ 上传成功';
-              setTimeout(function() { progress.className = 'logo-upload-status'; progress.textContent = ''; }, 2500);
+            if (!result.success) return;
+            var url = result.url;
+            document.getElementById('logoUrlInput').value = url;
+            // 两个预览块一起换（深色底 / 浅色底，用来暴露「白底图」这类问题）
+            var stages = document.querySelectorAll('[data-logo-stage]');
+            for (var si = 0; si < stages.length; si++) {
+              stages[si].innerHTML = '<img src="' + url + '?t=' + Date.now() + '" alt="">';
             }
+            // 立即可见：不等「保存配置」，直接把 logo_url 落库并刷新侧栏 ——
+            // 官网/后台四处同时跟着变（官网有 60 秒缓存，过一会儿刷新即可看到）。
+            return API.put('/api/settings/batch/general', { settings: { logo_url: url } }).then(function() {
+              progress.className = 'logo-upload-status success';
+              progress.textContent = '✅ 上传成功，四处已同步（官网有 60 秒缓存，稍后刷新可见）';
+              applyBrandingSettings();
+              setTimeout(function() { progress.className = 'logo-upload-status'; progress.textContent = ''; }, 4500);
+            });
           }).catch(function(err) {
             progress.className = 'logo-upload-status error';
             progress.textContent = '❌ 上传失败: ' + err.message;

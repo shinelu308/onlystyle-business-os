@@ -19,7 +19,10 @@ design/
 # ----- 数据库：含 content_token 与业务数据，绝不入库 -----
 biz-os/backend/*.db
 biz-os/backend/*.db.*
-biz-os/backend/uploads/
+# ⚠️ 上传目录的忽略规则只在 biz-os/.gitignore 里管（含「品牌图形例外放行」）。
+#    此处不要重复写 biz-os/backend/uploads/ ——
+#    ① 两处同管容易漏改；② 外层写 uploads/ 排除整个目录后，
+#    内层的 !例外 会被一起废掉（git 不进被排除的目录）。详见 biz-os/.gitignore。
 
 # ----- WorkBuddy 工具状态（会话记录 / 记忆 / 临时；记忆文件内含令牌）-----
 .workbuddy/

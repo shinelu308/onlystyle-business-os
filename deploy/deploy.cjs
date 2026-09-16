@@ -147,6 +147,29 @@ function packTarball() {
   total += copyTree(path.join(ROOT, 'biz-os', 'backend'), path.join(app, 'biz-os', 'backend'), beSkip);
   total += copyTree(path.join(ROOT, 'biz-os', 'frontend'), path.join(app, 'biz-os', 'frontend'), () => true);
 
+  // ⚠️ uploads 整体被排除了（那是本机开发素材），但**品牌图形是线上必需品**：
+  //    express.static 把它挂在 /uploads/，而 IP 模式与域名模式两套 nginx
+  //    都反代了 /uploads → 官网和后台取的是同一张图。漏了这一步线上就是裂图。
+  //    只放行白名单文件名，别把整目录带出去。
+  //
+  // 🔴 文件名必须带内容哈希：/uploads/* 的缓存头是
+  //    `public, max-age=31536000, immutable`（一年、不可变），
+  //    固定名换图 = 老访客一年看不到更新 —— 正是「改了 logo 却没变」的翻版。
+  //    所以真实资产叫 logo_brand.<sha256前8位>.png，白名单也得按哈希匹配。
+  // ⚠️ 改这里要同步 deploy/selfcheck.cjs 第 8 节。
+  const BRAND_ASSET = /^logo_brand\.[0-9a-f]{8}\.(png|svg|webp)$/i;
+  const brandSrc = path.join(ROOT, 'biz-os', 'backend', 'uploads');
+  if (fs.existsSync(brandSrc)) {
+    for (const f of fs.readdirSync(brandSrc)) {
+      if (!BRAND_ASSET.test(f)) continue;
+      const brandDst = path.join(app, 'biz-os', 'backend', 'uploads');
+      fs.mkdirSync(brandDst, { recursive: true });
+      fs.copyFileSync(path.join(brandSrc, f), path.join(brandDst, f));
+      total += fs.statSync(path.join(brandDst, f)).size;
+      say('    + 品牌素材（随包发布）: ' + f);
+    }
+  }
+
   const dist = path.join(ROOT, 'website', 'dist');
   if (!fs.existsSync(dist)) die('website/dist 不存在，无法打包');
   total += copyTree(dist, path.join(app, 'website', 'dist'), () => true);

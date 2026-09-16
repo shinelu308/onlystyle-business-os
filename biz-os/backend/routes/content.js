@@ -57,6 +57,19 @@ const mapPage = (r) => ({
  */
 const SITE_GROUPS = ['brand', 'contact', 'legal', 'seo', 'nav', 'footer'];
 
+/**
+ * 读后台「系统设置」的 general 组。
+ * 品牌图形（logo）与副标题的**唯一写入点**在那里（后台设置页有上传 UI），
+ * 官网的 brand 从这里「投影」出来 —— 保证「后台改一次，官网 + 后台四处同步」。
+ */
+function readGeneral(db) {
+  const g = {};
+  for (const r of db.all("SELECT setting_key, setting_value FROM system_settings WHERE setting_group = 'general'")) {
+    g[r.setting_key] = r.setting_value;
+  }
+  return g;
+}
+
 /** KV 设置 → 扁平对象（brand.name → { brand: { name } }） */
 function buildSite(db) {
   const rows = db.all('SELECT key, value FROM content_settings');
@@ -68,11 +81,20 @@ function buildSite(db) {
     out[k1][k2 || 'value'] = r.value;
   }
   out.brand = out.brand || {};
-  out.brand.nameParts = [out.brand.name || 'ONLYSTYLE'];
-  // 把 ONLYSTYLE 拆成 ONLY + STYLE 供 logo 双色渲染
-  const n = out.brand.name || 'ONLYSTYLE';
-  const half = Math.ceil(n.length / 2);
-  out.brand.nameParts = [n.slice(0, half), n.slice(half)];
+
+  // ── 品牌图形 / 副标题：投影自 system_settings.general（后台上传入口在那里）。
+  //    官网自己不再画死 logo，只消费这里给的地址；地址为空时前端回落到矢量兜底。
+  //    ⚠️ 以前官网没有这个字段，所以「后台换了 logo 官网永远不变」。
+  const gen = readGeneral(db);
+  out.brand.logo = gen.logo_url || '';
+  out.brand.logoSubtitle = gen.logo_subtitle || '';
+
+  // 品牌名拆两段（ONLY + STYLE）供 logo 双色渲染。
+  // 🔴 必须按 STYLE 后缀切，不能按长度折半：ONLYSTYLE 有 9 个字符，
+  //    Math.ceil(9/2) = 5 会切出 ["ONLYS","TYLE"]。规则与后台侧栏 applyBrandingSettings() 逐字一致。
+  const n = String(out.brand.name || 'ONLYSTYLE');
+  const m = n.match(/^(.*?)(STYLE)$/i);
+  out.brand.nameParts = (m && m[1]) ? [m[1], m[2].toUpperCase()] : [n];
 
   out.nav = parse(out.nav?.items, []);
   out.navCta = parse(out.nav?.cta, { text: '联系我们', to: '/contact', visible: true });

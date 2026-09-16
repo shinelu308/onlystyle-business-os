@@ -26,7 +26,7 @@ const quick = computed(() =>
         <!-- 品牌 -->
         <div>
           <div class="footer-brand-logo">
-            <BrandLogo :size="28" variant="footer" />
+            <BrandLogo :size="28" variant="footer" :src="site.brand.logo" :alt="site.brand.name" />
             <span class="footer-brand-name">
               {{ site.brand.nameParts[0] }}<span>{{ site.brand.nameParts[1] }}</span>
             </span>

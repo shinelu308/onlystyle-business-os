@@ -40,7 +40,7 @@ const close = () => {
   <nav class="nav" :class="{ scrolled }" role="navigation" aria-label="主导航">
     <div class="container nav-inner">
       <RouterLink to="/" class="nav-logo" :aria-label="`${site.brand.name} 首页`" @click="close">
-        <BrandLogo :size="32" />
+        <BrandLogo :size="32" :src="site.brand.logo" :alt="site.brand.name" />
         <span class="nav-logo-text">{{ site.brand.nameParts[0] }}<span>{{ site.brand.nameParts[1] }}</span></span>
       </RouterLink>
 

@@ -14,6 +14,10 @@ export const site = {
     company: '上海唯风信息技术有限公司',
     tagline: '数字化转型专家',
     slogan: '您值得信赖的一站式数字化服务伙伴',
+    // 品牌图形：由后台「系统设置 → 品牌标识」上传后经 /api/content/site 投影过来。
+    // 兜底留空 —— 此时 BrandLogo.vue 会回落到内置矢量线稿。
+    logo: '',
+    logoSubtitle: '',
   },
   contact: {
     address: '上海市莲花南路1500弄8-9号306室',
