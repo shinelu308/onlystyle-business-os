@@ -5,17 +5,80 @@
  * 结构（2026-09-18 v4 效果图确认）：PageHero → 主打卡①楼达人（功能矩阵 + 进入平台）
  * → 主打卡②唯风数营销自动化（四大机器人 + 效率条 + 五步流水线 + 预约演示）
  * → 更多服务点缀小卡 → CTA。
+ * 数据：页头副标题 + 两卡的徽标/标题/描述/按钮来自内容中台（content_pages slug=products，
+ * 后台「网站管理 → 产品介绍」编辑）；功能矩阵/机器人/流水线/更多服务为内置条目，
+ * 条目级编辑后续开放。接口挂了走 fallback 兜底。
  * 样式 v3/v4：站内深色玻璃卡语言（info-card：white 5% 底 / 白 10% 边 / 16px 圆角 /
- * cyan hover）；内容源自用户提供的平台介绍 PDF（已去客户品牌化）。
+ * cyan hover）。
  */
+import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import PageHero from '@/components/PageHero.vue';
 import CtaSection from '@/components/home/CtaSection.vue';
+import { useContent } from '@/composables/useContent.js';
+import { getPage } from '@/api/content.js';
 
 /** 楼达人平台入口（SAAS） */
 const PLATFORM_URL = 'https://biz.loudaren.com/orgs/#/index?from=system';
 
-/** 主打卡①：楼达人核心功能矩阵（六格框架参考快鲸资产运营系统介绍，按楼达人实际功能调整） */
+/** 兜底：与后台表单的内置文案一致（content_pages 拉不到时用） */
+const fbProductsPage = {
+  slug: 'products',
+  title: '产品介绍',
+  subtitle:
+    '以自研「楼达人资产管理平台」与「唯风数字营销自动化平台」为核心，为园区与楼宇资方提供资产管理数字化的一站式方案，为企业提供营销内容生产与分发的全流程自动化。',
+  blocks: [
+    {
+      type: 'flagship',
+      key: 'loudaren',
+      badges: '主打产品 · SAAS 模式 · 开箱即用 · 多业态资产运营',
+      title: '楼达人资产管理平台',
+      desc: '面向写字楼、园区、商业、公寓等多业态资产，提供覆盖「资产数字化台账 — 招商租赁 — 业财一体 — 运营增值」全流程的一站式资管运营系统，让每一平米资产可视、可控、可增值。',
+      ctaText: '进入平台 ↗',
+      ctaUrl: PLATFORM_URL,
+    },
+    {
+      type: 'flagship',
+      key: 'weifeng',
+      badges: '自研产品 · 四大机器人 · 五步全自动 · 零代码上线',
+      title: '唯风数字营销自动化平台',
+      desc: '面向多品牌、多语言团队的数字营销中台：多语言内容一键导入、AI 智能译制、可视化审核与多渠道一键发布——机器人干重复活，团队做专业判断。',
+      ctaText: '预约演示',
+      ctaUrl: '/contact',
+    },
+  ],
+};
+
+const { data: page } = useContent('page:products', fbProductsPage, () => getPage('products'));
+
+/** 从 blocks 里按 key 取主打卡数据（中台行 → 组件形状） */
+const cardOf = (key, fbCard) => {
+  const bl = (page.value && Array.isArray(page.value.blocks)) ? page.value.blocks : [];
+  const b = bl.find((x) => x && x.key === key) || {};
+  const badges = Array.isArray(b.badges)
+    ? b.badges
+    : String(b.badges || fbCard.badges).split('·').map((s) => s.trim()).filter(Boolean);
+  return {
+    badges: badges.length ? badges : fbCard.badges,
+    title: b.title || fbCard.title,
+    desc: b.desc || fbCard.desc,
+    ctaText: b.ctaText || fbCard.ctaText,
+    ctaUrl: b.ctaUrl || fbCard.ctaUrl,
+  };
+};
+
+/** 页头副标题 */
+const heroSub = computed(() => (page.value && page.value.subtitle) || fbProductsPage.subtitle);
+
+/** 主打卡①：楼达人 */
+const loudaren = computed(() => cardOf('loudaren', fbProductsPage.blocks[0]));
+/** 主打卡②：唯风（数据形状同①，按钮是站内路由） */
+const weifeng = computed(() => cardOf('weifeng', fbProductsPage.blocks[1]));
+
+/** 楼达人按钮是否外链（进入平台 → 新窗口；否则按站内路由处理） */
+const loudarenExternal = computed(() => /^https?:\/\//.test(loudaren.value.ctaUrl || ''));
+
+/** 主打卡①：楼达人核心功能矩阵（六格框架参考快鲸资产运营系统介绍，按楼达人实际功能调整；条目级编辑后续开放） */
 const features = [
   { icon: '◈', title: '资产数字化管理', desc: '不动产 / 固定资产台账、资产全景与巡检盘点、全生命周期档案。' },
   { icon: '▤', title: '租赁与合同管理', desc: '房源租控、电子合同、租客管理，出租率与到期情况一目了然。' },
@@ -25,7 +88,7 @@ const features = [
   { icon: '⌂', title: '物业与增值运营', desc: '在线报修、工单、缴费与 IoT 设备接入，延伸资管服务边界。' },
 ];
 
-/** 主打卡②：唯风数字营销自动化平台 —— 四大机器人 */
+/** 主打卡②：四大机器人（内置条目） */
 const robots = [
   { icon: '▣', title: '搬运机器人', desc: '自动搬运与分发物料，让内容流转更高效。' },
   { icon: '文A', title: 'AI 译制官', desc: '多语言智能翻译与配音，打破语言边界。' },
@@ -42,7 +105,7 @@ const flowSteps = [
   { n: 5, title: '看', desc: '数据表现实时追踪' },
 ];
 
-/** 更多服务（点缀） */
+/** 更多服务（点缀；内置条目） */
 const moreServices = [
   { icon: '◎', title: '数字化咨询规划', desc: '现状评估、转型路线图与顶层设计。' },
   { icon: '▤', title: '一站式平台建设', desc: '官网、业务系统与小程序 / App 交付。' },
@@ -53,11 +116,7 @@ const moreServices = [
 
 <template>
   <div class="page">
-    <PageHero
-      crumb="产品介绍"
-      title="产品介绍"
-      sub="以自研「楼达人资产管理平台」与「唯风数字营销自动化平台」为核心，为园区与楼宇资方提供资产管理数字化的一站式方案，为企业提供营销内容生产与分发的全流程自动化。"
-    />
+    <PageHero crumb="产品介绍" title="产品介绍" :sub="heroSub" />
 
     <!-- 主打产品 -->
     <section class="section">
@@ -73,18 +132,20 @@ const moreServices = [
             <div class="flag-ico">◉</div>
             <div class="flag-info">
               <div class="flag-badges">
-                <span class="badge main">主打产品</span>
-                <span class="badge">SAAS 模式 · 开箱即用</span>
-                <span class="badge">多业态资产运营</span>
+                <span v-for="b in loudaren.badges" :key="b" class="badge">{{ b }}</span>
               </div>
-              <h3 class="flag-title">楼达人资产管理平台</h3>
-              <p class="flag-desc">
-                面向写字楼、园区、商业、公寓等多业态资产，提供覆盖「资产数字化台账 — 招商租赁 —
-                业财一体 — 运营增值」全流程的一站式资管运营系统，让每一平米资产可视、可控、可增值。
-              </p>
+              <h3 class="flag-title">{{ loudaren.title }}</h3>
+              <p class="flag-desc">{{ loudaren.desc }}</p>
             </div>
             <div class="flag-cta">
-              <a class="flag-btn" :href="PLATFORM_URL" target="_blank" rel="noopener">进入平台 ↗</a>
+              <a
+                v-if="loudarenExternal"
+                class="flag-btn"
+                :href="loudaren.ctaUrl"
+                target="_blank"
+                rel="noopener"
+              >{{ loudaren.ctaText }}</a>
+              <RouterLink v-else class="flag-btn" :to="loudaren.ctaUrl || '/'">{{ loudaren.ctaText }}</RouterLink>
               <span class="flag-url">biz.loudaren.com</span>
             </div>
           </div>
@@ -105,18 +166,13 @@ const moreServices = [
             <div class="flag-ico">✦</div>
             <div class="flag-info">
               <div class="flag-badges">
-                <span class="badge main">自研产品</span>
-                <span class="badge">四大机器人 · 五步全自动</span>
-                <span class="badge">零代码上线</span>
+                <span v-for="b in weifeng.badges" :key="b" class="badge">{{ b }}</span>
               </div>
-              <h3 class="flag-title">唯风数字营销自动化平台</h3>
-              <p class="flag-desc">
-                面向多品牌、多语言团队的数字营销中台：多语言内容一键导入、AI 智能译制、可视化审核与
-                多渠道一键发布——机器人干重复活，团队做专业判断。
-              </p>
+              <h3 class="flag-title">{{ weifeng.title }}</h3>
+              <p class="flag-desc">{{ weifeng.desc }}</p>
             </div>
             <div class="flag-cta">
-              <RouterLink class="flag-btn ghost" to="/contact">预约演示</RouterLink>
+              <RouterLink class="flag-btn ghost" to="/contact">{{ weifeng.ctaText }}</RouterLink>
               <span class="flag-url">联系我们获取方案</span>
             </div>
           </div>
@@ -212,7 +268,12 @@ const moreServices = [
   color: #3be0ff;
   border: 1px solid rgba(59, 224, 255, 0.3);
 }
-.badge.main { background: rgba(31, 91, 255, 0.25); color: #fff; border-color: rgba(59, 224, 255, 0.45); }
+/* 首个徽标 = 主徽标（「主打产品」/「自研产品」），沿用 main 高亮 */
+.flag-badges .badge:first-child {
+  background: rgba(31, 91, 255, 0.25);
+  color: #fff;
+  border-color: rgba(59, 224, 255, 0.45);
+}
 .flag-title { font-size: 22px; font-weight: 800; margin: 0 0 8px; color: var(--text-primary); }
 .flag-desc { font-size: 13.5px; color: var(--text-body); line-height: 1.9; margin: 0; }
 .flag-cta { position: relative; text-align: center; flex-shrink: 0; }

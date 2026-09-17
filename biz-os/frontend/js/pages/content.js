@@ -238,7 +238,8 @@ function cmPreviewOrigin() {
   return location.origin;
 }
 function cmPreviewUrl(tab) {
-  var page = (tab === 'cases') ? '/cases' : '/';
+  var map = { home: '/', products: '/products', catalog: '/services', cases: '/cases', about: '/about', site: '/' };
+  var page = map[tab] || '/';
   return cmPreviewOrigin() + page + '?preview=1&t=' + Date.now();
 }
 function cmPreviewLoad(tab) {
@@ -367,9 +368,11 @@ function renderContent() {
     '<div class="settings-page">' +
       '<div class="settings-tabs" id="contentTabs">' +
         cmTabBtn('home', tab, '首页布局') +
+        cmTabBtn('products', tab, '产品介绍') +
+        cmTabBtn('catalog', tab, '解决方案') +
+        cmTabBtn('cases', tab, '案例星球') +
+        cmTabBtn('about', tab, '关于我们') +
         cmTabBtn('site', tab, '站点配置') +
-        cmTabBtn('catalog', tab, '服务与行业') +
-        cmTabBtn('cases', tab, '案例') +
       '</div>' +
       '<div class="cm-split">' +
         '<div class="settings-content cm-form-pane" id="contentPane"></div>' +
@@ -420,15 +423,17 @@ function _renderContentTab(tab) {
   var subs = document.querySelectorAll('.nav-subitem[data-page="content"]');
   for (var j = 0; j < subs.length; j++) subs[j].classList.toggle('active', subs[j].dataset.tab === tab);
 
-  var titles = { home: '首页布局', site: '站点配置', catalog: '服务与行业', cases: '案例' };
+  var titles = { home: '首页布局', products: '产品介绍', catalog: '解决方案', cases: '案例星球', about: '关于我们', site: '站点配置' };
   if ($('pageTitle')) $('pageTitle').textContent = '内容管理 - ' + (titles[tab] || '');
 
   pane.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
   var renderers = {
     home: renderContentHome,
-    site: renderContentSite,
+    products: renderContentProducts,
     catalog: renderContentCatalog,
-    cases: renderContentCases
+    cases: renderContentCases,
+    about: renderContentAbout,
+    site: renderContentSite
   };
   if (renderers[tab]) setTimeout(function () { renderers[tab](pane); }, 20);
   cmLoadVersion();
@@ -1129,4 +1134,197 @@ function cmDeleteEntity(type, id) {
     if (!ok) return;
     cmRun(API.content.del(CM_API + '/' + type + '/' + id), '已删除。前台最多 60 秒内自动更新。', cmReload);
   });
+}
+
+
+/* ================================================================
+   Tab · 产品介绍（官网 /products 单页文案）
+   关于我们（官网 /about 单页文案）
+   数据：content_pages 行 { slug, title, subtitle, blocks:JSON }，
+   走通用 CRUD（POST /pages 创建、PUT /pages/:id 更新）。
+   products.blocks = [{ type:'flagship', key:'loudaren'|'weifeng',
+     badges, title, desc, ctaText, ctaUrl }]
+   about.blocks 沿用官网结构（prose/duo/iconGrid），第一版只开放
+   标题/副标题/公司简介正文/愿景/使命；核心价值观等后续再开放。
+   ================================================================ */
+
+var _cmProductsId = null;
+var _cmAboutId = null;
+
+/* 官网内置兜底文案（与 Products.vue 的 fallback 保持一致；后台只在前端拉不到行时用来预填表单） */
+var CM_PRODUCTS_FB = {
+  subtitle: '以自研「楼达人资产管理平台」与「唯风数字营销自动化平台」为核心，为园区与楼宇资方提供资产管理数字化的一站式方案，为企业提供营销内容生产与分发的全流程自动化。',
+  loudaren: {
+    badges: '主打产品 · SAAS 模式 · 开箱即用 · 多业态资产运营',
+    title: '楼达人资产管理平台',
+    desc: '面向写字楼、园区、商业、公寓等多业态资产，提供覆盖「资产数字化台账 — 招商租赁 — 业财一体 — 运营增值」全流程的一站式资管运营系统，让每一平米资产可视、可控、可增值。',
+    ctaText: '进入平台 ↗',
+    ctaUrl: 'https://biz.loudaren.com/orgs/#/index?from=system'
+  },
+  weifeng: {
+    badges: '自研产品 · 四大机器人 · 五步全自动 · 零代码上线',
+    title: '唯风数字营销自动化平台',
+    desc: '面向多品牌、多语言团队的数字营销中台：多语言内容一键导入、AI 智能译制、可视化审核与多渠道一键发布——机器人干重复活，团队做专业判断。',
+    ctaText: '预约演示',
+    ctaUrl: '/contact'
+  }
+};
+
+function cmPageFind(rows, slug) {
+  rows = Array.isArray(rows) ? rows : [];
+  for (var i = 0; i < rows.length; i++) if (rows[i].slug === slug) return rows[i];
+  return null;
+}
+
+function cmFld(id, label, v, ph) {
+  return '<div class="form-group"><label>' + label + '</label>' +
+    '<input type="text" id="' + id + '" value="' + cmTxt(v == null ? '' : v) + '" placeholder="' + cmTxt(ph || '') + '"></div>';
+}
+function cmFldTa(id, label, v, rowsN) {
+  return '<div class="form-group"><label>' + label + '</label>' +
+    '<textarea id="' + id + '" rows="' + (rowsN || 3) + '">' + cmTxt(v == null ? '' : v) + '</textarea></div>';
+}
+
+/* ---- 产品介绍 ---- */
+
+function renderContentProducts(pane) {
+  pane.innerHTML = cmToolbar() + '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
+  API.content.get(CM_API + '/pages').then(function (rows) {
+    var row = cmPageFind(rows, 'products');
+    var bl = (row && Array.isArray(row.blocks)) ? row.blocks : [];
+    function blk(key) {
+      for (var i = 0; i < bl.length; i++) if (bl[i].key === key) return bl[i];
+      return {};
+    }
+    var L = blk('loudaren'), W = blk('weifeng'), fb = CM_PRODUCTS_FB;
+
+    pane.innerHTML = cmToolbar() +
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>页面页头</h3><span class="cm-hint">官网 /products 顶部 Hero 的副标题</span></div>' +
+        '<div class="card-body">' + cmFldTa('cmPd_subtitle', '页头副标题', (row && row.subtitle) || fb.subtitle, 3) + '</div>' +
+      '</div>' +
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>主打产品 ① · 楼达人资产管理平台</h3><span class="cm-hint">功能矩阵条目暂为内置，后续开放编辑</span></div>' +
+        '<div class="card-body">' +
+          cmFld('cmPd_l_badges', '徽标（用 · 分隔）', L.badges || fb.loudaren.badges) +
+          cmFld('cmPd_l_title', '标题', L.title || fb.loudaren.title) +
+          cmFldTa('cmPd_l_desc', '描述', L.desc || fb.loudaren.desc, 4) +
+          '<div class="cm-2col">' +
+            cmFld('cmPd_l_ctaText', '按钮文案', L.ctaText || fb.loudaren.ctaText) +
+            cmFld('cmPd_l_ctaUrl', '按钮链接', L.ctaUrl || fb.loudaren.ctaUrl, '完整网址') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>主打产品 ② · 唯风数字营销自动化平台</h3><span class="cm-hint">四大机器人 / 五步流水线暂为内置，后续开放编辑</span></div>' +
+        '<div class="card-body">' +
+          cmFld('cmPd_w_badges', '徽标（用 · 分隔）', W.badges || fb.weifeng.badges) +
+          cmFld('cmPd_w_title', '标题', W.title || fb.weifeng.title) +
+          cmFldTa('cmPd_w_desc', '描述', W.desc || fb.weifeng.desc, 4) +
+          '<div class="cm-2col">' +
+            cmFld('cmPd_w_ctaText', '按钮文案', W.ctaText || fb.weifeng.ctaText) +
+            cmFld('cmPd_w_ctaUrl', '按钮链接', W.ctaUrl || fb.weifeng.ctaUrl, '站内路由如 /contact，或完整网址') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-actions"><button type="button" class="btn" onclick="cmSaveProducts()">保存产品介绍页</button></div>' +
+      '<p class="cm-note">功能矩阵、机器人、流水线等条目为内置内容，条目级编辑将在后续版本开放。</p>';
+
+    _cmProductsId = row ? row.id : null;
+    cmLoadVersion();
+  }).catch(function (e) { cmFail(pane, e); });
+}
+
+function cmSaveProducts() {
+  var blocks = [
+    { type: 'flagship', key: 'loudaren',
+      badges: cmVal('cmPd_l_badges'), title: cmVal('cmPd_l_title'),
+      desc: cmVal('cmPd_l_desc'), ctaText: cmVal('cmPd_l_ctaText'), ctaUrl: cmVal('cmPd_l_ctaUrl') },
+    { type: 'flagship', key: 'weifeng',
+      badges: cmVal('cmPd_w_badges'), title: cmVal('cmPd_w_title'),
+      desc: cmVal('cmPd_w_desc'), ctaText: cmVal('cmPd_w_ctaText'), ctaUrl: cmVal('cmPd_w_ctaUrl') }
+  ];
+  var body = { slug: 'products', title: '产品介绍', subtitle: cmVal('cmPd_subtitle'), blocks: blocks, status: 1, channel: 'web' };
+  var req = _cmProductsId
+    ? API.content.put(CM_API + '/pages/' + _cmProductsId, body)
+    : API.content.post(CM_API + '/pages', body);
+  cmRun(req, '已保存。官网产品介绍页最多 60 秒内自动更新。');
+}
+
+/* ---- 关于我们 ---- */
+
+function renderContentAbout(pane) {
+  pane.innerHTML = cmToolbar() + '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
+  API.content.get(CM_API + '/pages').then(function (rows) {
+    var row = cmPageFind(rows, 'about');
+    var bl = (row && Array.isArray(row.blocks)) ? row.blocks : [];
+    function blk(type) {
+      for (var i = 0; i < bl.length; i++) if (bl[i].type === type) return bl[i];
+      return null;
+    }
+    var prose = blk('prose'), duo = blk('duo');
+    var it0 = (duo && duo.items && duo.items[0]) || {};
+    var it1 = (duo && duo.items && duo.items[1]) || {};
+
+    pane.innerHTML = cmToolbar() +
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>页面页头</h3><span class="cm-hint">官网 /about 顶部 Hero</span></div>' +
+        '<div class="card-body">' +
+          cmFld('cmAb_title', '标题', (row && row.title) || '关于我们') +
+          cmFld('cmAb_subtitle', '副标题', (row && row.subtitle) || '数字化转型的引领者') +
+        '</div>' +
+      '</div>' +
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>公司简介</h3><span class="cm-hint">官网「公司简介」段落正文</span></div>' +
+        '<div class="card-body">' + cmFldTa('cmAb_body', '正文', prose ? prose.body : '', 6) + '</div>' +
+      '</div>' +
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>愿景与使命</h3><span class="cm-hint">官网双栏卡的两条文案</span></div>' +
+        '<div class="card-body">' +
+          '<div class="cm-2col">' +
+            cmFld('cmAb_vision', '愿景', it0.text || '') +
+            cmFld('cmAb_mission', '使命', it1.text || '') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-actions"><button type="button" class="btn" onclick="cmSaveAbout()">保存关于我们页</button></div>' +
+      '<p class="cm-note">核心价值观四宫格等区块将在后续版本开放编辑。</p>';
+
+    _cmAboutId = row ? row.id : null;
+    cmLoadVersion();
+  }).catch(function (e) { cmFail(pane, e); });
+}
+
+function cmSaveAbout() {
+  API.content.get(CM_API + '/pages').then(function (rows) {
+    var row = cmPageFind(rows, 'about');
+    var bl = (row && Array.isArray(row.blocks)) ? JSON.parse(JSON.stringify(row.blocks)) : [];
+    var body = cmVal('cmAb_body');
+    var vision = cmVal('cmAb_vision');
+    var mission = cmVal('cmAb_mission');
+
+    // 只改 prose.body 与 duo.items[0..1].text，其余块（iconGrid 等）原样保留
+    var prose = null, duo = null;
+    for (var i = 0; i < bl.length; i++) {
+      if (bl[i].type === 'prose') prose = bl[i];
+      if (bl[i].type === 'duo') duo = bl[i];
+    }
+    if (prose) prose.body = body;
+    else bl.push({ type: 'prose', eyebrow: 'Company Profile', title: '公司简介', body: body });
+    if (duo) {
+      duo.items = duo.items || [];
+      if (duo.items[0]) duo.items[0].text = vision; else duo.items[0] = { label: '愿景', text: vision };
+      if (duo.items[1]) duo.items[1].text = mission; else duo.items[1] = { label: '使命', text: mission };
+    } else {
+      bl.push({ type: 'duo', items: [{ label: '愿景', text: vision }, { label: '使命', text: mission }] });
+    }
+
+    var payload = { title: cmVal('cmAb_title'), subtitle: cmVal('cmAb_subtitle'), blocks: bl };
+    var req = _cmAboutId
+      ? API.content.put(CM_API + '/pages/' + _cmAboutId, payload)
+      : API.content.post(CM_API + '/pages', Object.assign({ slug: 'about', status: 1, channel: 'web' }, payload));
+    cmRun(req, '已保存。官网关于我们页最多 60 秒内自动更新。', function () {
+      _cmAboutId = _cmAboutId || (row ? row.id : null);
+    });
+  }).catch(function (e) { cmFail($('contentPane'), e); });
 }
