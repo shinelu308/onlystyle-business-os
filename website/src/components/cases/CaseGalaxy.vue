@@ -225,6 +225,20 @@ let selectedPlanet = null
 let flyAnim = null
 
 const IMGS = {}
+
+/**
+ * 「boot 还没跑完，数据就换了一版」的标记。
+ *
+ * ⚠️ 为什么必须有它：boot() 是异步的（loadTextures 要等图片下载），而数据
+ *    （props.cases）可能在 boot 跑完之前就到达。此时下面 watch 里的
+ *    `if (!ready) return` 会把这次更新整个丢掉，于是**贴图清单停留在
+ *    「数据到达前」那一版** —— 组件算得出该用哪张贴图（buildScene 用的是新数据），
+ *    但那张图从来没被加载；渲染时 IMGS 里取不到图就回退成程序化行星。
+ *    症状就是「后台选了星球、前台没变」，而且**只在首屏竞态踩中时出现**，
+ *    刷新几次可能就好了 —— 极难复现的那种。
+ *    boot 结束时检查这个标记补跑一次，把这个窗口堵死。
+ */
+let pendingRebuild = false
 let ready = false
 let rafId = 0
 let alive = false
@@ -280,7 +294,9 @@ async function loadTextures() {
     if (u) urls.add(u)
   }
   await Promise.all(
-    [...urls].map(async (u) => {
+    // ⚠️ 已经加载过的直接跳过：数据变化时 loadTextures 会被再叫一次，
+    //    不跳过就会把同样的图重复请求一遍（贴图是 immutable 长缓存，白跑一趟）。
+    [...urls].filter((u) => !IMGS[u]).map(async (u) => {
       const img = await loadImage(u)
       if (img) IMGS[u] = img
     })
@@ -966,6 +982,16 @@ async function boot() {
   resize()
   await loadTextures()
   buildScene()
+  // boot 期间 props 可能已经换过一版（那次更新被 watch 的 guard 丢掉了）→ 补跑，
+  // 保证「贴图清单」和「buildScene 用的数据」始终是同一版。
+  // ⚠️ 必须放在 `ready = true` **之前**：ready 是「一切就绪、可以看了」的信号，
+  //    验收脚本与用户都靠它判断时机；补跑若在它之后，就会出现
+  //    「ready 已经是 true、贴图却还没加载」的窗口 —— 同一个 bug 换个马甲。
+  while (pendingRebuild) {
+    pendingRebuild = false
+    await loadTextures()
+    buildScene()
+  }
   loading.value = false
   ready = true
   if (!alive) {
@@ -1012,6 +1038,12 @@ onMounted(async () => {
       W, H, dpr,
       ready,
       frames,
+      /**
+       * 已经**真的加载进内存**的贴图清单（含 'gen:xxx' 程序化贴图）。
+       * ⚠️ 只看 texKey 是不够的 —— 它代表「算出该用哪张」，不代表那张图加载成功了。
+       *    这两者不一致时画面就是错的（回退成程序化行星），而断言却全是绿的。
+       */
+      textures: Object.keys(IMGS),
       industries: industries.value.map((i) => ({
         key: i.key, label: i.label, color: i.color, orbit: i.orbit, tilt: i.tilt,
       })),
@@ -1058,7 +1090,9 @@ onBeforeUnmount(() => {
  * useContent 拿到新的 cases → props 变 → 重新算行业表 + 重建星球列表。
  */
 watch(() => props.cases, async () => {
-  if (!ready) return
+  // ⚠️ 不能直接 return：boot 还没跑完时数据到达是**很常见**的（fetch 与贴图下载并发），
+  //    丢掉这次更新就会留下「算对了贴图但没加载」的竞态。记下来，让 boot 结束后补跑。
+  if (!ready) { pendingRebuild = true; return }
   await loadTextures()
   buildScene()
 })
