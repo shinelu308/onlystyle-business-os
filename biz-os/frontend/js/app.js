@@ -3,7 +3,7 @@
   // 页面定义（角色从 API 动态加载）
   var pages = {
     dashboard: { title: '数据看板', render: renderDashboard },
-    suppliers: { title: '资源管理', render: renderSuppliers },
+    suppliers: { title: '线路管理', render: renderSuppliers },
     spatial: { title: '项目管理', render: renderSpatial },
     customers: { title: '客户管理', render: renderCustomers },
     contracts: { title: '合同管理', render: renderContracts },
@@ -15,8 +15,8 @@
   var CRUMB_ROOT = {
     dashboard: '数据看板',
     customers: '业务管理', contracts: '业务管理',
-    suppliers: '资源台账', spatial: '资源台账',
-    content: '增长与内容', settings: '系统'
+    suppliers: '资源管理', spatial: '资源管理',
+    content: '网站管理', settings: '系统管理'
   };
 
   var currentUser = null;
@@ -191,7 +191,7 @@
     applyGroupHeaderVisibility();
   }
 
-  /** 静态分组标题（业务管理 / 资源台账）本身没有权限，靠「组内是否还有可见项」决定显隐 */
+  /** 静态分组标题（业务管理 / 资源管理）本身没有权限，靠「组内是否还有可见项」决定显隐 */
   function applyGroupHeaderVisibility() {
     var heads = document.querySelectorAll('.nav-group-h');
     for (var i = 0; i < heads.length; i++) {
