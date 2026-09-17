@@ -500,14 +500,14 @@ function renderGeneralTab(container) {
             '</div>' +
           '</div>' +
           (logoOpaque
-            ? '<div class="logo-warn">⚠️ 当前是 <b>.' + escapeHtml(logoExt) + '</b> —— 这种格式<b>没有透明通道</b>，放到深色底上会变成一块白方块（官网导航、页脚、后台侧栏都是深色）。请换成<b>透明底 PNG</b>。</div>'
+            ? '<div class="logo-warn">⚠️ 当前是 <b>.' + escapeHtml(logoExt) + '</b> —— 这种格式<b>没有透明通道</b>，放到深色底上会变成一块白方块（官网导航、页脚、后台侧栏都是深色）。<b>重新上传一次即可</b>，系统会自动去掉白底。</div>'
             : '') +
           '<div class="logo-upload-compact" id="logoUploadZone">' +
             '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
             '<span>点击或拖拽上传 Logo</span>' +
-            '<small>建议透明底 PNG · 512×512 以上 · 超 2MB 自动压缩</small>' +
+            '<small>JPG / PNG 都行 · 自动去掉白底并转成透明 PNG · 上限 512px · 上传即时生效</small>' +
           '</div>' +
-          '<input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/gif" style="display:none">' +
+          '<input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none">' +
           '<div id="logoUploadProgress" class="logo-upload-status"></div>' +
           '<input type="hidden" name="logo_url" id="logoUrlInput" value="' + escapeHtml(logoVal) + '">' +
         '</div>' +
@@ -552,41 +552,148 @@ function renderGeneralTab(container) {
       var fileInput = document.getElementById('logoFileInput');
       if (!zone || !fileInput) return;
       zone.onclick = function() { fileInput.click(); };
+
+      // ---------------------------------------------------------------------
+      // 把任意图片变成「深色底上能直接用的透明 PNG」。
+      //
+      // 为什么必须在前端做：只有浏览器能解码任意格式（JPG / PNG / WebP / SVG），
+      // 服务端是纯 JS（没有 canvas），解不了 JPEG —— 所以像素处理只能在前端完成，
+      // 服务端只做兜底复核。
+      //
+      // 算法（与后端 lib/brand-logo.js 保持一致，保证两端结果一致）：
+      //   从四条边泛洪，只把「与边缘连通」的近白像素判为背景。
+      //   ⚠️ 不能按颜色全局判断 —— 那会把 logo 内部的白色文字/高光一起抠掉。
+      //   交界处按「离白有多远」估成半透明，并反解原色（unmultiply），
+      //   否则深色底上会残留一圈白边（就是看着「不干净」的来源）。
+      // ---------------------------------------------------------------------
+      function toTransparentLogo(img, maxSide) {
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        var scaled = false;
+        if (Math.max(w, h) > maxSide) {
+          var s = maxSide / Math.max(w, h);
+          w = Math.max(1, Math.round(w * s));
+          h = Math.max(1, Math.round(h * s));
+          scaled = true;
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.clearRect(0, 0, w, h);   // 先清成透明，别把画布默认底色混进来
+        ctx.drawImage(img, 0, 0, w, h);
+
+        var out = { dataUrl: canvas.toDataURL('image/png'), note: '', reason: '' };
+        var id;
+        try { id = ctx.getImageData(0, 0, w, h); } catch (e) { out.note = '读取像素失败'; return out; }
+        var d = id.data;
+        var TOL = 26;
+
+        function nearWhite(i) {
+          var r = d[i], g = d[i + 1], b = d[i + 2];
+          var mn = Math.min(r, g, b), mx = Math.max(r, g, b);
+          // 「足够亮」且「没有明显色相」——否则浅蓝色块也会被当成背景
+          return mn >= 255 - TOL && (mx - mn) <= TOL;
+        }
+        function alphaAt(x, y) { return d[(y * w + x) * 4 + 3]; }
+        var corners = [alphaAt(0, 0), alphaAt(w - 1, 0), alphaAt(0, h - 1), alphaAt(w - 1, h - 1)];
+
+        if (corners.every(function(a) { return a < 16; })) {
+          // 四角本来就透明 → 原样保留，别再动它（二次处理只会越弄越脏）
+          out.reason = 'ok-transparent';
+          out.note = '原图已带透明背景';
+        } else if (nearWhite(0) && nearWhite((w - 1) * 4) &&
+                   nearWhite((h - 1) * w * 4) && nearWhite(((h - 1) * w + w - 1) * 4)) {
+          var visited = new Uint8Array(w * h);
+          var queue = new Int32Array(w * h);
+          var qt = 0;
+          function push(idx) {
+            if (visited[idx] || !nearWhite(idx * 4)) return;
+            visited[idx] = 1;
+            queue[qt++] = idx;
+          }
+          for (var bx = 0; bx < w; bx++) { push(bx); push((h - 1) * w + bx); }
+          for (var by = 0; by < h; by++) { push(by * w); push(by * w + w - 1); }
+          var qh = 0;
+          while (qh < qt) {
+            var cur = queue[qh++];
+            var cx = cur % w, cy = (cur - cx) / w;
+            if (cx > 0) push(cur - 1);
+            if (cx < w - 1) push(cur + 1);
+            if (cy > 0) push(cur - w);
+            if (cy < h - 1) push(cur + w);
+          }
+
+          var removed = 0;
+          for (var i = 0; i < w * h; i++) { if (visited[i]) { d[i * 4 + 3] = 0; removed++; } }
+
+          function fix(v, inv, af) {
+            var t = Math.round((v - inv) / af);
+            return t < 0 ? 0 : (t > 255 ? 255 : t);
+          }
+          for (var yy = 0; yy < h; yy++) {
+            for (var xx = 0; xx < w; xx++) {
+              var p = yy * w + xx;
+              if (visited[p]) continue;
+              var touch = false;
+              if (xx > 0 && visited[p - 1]) touch = true;
+              else if (xx < w - 1 && visited[p + 1]) touch = true;
+              else if (yy > 0 && visited[p - w]) touch = true;
+              else if (yy < h - 1 && visited[p + w]) touch = true;
+              if (!touch) continue;   // 只柔化边缘，主体（含内部白色）一律不动
+              var q = p * 4;
+              var mn = Math.min(d[q], d[q + 1], d[q + 2]);
+              var a = Math.max(0, Math.min(255, 255 - mn));
+              if (a <= TOL) { d[q + 3] = 0; continue; }
+              var af = a / 255, inv = 255 * (1 - af);
+              d[q] = fix(d[q], inv, af);
+              d[q + 1] = fix(d[q + 1], inv, af);
+              d[q + 2] = fix(d[q + 2], inv, af);
+              d[q + 3] = a;
+            }
+          }
+          ctx.putImageData(id, 0, 0);
+          out.dataUrl = canvas.toDataURL('image/png');
+          if (removed >= w * h) {
+            out.reason = 'all-white';
+            out.note = '整张图都是白色，去掉白底后没有内容了';
+          } else {
+            out.reason = 'white-removed';
+            out.note = '已自动去除白底';
+          }
+        } else {
+          out.reason = 'non-white-bg';
+          out.note = '背景不是白色，未做透明处理（若这是白底图请重新导出）';
+        }
+        if (scaled) out.note += '，已缩放到 ' + w + '×' + h;
+        return out;
+      }
+
       fileInput.onchange = function() {
         var file = fileInput.files[0];
         if (!file) return;
-        var maxSize = 2 * 1024 * 1024;
         var progress = document.getElementById('logoUploadProgress');
         progress.className = 'logo-upload-status uploading';
-        progress.textContent = '处理中...';
+        progress.textContent = '处理中…';
         var reader = new FileReader();
         reader.onload = function(e) {
-          var base64 = e.target.result;
-          if (file.size > maxSize) {
-            var img = new Image();
-            img.onload = function() {
-              var canvas = document.createElement('canvas');
-              var MAX_W = 512;
-              var w = img.width, h = img.height;
-              if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W; }
-              canvas.width = w; canvas.height = h;
-              var ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, w, h);
-              // 🔴 压缩必须按原格式走：JPEG 没有透明通道，
-              //    把一张透明 PNG 压成 JPEG 会直接丢掉 alpha → 深色底又变白方块。
-              var isPngish = /^image\/(png|webp|svg\+xml)$/.test(file.type) || /\.(png|webp|svg)$/i.test(file.name);
-              base64 = isPngish ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85);
-              progress.textContent = '已压缩至 ' + Math.round(base64.length * 3 / 4 / 1024) + 'KB，上传中...';
-              doUpload(base64);
-            };
-            img.src = base64;
-          } else {
-            progress.textContent = '上传中...';
-            doUpload(base64);
-          }
+          var img = new Image();
+          img.onload = function() {
+            // 🔴 一律走 canvas：以前只在「超过 2MB」时才处理，小图原样上传，
+            //    于是白底 JPG 直接落库 —— 深色底上就是一块白方块。这是白块的真正来路。
+            var r = toTransparentLogo(img, 512);
+            progress.textContent = (r.note || '处理完成') + '，上传中…';
+            doUpload(r.dataUrl, r.note);
+          };
+          img.onerror = function() {
+            // 浏览器也解不了的格式（个别 SVG / 异常文件）→ 原样上传，让服务端给出明确报错
+            doUpload(e.target.result, '');
+          };
+          img.src = e.target.result;
         };
         reader.readAsDataURL(file);
-        function doUpload(data) {
+
+        function doUpload(data, note) {
           API.post('/api/settings/upload-logo', { image_data: data }).then(function(result) {
             if (!result.success) return;
             var url = result.url;
@@ -596,17 +703,15 @@ function renderGeneralTab(container) {
             for (var si = 0; si < stages.length; si++) {
               stages[si].innerHTML = '<img src="' + url + '?t=' + Date.now() + '" alt="">';
             }
-            // 立即可见：不等「保存配置」，直接把 logo_url 落库并刷新侧栏 ——
-            // 官网/后台四处同时跟着变（官网有 60 秒缓存，过一会儿刷新即可看到）。
-            return API.put('/api/settings/batch/general', { settings: { logo_url: url } }).then(function() {
-              progress.className = 'logo-upload-status success';
-              progress.textContent = '✅ 上传成功，四处已同步（官网有 60 秒缓存，稍后刷新可见）';
-              applyBrandingSettings();
-              setTimeout(function() { progress.className = 'logo-upload-status'; progress.textContent = ''; }, 4500);
-            });
+            // 服务端在上传接口里已经把 logo_url 落库了，这里只需刷新侧栏 / 登录页的品牌图形。
+            progress.className = 'logo-upload-status ' + (result.reason === 'non-white-bg' ? 'uploading' : 'success');
+            progress.textContent = '✅ ' + (note || result.detail || '上传成功') +
+              '，四处已同步（官网有 60 秒缓存，稍后刷新可见）';
+            applyBrandingSettings();
+            setTimeout(function() { progress.className = 'logo-upload-status'; progress.textContent = ''; }, 6000);
           }).catch(function(err) {
             progress.className = 'logo-upload-status error';
-            progress.textContent = '❌ 上传失败: ' + err.message;
+            progress.textContent = '❌ ' + err.message;
           });
         }
       };
