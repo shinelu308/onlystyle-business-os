@@ -3,6 +3,8 @@
  * 产品介绍 —— 主打「楼达人资产管理平台」（SAAS），其余服务作点缀。
  * 结构（2026-09-18 效果图确认）：PageHero → 主打产品大卡（功能矩阵 + 进入平台）
  * → 更多服务点缀小卡 → CTA。
+ * 样式 v3：卡片对齐站内深色玻璃卡语言（info-card：white 5% 底 / 白 10% 边 /
+ * 16px 圆角 / cyan hover），功能矩阵去里层小卡框改直排。
  */
 import PageHero from '@/components/PageHero.vue';
 import CtaSection from '@/components/home/CtaSection.vue';
@@ -69,7 +71,7 @@ const moreServices = [
             <div class="flag-cap">核心功能矩阵</div>
             <div class="flag-grid">
               <div v-for="f in features" :key="f.title" class="flag-cell">
-                <b><i>{{ f.icon }}</i>{{ f.title }}</b>
+                <div class="fh"><i>{{ f.icon }}</i><b>{{ f.title }}</b></div>
                 <p>{{ f.desc }}</p>
               </div>
             </div>
@@ -77,7 +79,7 @@ const moreServices = [
         </div>
 
         <!-- 更多服务（点缀） -->
-        <div class="section-header" style="margin-top: 40px">
+        <div class="section-header" style="margin-top: 56px">
           <div class="eyebrow">More Services</div>
           <h2 class="section-title section-title-sm">更多服务</h2>
           <p class="section-desc">围绕平台提供配套的咨询、建设与智能化服务，可单独交付，也可与平台组合成一体化方案。</p>
@@ -96,47 +98,57 @@ const moreServices = [
 </template>
 
 <style scoped>
-/* ===== 主打产品大卡 ===== */
+/* ===== 主打产品大卡（站内玻璃卡语言：white .05 底 / .10 边 / 16 圆角） ===== */
 .flag-card {
-  border: 1px solid #dce7ff;
-  border-radius: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
   overflow: hidden;
-  box-shadow: 0 12px 32px rgba(31, 91, 255, 0.08);
 }
 .flag-top {
-  background: linear-gradient(135deg, #071229, #0e2148);
-  padding: 34px 38px;
-  color: #fff;
+  position: relative;
+  padding: 36px 38px 32px;
   display: flex;
   align-items: flex-start;
   gap: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.flag-top::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 140% at 85% 0%, rgba(31, 91, 255, 0.2) 0%, transparent 60%);
+  pointer-events: none;
 }
 .flag-ico {
-  width: 54px;
-  height: 54px;
-  border-radius: 12px;
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #1f5bff, #3be0ff);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 25px;
+  font-size: 26px;
   flex-shrink: 0;
+  box-shadow: 0 8px 24px rgba(31, 91, 255, 0.35);
 }
-.flag-info { flex: 1; min-width: 0; }
+.flag-info { position: relative; flex: 1; min-width: 0; }
 .flag-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .badge {
   font-size: 11px;
   font-weight: 600;
   border-radius: 999px;
   padding: 3px 12px;
-  background: rgba(59, 224, 255, 0.14);
+  background: rgba(59, 224, 255, 0.1);
   color: #3be0ff;
-  border: 1px solid rgba(59, 224, 255, 0.35);
+  border: 1px solid rgba(59, 224, 255, 0.3);
 }
-.badge.main { background: #3be0ff; color: #071229; border-color: #3be0ff; font-weight: 700; }
-.flag-title { font-size: 22px; font-weight: 800; margin: 0 0 8px; color: #fff; }
-.flag-desc { font-size: 13.5px; color: rgba(255, 255, 255, 0.65); line-height: 1.9; margin: 0; }
-.flag-cta { text-align: center; flex-shrink: 0; }
+.badge.main { background: rgba(31, 91, 255, 0.25); color: #fff; border-color: rgba(59, 224, 255, 0.45); }
+.flag-title { font-size: 22px; font-weight: 800; margin: 0 0 8px; color: var(--text-primary); }
+.flag-desc { font-size: 13.5px; color: var(--text-body); line-height: 1.9; margin: 0; }
+.flag-cta { position: relative; text-align: center; flex-shrink: 0; }
 .flag-btn {
   display: inline-block;
   background: linear-gradient(135deg, #1f5bff, #3be0ff);
@@ -148,54 +160,62 @@ const moreServices = [
   text-decoration: none;
   white-space: nowrap;
 }
-.flag-url { display: block; font-size: 11px; color: rgba(255, 255, 255, 0.4); margin-top: 8px; }
+.flag-url { display: block; font-size: 11px; color: var(--text-muted); margin-top: 8px; }
 
-/* 功能矩阵 */
-.flag-body { padding: 28px 38px 32px; }
-.flag-cap { font-size: 12px; color: #94a3b8; margin-bottom: 16px; }
-.flag-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.flag-cell {
-  border: 1px solid #edf2f7;
-  border-radius: 12px;
-  padding: 18px 18px 16px;
-  background: #fbfdff;
-}
-.flag-cell b { display: flex; align-items: center; gap: 9px; font-size: 14px; margin-bottom: 7px; }
-.flag-cell b i {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: #e8f0ff;
-  color: #1f5bff;
+/* 功能矩阵：去里层小卡框，「青色图标 + 标题 + 描述」直排 */
+.flag-body { padding: 32px 38px 38px; }
+.flag-cap { font-size: 12px; color: var(--text-muted); margin-bottom: 22px; }
+.flag-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px 32px; }
+.flag-cell .fh { display: flex; align-items: center; gap: 12px; margin-bottom: 9px; }
+.flag-cell .fh i {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(59, 224, 255, 0.1);
+  border: 1px solid rgba(59, 224, 255, 0.22);
+  color: #3be0ff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-style: normal;
-  font-size: 13px;
+  font-size: 16px;
   flex-shrink: 0;
 }
-.flag-cell p { font-size: 12.5px; color: #64748b; line-height: 1.75; margin: 0; }
+.flag-cell .fh b { font-size: 15px; color: var(--text-primary); font-weight: 600; }
+.flag-cell p { font-size: 12.5px; color: var(--text-muted); line-height: 1.8; margin: 0; padding-left: 50px; }
 
-/* ===== 更多服务（点缀小卡） ===== */
-.section-title-sm { font-size: 18px; }
-.more-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.more-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; }
-.more-head { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+/* ===== 更多服务（点缀）：info-card 同款玻璃卡 + hover ===== */
+.section-title-sm { font-size: 20px; }
+.more-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: 24px; }
+.more-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  padding: 26px 24px;
+  transition: border-color 0.25s, transform 0.25s, background 0.25s;
+}
+.more-card:hover {
+  border-color: rgba(59, 224, 255, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateY(-3px);
+}
+.more-head { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
 .more-head i {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: #f1f5f9;
-  color: #475569;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(59, 224, 255, 0.1);
+  border: 1px solid rgba(59, 224, 255, 0.22);
+  color: #3be0ff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-style: normal;
-  font-size: 13px;
+  font-size: 14px;
   flex-shrink: 0;
 }
-.more-head b { font-size: 13.5px; }
-.more-card p { font-size: 12px; color: #94a3b8; line-height: 1.7; margin: 0; }
+.more-head b { font-size: 14px; color: var(--text-primary); font-weight: 600; }
+.more-card p { font-size: 12px; color: var(--text-muted); line-height: 1.75; margin: 0; }
 
 /* ===== 响应式 ===== */
 @media (max-width: 900px) {
