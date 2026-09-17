@@ -2100,6 +2100,40 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 
 
 /* ================================================================
+   ==== 系统管理重设计（settings-v2）：统一图标语言 + 表单重排 ====
+   ================================================================ */
+/* 文字按钮：行内操作弱化，hover 显色 */
+.st2-textbtn{background:none;border:none;color:var(--text-secondary);font-size:12.5px;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit}
+.st2-textbtn:hover{background:var(--gray-100);color:var(--blue-500)}
+.st2-textbtn.danger:hover{background:#FEF2F2;color:var(--danger)}
+/* 部门树行操作 hover 显现 */
+.dept-tab-item .btn-group{opacity:0;transition:opacity .15s}
+.dept-tab-item:hover .btn-group{opacity:1}
+/* 统一卡片头部（标题 + 计数 + 右侧按钮） */
+.st2-hd{display:flex;align-items:center;gap:10px;margin-bottom:2px}
+.st2-hd h4{font-size:15px;font-weight:600;margin:0}
+.st2-cnt{font-size:12px;color:var(--text-secondary)}
+.st2-cardpad{margin-top:12px}
+.st2-savebar{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+/* 权限胶囊开关 */
+.st2-pill{display:inline-flex;align-items:center;width:34px;height:20px;border-radius:999px;transition:background .15s;vertical-align:middle}
+.st2-pill i{display:block;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(7,18,41,.2)}
+.st2-pill.on{background:var(--blue-500)}
+.st2-pill.on i{margin-left:17px}
+.st2-pill.off{background:var(--gray-300)}
+.st2-pill.off i{margin-left:3px}
+/* 业务配置 chip 行 */
+.st2-bizcol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.st2-bizcol{grid-template-columns:1fr}}
+.st2-chip{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:5px 6px 5px 12px;margin-bottom:8px;background:var(--surface)}
+.st2-chip .st2-dot{width:6px;height:6px;border-radius:50%;background:var(--blue-500);flex-shrink:0}
+.st2-chip input{flex:1;border:none;outline:none;font-size:13.5px;color:inherit;background:transparent;min-width:0;padding:4px 0}
+.st2-chip .st2-x{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);cursor:pointer;flex-shrink:0}
+.st2-chip .st2-x:hover{background:#FEF2F2;color:var(--danger)}
+.st2-chip-add{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--gray-300);border-radius:8px;padding:8px 16px;font-size:12.5px;color:var(--text-secondary);cursor:pointer;background:none}
+.st2-chip-add:hover{border-color:var(--blue-500);color:var(--blue-500)}
+
+/* ================================================================
    ==== 业务线下拉切换（bizline-v1）
    点击侧栏「当前业务线」卡片弹出选择层；切换后整组替换菜单。
    ================================================================ */

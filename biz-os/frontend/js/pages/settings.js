@@ -1,6 +1,45 @@
 // ===== 系统设置页（ES5 兼容 — 组织架构整合版）=====
 var _settingsCurrentTab = 'dept';
 
+// ===== 线性 SVG 图标库（settings-v2）：与侧栏同一语言，单色 1.8px 描边 =====
+function _stIco(d, size) {
+  return '<svg viewBox="0 0 24 24" width="' + (size || 18) + '" height="' + (size || 18) + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+}
+var ST_ICONS = {
+  building2: _stIco('<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 21v-4h6v4"/><path d="M8 7h.01M12 7h.01M16 7h.01M8 11h.01M12 11h.01M16 11h.01"/>'),
+  building: _stIco('<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'),
+  folder: _stIco('<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>'),
+  users: _stIco('<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>'),
+  user: _stIco('<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
+  userCheck: _stIco('<path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>'),
+  shield: _stIco('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'),
+  crown: _stIco('<path d="M3 17l2-10 5 5 2-7 2 7 5-5 2 10z"/><path d="M5 21h14"/>'),
+  pen: _stIco('<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>'),
+  eye: _stIco('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
+  tag: _stIco('<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>'),
+  briefcase: _stIco('<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>'),
+  plus: _stIco('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14),
+  x: _stIco('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', 14)
+};
+// 角色图标着色（图标色只出现在底色块上）
+var ST_TINTS = {
+  danger: { bg: '#FEF2F2', fg: '#EF4444' },
+  warning: { bg: '#FFFBEB', fg: '#B45309' },
+  info: { bg: '#E8F0FF', fg: '#1F5BFF' },
+  secondary: { bg: '#F1F5F9', fg: '#64748B' },
+  success: { bg: '#F0FDF4', fg: '#16A34A' },
+  primary: { bg: '#E8F0FF', fg: '#1F5BFF' }
+};
+// 统一卡片构造：图标块 + 标题 + 计数 + 说明 + 正文（右上可挂按钮）
+function _stCard(icon, title, cnt, desc, body, hdExtra) {
+  return '<div class="settings-card"><div class="settings-card-icon">' + icon + '</div><div class="settings-card-body">' +
+    '<div class="st2-hd"><h4>' + title + '</h4>' + (cnt ? '<span class="st2-cnt">' + cnt + '</span>' : '') +
+    '<span style="flex:1"></span>' + (hdExtra || '') + '</div>' +
+    (desc ? '<p class="settings-desc">' + desc + '</p>' : '') +
+    '<div class="st2-cardpad">' + body + '</div>' +
+  '</div></div>';
+}
+
 function renderSettings() {
   var body = $('contentBody');
   var tab = window._settingsCurrentTab || _settingsCurrentTab || 'dept';
@@ -92,12 +131,9 @@ function renderDeptTab(container) {
     if (loaded < 4) return;
     var html = '';
     // ===== 板块一：部门架构 =====
-    html += '<div class="card" style="margin-bottom:20px">' +
-      '<div class="card-header"><h3>\uD83C\uDFDB\uFE0F 部门架构</h3><button class="btn btn-ghost btn-sm" onclick="showDeptSettingsForm()">+ 新增部门</button></div>' +
-      '<div class="card-body" style="padding:0">' +
-        '<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-secondary)">共 ' + flat.length + ' 个部门</div>' +
-        renderDeptTreeSettings(tree, 0) +
-      '</div></div>';
+    html += _stCard(ST_ICONS.building2, '部门架构', '共 ' + flat.length + ' 个部门', null,
+      renderDeptTreeSettings(tree, 0),
+      '<button class="btn btn-ghost btn-sm" onclick="showDeptSettingsForm()">' + ST_ICONS.plus + ' 新增部门</button>');
 
     // ===== 板块二：人员列表 =====
     var staffRows = '';
@@ -107,11 +143,11 @@ function renderDeptTab(container) {
       var roleName = (rolePerms[s.role] && rolePerms[s.role].name) || s.role;
       var roleCls = { admin:'danger', manager:'warning', operator:'info', viewer:'secondary' }[s.role] || 'info';
       var statusLabel = s.status === 'active' ? '<span class="badge success">启用</span>' : '<span class="badge secondary">禁用</span>';
-      staffRows += '<tr><td><strong>' + s.staff_id + '</strong></td><td>' + escapeHtml(s.name) + '</td><td><code>' + escapeHtml(s.username) + '</code></td><td>' + escapeHtml(s.dept_name || '-') + '</td><td>' + escapeHtml(s.position || '-') + '</td><td><span class="badge ' + roleCls + '">' + escapeHtml(roleName) + '</span></td><td>' + statusLabel + '</td><td><div class="btn-group"><button class="btn btn-sm btn-ghost" onclick="showStaffSettingsForm(\'' + s.staff_id + '\')">编辑</button><button class="btn btn-sm btn-danger" onclick="deleteStaffSetting(\'' + s.staff_id + '\')">删除</button></div></td></tr>';
+      staffRows += '<tr><td><strong>' + s.staff_id + '</strong></td><td>' + escapeHtml(s.name) + '</td><td><code>' + escapeHtml(s.username) + '</code></td><td>' + escapeHtml(s.dept_name || '-') + '</td><td>' + escapeHtml(s.position || '-') + '</td><td><span class="badge ' + roleCls + '">' + escapeHtml(roleName) + '</span></td><td>' + statusLabel + '</td><td><div class="btn-group"><button class="st2-textbtn" onclick="showStaffSettingsForm(\'' + s.staff_id + '\')">编辑</button><button class="st2-textbtn danger" onclick="deleteStaffSetting(\'' + s.staff_id + '\')">删除</button></div></td></tr>';
     }
-    html += '<div class="card" style="margin-bottom:20px">' +
-      '<div class="card-header"><h3>\uD83D\uDC65 人员列表</h3><button class="btn btn-ghost btn-sm" onclick="showStaffSettingsForm()">+ 新增人员</button></div>' +
-      '<div class="card-body" style="padding:0"><div class="table-wrapper"><table><thead><tr><th>编号</th><th>姓名</th><th>账号</th><th>部门</th><th>职位</th><th>角色</th><th>状态</th><th>操作</th></tr></thead><tbody>' + staffRows + '</tbody></table></div></div></div>';
+    html += _stCard(ST_ICONS.users, '人员列表', '共 ' + staff.length + ' 人', null,
+      '<div class="table-wrapper"><table><thead><tr><th>编号</th><th>姓名</th><th>账号</th><th>部门</th><th>职位</th><th>角色</th><th>状态</th><th style="text-align:right">操作</th></tr></thead><tbody>' + staffRows + '</tbody></table></div>',
+      '<button class="btn btn-ghost btn-sm" onclick="showStaffSettingsForm()">' + ST_ICONS.plus + ' 新增人员</button>');
 
     // ===== 板块三：角色与权限（可编辑）=====
     html += renderRolePermEditor(rolePerms);
@@ -133,13 +169,13 @@ function renderDeptTreeSettings(nodes, level) {
     var hasChildren = n.children && n.children.length > 0;
     html += '<div class="dept-tab-item" style="padding-left:' + (level * 24 + 16) + 'px">' +
       '<div class="dept-tab-row">' +
-        '<span class="dept-tab-icon">' + (n.parent_id ? '\uD83D\uDCC2' : '\uD83C\uDFE2') + '</span>' +
+        '<span class="dept-tab-icon">' + (n.parent_id ? ST_ICONS.folder : ST_ICONS.building) + '</span>' +
         '<span class="dept-tab-name">' + escapeHtml(n.dept_name) + '</span>' +
         '<span class="badge info" style="margin-left:8px">' + n.staff_count + '人</span>' +
         '<span class="dept-tab-meta">' + (n.dept_head || '') + '</span>' +
         '<div class="btn-group" style="margin-left:auto">' +
-          '<button class="btn btn-sm btn-ghost" onclick="showDeptSettingsForm(\'' + n.dept_id + '\')">编辑</button>' +
-          '<button class="btn btn-sm btn-danger" onclick="deleteDeptSetting(\'' + n.dept_id + '\')">删除</button></div></div></div>';
+          '<button class="st2-textbtn" onclick="showDeptSettingsForm(\'' + n.dept_id + '\')">编辑</button>' +
+          '<button class="st2-textbtn danger" onclick="deleteDeptSetting(\'' + n.dept_id + '\')">删除</button></div></div></div>';
     if (hasChildren) html += renderDeptTreeSettings(n.children, level + 1);
   }
   return html;
@@ -155,26 +191,27 @@ function renderRolePermEditor(rolePerms) {
 
   // 角色卡片概览（含删除按钮）
   var cardsHtml = '';
-  var iconMap = { admin:'&#x1F451;', manager:'&#x1F468;&#x200D;&#x1F4BC;', operator:'&#x1F4DD;', viewer:'&#x1F441;&#xFE0F;' };
+  var iconMap = { admin: ST_ICONS.crown, manager: ST_ICONS.userCheck, operator: ST_ICONS.pen, viewer: ST_ICONS.eye };
   for (var ri = 0; ri < roleKeys.length; ri++) {
     var rk = roleKeys[ri];
     var r = rolePerms[rk];
     var ci = ri % colors.length;
     var colorName = colors[ci];
     // 新角色没有预定义图标时，使用默认图标
-    var defaultIcons = ['&#x1F451;','&#x1F468;&#x200D;&#x1F4BC;','&#x1F4DD;','&#x1F441;&#xFE0F;','&#x1F464;','&#x1F465;'];
-    var icon = iconMap[rk] || defaultIcons[ci] || '&#x1F464;';
+    var defaultIcons = [ST_ICONS.crown, ST_ICONS.userCheck, ST_ICONS.pen, ST_ICONS.eye, ST_ICONS.user, ST_ICONS.users];
+    var icon = iconMap[rk] || defaultIcons[ci] || ST_ICONS.user;
     var badges = '';
     for (var pi = 0; pi < r.pages.length; pi++) {
       var label = PAGE_LABELS[r.pages[pi]] || r.pages[pi];
       badges += '<span class="badge ' + colorName + '" style="margin:2px;font-size:11px">' + label + '</span>';
     }
+    var tint = ST_TINTS[colorName] || ST_TINTS.secondary;
     cardsHtml +=
       '<div class="settings-card settings-card-compact" style="display:block;margin-bottom:10px;position:relative">' +
         '<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">' +
-          '<div style="background:var(--' + colorName + '-bg);width:36px;height:36px;border-radius:8px;font-size:16px;text-align:center;line-height:36px;flex-shrink:0">' + icon + '</div>' +
+          '<div style="background:' + tint.bg + ';color:' + tint.fg + ';width:36px;height:36px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center">' + icon + '</div>' +
           '<div style="flex:1"><strong style="font-size:14px">' + r.name + '</strong></div>' +
-          '<button class="btn btn-sm btn-danger" onclick="deleteRole(\'' + rk + '\')" style="font-size:11px;padding:3px 8px" title="删除此角色">\u2716 删除</button>' +
+          '<button class="st2-textbtn danger" onclick="deleteRole(\'' + rk + '\')" style="font-size:11.5px" title="删除此角色">删除</button>' +
         '</div>' +
         '<div>' + badges + '</div>' +
       '</div>';
@@ -193,29 +230,23 @@ function renderRolePermEditor(rolePerms) {
     for (var pi = 0; pi < pageKeys.length; pi++) {
       var hasAccess = r.pages.indexOf(pageKeys[pi]) >= 0;
       matrixHtml += '<td style="text-align:center;cursor:pointer" onclick="toggleRolePage(\'' + rk + '\',\'' + pageKeys[pi] + '\')" title="点击切换">' +
-        '<span id="perm-' + rk + '-' + pageKeys[pi] + '" style="font-size:16px;font-weight:700;transition:all .15s;' +
-          (hasAccess ? 'color:var(--success)' : 'color:var(--border)') + '">' +
-          (hasAccess ? '&#10003;' : '&#8212;') +
-        '</span></td>';
+        '<span id="perm-' + rk + '-' + pageKeys[pi] + '" class="st2-pill ' + (hasAccess ? 'on' : 'off') + '"><i></i></span></td>';
     }
     matrixHtml += '</tr>';
   }
   matrixHtml += '</tbody></table></div>';
 
   var html =
-    '<div class="card" id="rolePermCard">' +
-      '<div class="card-header"><h3>\uD83D\uDD11 角色与权限</h3>' +
-        '<div class="btn-group">' +
-          '<button class="btn btn-sm btn-success" onclick="addNewRole()">+ 添加角色</button>' +
-          '<button class="btn btn-primary btn-sm" onclick="saveRolePermissions()">保存权限</button>' +
-        '</div></div>' +
-      '<div class="card-body">' +
-        '<div style="margin-bottom:16px"><p class="settings-desc" style="margin-bottom:0">点击矩阵中的 &#10003; 或 &#8212; 切换权限，点击表头批量操作。角色可添加/删除。</p></div>' +
+    '<div class="settings-card" id="rolePermCard">' +
+      '<div class="settings-card-icon">' + ST_ICONS.shield + '</div>' +
+      '<div class="settings-card-body">' +
+        '<h4>角色与权限</h4>' +
+        '<p class="settings-desc">点击开关切换权限，点击表头批量操作。角色可添加/删除。</p>' +
         cardsHtml +
         matrixHtml +
-        '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">' +
-          '<button class="btn btn-success" onclick="addNewRole()" style="padding:8px 20px">+ 添加角色</button>' +
-          '<button class="btn btn-ghost" onclick="saveRolePermissions()" style="padding:8px 32px">保存权限配置</button>' +
+        '<div class="st2-savebar">' +
+          '<button class="btn btn-ghost" onclick="addNewRole()">' + ST_ICONS.plus + ' 添加角色</button>' +
+          '<button class="btn btn-primary" onclick="saveRolePermissions()">保存权限配置</button>' +
         '</div>' +
       '</div></div>';
 
@@ -333,8 +364,7 @@ window.toggleRolePage = function(roleKey, pageKey) {
   var el = document.getElementById('perm-' + roleKey + '-' + pageKey);
   if (el) {
     var hasAccess = pages.indexOf(pageKey) >= 0;
-    el.innerHTML = hasAccess ? '&#10003;' : '&#8212;';
-    el.style.color = hasAccess ? 'var(--success)' : 'var(--border)';
+    el.className = 'st2-pill ' + (hasAccess ? 'on' : 'off');
   }
 };
 
@@ -359,8 +389,7 @@ window.toggleAllRoleForPage = function(pageKey) {
     var el = document.getElementById('perm-' + roleKeys[ri] + '-' + pageKey);
     if (el) {
       var hasAccess = pages.indexOf(pageKey) >= 0;
-      el.innerHTML = hasAccess ? '&#10003;' : '&#8212;';
-      el.style.color = hasAccess ? 'var(--success)' : 'var(--border)';
+      el.className = 'st2-pill ' + (hasAccess ? 'on' : 'off');
     }
   }
 };
@@ -757,7 +786,7 @@ function renderWechatTab(container) {
       '<div class="settings-card">' +
         '<div class="settings-card-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>' +
         '<div class="settings-card-body">' +
-          '<h4>\uD83D\uDD11 公众号基础配置</h4>' +
+          '<h4>公众号基础配置</h4>' +
           '<p class="settings-desc">微信公众号的开发者凭据，用于发送模板消息和获取用户信息</p>' +
           '<div class="settings-form-grid">' +
             '<div class="settings-field"><label>公众号 AppID</label><input name="wechat_appid" type="text" value="' + escapeHtml(getVal('wechat_appid')) + '" placeholder="微信开放平台分配的AppID"><span>在微信公众平台「开发 → 基本配置」中查看</span></div>' +
@@ -773,13 +802,13 @@ function renderWechatTab(container) {
       '<div class="settings-card">' +
         '<div class="settings-card-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
         '<div class="settings-card-body">' +
-          '<h4>\uD83D\uDCE8 提醒模板配置</h4>' +
+          '<h4>提醒模板配置</h4>' +
           '<p class="settings-desc">配置各场景使用的微信模板消息ID，需先在微信公众平台创建对应模板</p>' +
           '<div class="settings-form-grid">' +
-            '<div class="settings-field"><label>\uD83D\uDD14 到期提醒模板ID</label><input name="wechat_template_id_expire" type="text" value="' + escapeHtml(getVal('wechat_template_id_expire')) + '" placeholder="XXXXXXXXX_template_expire"><span>发送给终端客户的到期通知模板</span></div>' +
-            '<div class="settings-field"><label>\u2705 续约成功模板ID</label><input name="wechat_template_id_renew" type="text" value="' + escapeHtml(getVal('wechat_template_id_renew')) + '" placeholder="XXXXXXXXX_template_renew"><span>续约成功后发送给客户的确认模板</span></div>' +
-            '<div class="settings-field"><label>\uD83D\uDCCB 管理通知模板ID</label><input name="wechat_template_id_management" type="text" value="' + escapeHtml(getVal('wechat_template_id_management')) + '" placeholder="微信模板消息ID（管理通知合并发送）"><span>向管理人员集中发送到期汇总提醒的模板</span></div>' +
-            '<div class="settings-field"><label>\uD83E\uDD16 企微机器人 Webhook</label><input name="wecom_webhook_url" type="text" value="' + escapeHtml(getVal('wecom_webhook_url')) + '" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxx"><span>企业微信群机器人Webhook地址，用于站内通知</span></div>' +
+            '<div class="settings-field"><label>到期提醒模板ID</label><input name="wechat_template_id_expire" type="text" value="' + escapeHtml(getVal('wechat_template_id_expire')) + '" placeholder="XXXXXXXXX_template_expire"><span>发送给终端客户的到期通知模板</span></div>' +
+            '<div class="settings-field"><label>续约成功模板ID</label><input name="wechat_template_id_renew" type="text" value="' + escapeHtml(getVal('wechat_template_id_renew')) + '" placeholder="XXXXXXXXX_template_renew"><span>续约成功后发送给客户的确认模板</span></div>' +
+            '<div class="settings-field"><label>管理通知模板ID</label><input name="wechat_template_id_management" type="text" value="' + escapeHtml(getVal('wechat_template_id_management')) + '" placeholder="微信模板消息ID（管理通知合并发送）"><span>向管理人员集中发送到期汇总提醒的模板</span></div>' +
+            '<div class="settings-field"><label>企微机器人 Webhook</label><input name="wecom_webhook_url" type="text" value="' + escapeHtml(getVal('wecom_webhook_url')) + '" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxx"><span>企业微信群机器人Webhook地址，用于站内通知</span></div>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -792,7 +821,7 @@ function renderWechatTab(container) {
 
     var staffGridHtml = '';
     if (staffList.length === 0) {
-      staffGridHtml = '<div class="empty-state" style="padding:20px"><p>\u26A0\uFE0F 暂未添加人员，请先在「组织架构」中添加员工并填写微信 OpenID。</p></div>';
+      staffGridHtml = '<div class="empty-state" style="padding:20px"><p>暂未添加人员，请先在「组织架构」中添加员工并填写微信 OpenID。</p></div>';
     } else {
       staffGridHtml = '<div class="wechat-staff-grid">';
       for (var si = 0; si < staffList.length; si++) {
@@ -812,8 +841,8 @@ function renderWechatTab(container) {
             '</div>' +
             '<div class="wechat-staff-badge">' +
               (hasOpenid
-                ? '<span class="badge success" style="font-size:10px">\u2714 已绑定</span>'
-                : '<span class="badge secondary" style="font-size:10px">\u2716 未绑定</span>') +
+                ? '<span class="badge success" style="font-size:10px">已绑定</span>'
+                : '<span class="badge secondary" style="font-size:10px">未绑定</span>') +
             '</div>' +
           '</div>';
       }
@@ -824,7 +853,7 @@ function renderWechatTab(container) {
       '<div class="settings-card" style="margin-top:16px">' +
         '<div class="settings-card-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>' +
         '<div class="settings-card-body">' +
-          '<h4>\uD83D\uDCE3 管理通知接收人</h4>' +
+          '<h4>管理通知接收人</h4>' +
           '<p class="settings-desc">勾选需要接收微信到期通知的管理人员。需先在员工信息中填写微信 OpenID，勾选后系统会在到期时通过微信模板消息合并发送汇总提醒。</p>' +
           '<div id="reminderContactsBody">' + staffGridHtml + '</div>' +
           '<div style="margin-top:12px;display:flex;gap:8px;align-items:center">' +
@@ -845,7 +874,7 @@ function renderWechatTab(container) {
       '<form id="wechatSettingsForm" onsubmit="return false">' +
         baseCard + tmplCard + contactsCard +
         '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">' +
-          '<button class="btn btn-primary" type="button" onclick="saveWechatSettings()">\uD83D\uDCBE 保存全部配置</button></div>' +
+          '<button class="btn btn-primary" type="button" onclick="saveWechatSettings()">保存全部配置</button></div>' +
       '</form>';
 
     // 点击卡片勾选/取消 + 员工计数联动
@@ -913,26 +942,25 @@ function renderBizTab(container) {
     var contractTypes = [];
     try { customerTypes = JSON.parse(customerTypesVal); } catch(e) { customerTypes = ['园区租户','连锁店','散客','楼宇']; }
     try { contractTypes = JSON.parse(contractTypesVal); } catch(e) { contractTypes = ['宽带自运营','宽带直售','IT外包']; }
-    var customerHtml = '';
-    for (var i = 0; i < customerTypes.length; i++) {
-      customerHtml += '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">' +
-        '<input name="customer_types_' + i + '" value="' + escapeHtml(customerTypes[i]) + '" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-lg);font-size:14px">' +
-        '<button type="button" class="btn btn-sm btn-danger" onclick="removeCustomerType(' + i + ')">删除</button></div>';
+    function chipHtml(namePrefix, items, removeFn) {
+      var h = '';
+      for (var i = 0; i < items.length; i++) {
+        h += '<div class="st2-chip"><span class="st2-dot"></span>' +
+          '<input name="' + namePrefix + i + '" value="' + escapeHtml(items[i]) + '" placeholder="名称">' +
+          '<span class="st2-x" title="删除" onclick="' + removeFn + '(' + i + ')">' + ST_ICONS.x + '</span></div>';
+      }
+      return h;
     }
-    customerHtml += '<button type="button" class="btn btn-sm btn-outline" onclick="addCustomerType()" style="margin-top:4px">+ 添加</button>';
-    var contractHtml = '';
-    for (var i = 0; i < contractTypes.length; i++) {
-      contractHtml += '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">' +
-        '<input name="contract_biz_types_' + i + '" value="' + escapeHtml(contractTypes[i]) + '" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-lg);font-size:14px">' +
-        '<button type="button" class="btn btn-sm btn-danger" onclick="removeContractType(' + i + ')">删除</button></div>';
-    }
-    contractHtml += '<button type="button" class="btn btn-sm btn-outline" onclick="addContractType()" style="margin-top:4px">+ 添加</button>';
     container.innerHTML =
-      '<div class="card"><div class="card-header"><h3>业务配置</h3></div><div class="card-body">' +
-        '<form id="bizSettingsForm" class="form-grid" onsubmit="return false">' +
-          '<div class="form-group full"><label>客户分类</label><div id="customerTypesContainer">' + customerHtml + '</div><span class="text-xs text-secondary" style="margin-top:2px">客户分类列表，可自定义增删改</span></div>' +
-          '<div class="form-group full"><label>合同业务类型</label><div id="contractTypesContainer">' + contractHtml + '</div><span class="text-xs text-secondary" style="margin-top:2px">合同业务类型列表</span></div>' +
-          '<div class="form-actions full"><button class="btn btn-primary" type="button" onclick="saveBizSettings()">保存配置</button></div></form></div></div>';
+      '<div class="st2-bizcol">' +
+        _stCard(ST_ICONS.tag, '客户分类', null, '客户分类列表，可自定义增删',
+          '<div id="customerTypesContainer">' + chipHtml('customer_types_', customerTypes, 'removeCustomerType') +
+          '<button type="button" class="st2-chip-add" onclick="addCustomerType()">' + ST_ICONS.plus + ' 添加</button></div>') +
+        _stCard(ST_ICONS.briefcase, '合同业务类型', null, '合同业务类型列表，可自定义增删',
+          '<div id="contractTypesContainer">' + chipHtml('contract_biz_types_', contractTypes, 'removeContractType') +
+          '<button type="button" class="st2-chip-add" onclick="addContractType()">' + ST_ICONS.plus + ' 添加</button></div>') +
+      '</div>' +
+      '<div class="st2-savebar"><button class="btn btn-primary" type="button" onclick="saveBizSettings()">保存配置</button></div>';
     window._bizCustomerCount = customerTypes.length;
     window._bizContractCount = contractTypes.length;
   }).catch(function(e) { container.innerHTML = '<div class="empty-state"><p>加载失败: ' + e.message + '</p></div>'; });
@@ -942,14 +970,15 @@ window.addCustomerType = function() {
   var container = document.querySelector('#customerTypesContainer');
   var count = window._bizCustomerCount || 0;
   var div = document.createElement('div');
-  div.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;align-items:center';
-  div.innerHTML = '<input name="customer_types_' + count + '" value="" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-lg);font-size:14px" placeholder="新分类名称"><button type="button" class="btn btn-sm btn-danger" onclick="removeCustomerType(' + count + ')">删除</button>';
+  div.className = 'st2-chip';
+  div.innerHTML = '<span class="st2-dot"></span><input name="customer_types_' + count + '" value="" placeholder="新分类名称"><span class="st2-x" title="删除" onclick="removeCustomerType(' + count + ')">' + ST_ICONS.x + '</span>';
   container.insertBefore(div, container.lastElementChild);
   window._bizCustomerCount = count + 1;
+  var inp = div.querySelector('input'); if (inp) inp.focus();
 };
 window.removeCustomerType = function(index) {
   var container = document.querySelector('#customerTypesContainer');
-  var items = container.querySelectorAll('div[style*="display:flex"]');
+  var items = container.querySelectorAll('.st2-chip');
   if (items.length <= 1) { showAlert('至少保留一个分类'); return; }
   if (index < items.length) items[index].remove();
 };
@@ -957,14 +986,15 @@ window.addContractType = function() {
   var container = document.querySelector('#contractTypesContainer');
   var count = window._bizContractCount || 0;
   var div = document.createElement('div');
-  div.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;align-items:center';
-  div.innerHTML = '<input name="contract_biz_types_' + count + '" value="" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-lg);font-size:14px" placeholder="新类型名称"><button type="button" class="btn btn-sm btn-danger" onclick="removeContractType(' + count + ')">删除</button>';
+  div.className = 'st2-chip';
+  div.innerHTML = '<span class="st2-dot"></span><input name="contract_biz_types_' + count + '" value="" placeholder="新类型名称"><span class="st2-x" title="删除" onclick="removeContractType(' + count + ')">' + ST_ICONS.x + '</span>';
   container.insertBefore(div, container.lastElementChild);
   window._bizContractCount = count + 1;
+  var inp = div.querySelector('input'); if (inp) inp.focus();
 };
 window.removeContractType = function(index) {
   var container = document.querySelector('#contractTypesContainer');
-  var items = container.querySelectorAll('div[style*="display:flex"]');
+  var items = container.querySelectorAll('.st2-chip');
   if (items.length <= 1) { showAlert('至少保留一个类型'); return; }
   if (index < items.length) items[index].remove();
 };
