@@ -2098,6 +2098,33 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 }
 /* ===================== sidebar-bv1 end ===================== */
 
+
+/* ================================================================
+   ==== 业务线下拉切换（bizline-v1）
+   点击侧栏「当前业务线」卡片弹出选择层；切换后整组替换菜单。
+   ================================================================ */
+.biz-pop {
+  position: absolute; left: 14px; right: 14px; z-index: 60;
+  background: #0c1930; border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px; padding: 6px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.5);
+  display: none;
+}
+.biz-pop.show { display: block; }
+.biz-pop .biz-opt {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: rgba(255,255,255,.75);
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+}
+.biz-pop .biz-opt:hover { background: rgba(255,255,255,.07); }
+.biz-pop .biz-opt.on { background: rgba(59,224,255,.12); color: #fff; }
+.biz-pop .biz-opt .biz-ck { margin-left: auto; color: #3BE0FF; font-size: 11px; }
+.biz-pop .biz-soon { font-size: 11px; color: rgba(255,255,255,.4); padding: 8px 10px 4px; border-top: 1px solid rgba(255,255,255,.08); margin-top: 4px; }
+
+/* 业务线占位态：侧栏提示 + 内容区空态 */
+.nav-coming { margin: 18px 10px; padding: 18px 14px; border: 1px dashed rgba(255,255,255,.18); border-radius: 10px; text-align: center; }
+.nav-coming b { display: block; font-size: 13px; color: rgba(255,255,255,.85); margin-bottom: 6px; }
+.nav-coming span { font-size: 11.5px; color: rgba(255,255,255,.45); line-height: 1.6; display: block; }
 /* ===================== topbar-v1 start =====================
    顶栏减法：用户块（.tb-user）已从 DOM 移除（app.js 引用均有 if 判空，安全）。
    旧 .top-bar 是 justify-content:space-between —— 子元素被均匀撑开，

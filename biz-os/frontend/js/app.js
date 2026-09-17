@@ -31,6 +31,151 @@
     content: { menu: 'contentMenu', arrow: 'contentArrow' }
   };
 
+  // ===== 业务线（bizline-v1）=====
+  // 方案1：下拉切换、整组替换。宽带菜单以初始 DOM 快照为准；
+  // 新业务线尚无页面，先渲染「建设中」占位，后续按配置化渲染演进。
+  var BIZ_LINES = [
+    { code: 'broadband', name: '宽带与 IT 服务' },
+    { code: 'newmedia', name: '新媒体运营', placeholder: true }
+  ];
+  var BIZ_KEY = 'bos_bizline';
+  var currentBizLine = localStorage.getItem(BIZ_KEY) || 'broadband';
+  var _broadbandNavHTML = null; // 宽带菜单快照（首次切走前捕获）
+
+  function bizName(code) {
+    for (var i = 0; i < BIZ_LINES.length; i++) { if (BIZ_LINES[i].code === code) return BIZ_LINES[i].name; }
+    return code;
+  }
+
+  function renderBizPop() {
+    var pop = document.getElementById('bizPop');
+    if (!pop) return;
+    var html = '';
+    for (var i = 0; i < BIZ_LINES.length; i++) {
+      var b = BIZ_LINES[i];
+      var on = b.code === currentBizLine;
+      html += '<div class="biz-opt' + (on ? ' on' : '' ) + '" data-biz="' + b.code + '">' +
+              '<i class="sb-ls-dot"></i>' + b.name + (on ? '<span class="biz-ck">✓</span>' : '') + '</div>';
+    }
+    html += '<div class="biz-soon">更多业务线规划中</div>';
+    pop.innerHTML = html;
+    var opts = pop.querySelectorAll('.biz-opt');
+    for (var k = 0; k < opts.length; k++) {
+      (function(el) {
+        el.addEventListener('click', function(e) {
+          e.stopPropagation();
+          switchBizLine(el.getAttribute('data-biz'));
+        });
+      })(opts[k]);
+    }
+  }
+
+  function toggleBizPop(force) {
+    var pop = document.getElementById('bizPop');
+    if (!pop) return;
+    var show = (typeof force === 'boolean') ? force : !pop.classList.contains('show');
+    if (show) renderBizPop();
+    pop.classList.toggle('show', show);
+  }
+
+  function captureBroadbandNav() {
+    if (_broadbandNavHTML) return;
+    var nav = document.querySelector('.nav-menu');
+    // DOM 里还是带 data-page 的原始宽带菜单时才捕获（占位态没有可捕获内容）
+    if (nav && nav.querySelector('.nav-item[data-page]')) _broadbandNavHTML = nav.innerHTML;
+  }
+
+  function bindNavEvents() {
+    var items = document.querySelectorAll('.nav-item');
+    for (var i = 0; i < items.length; i++) {
+      (function(el) {
+        if (el.__navBound) return;
+        el.__navBound = true;
+        el.addEventListener('click', function(e) {
+          if (el.dataset.page) { e.preventDefault(); navigate(el.dataset.page, el.dataset.tab); }
+        });
+      })(items[i]);
+    }
+    var subs = document.querySelectorAll('.nav-subitem');
+    for (var si = 0; si < subs.length; si++) {
+      (function(el) {
+        if (el.__navBound) return;
+        el.__navBound = true;
+        el.addEventListener('click', function(e) { e.preventDefault(); navigate(el.dataset.page, el.dataset.tab); });
+      })(subs[si]);
+    }
+    var toggles = document.querySelectorAll('.nav-group-toggle');
+    for (var gi = 0; gi < toggles.length; gi++) {
+      (function(el) {
+        if (el.__navBound) return;
+        el.__navBound = true;
+        el.addEventListener('click', function(e) {
+          e.preventDefault();
+          var name = el.getAttribute('data-group');
+          if (!name) return;
+          var open = toggleNavGroup(name);
+          if (!open) return;
+          var g = NAV_GROUPS[name];
+          var menu = g && document.getElementById(g.menu);
+          if (!menu) return;
+          var subs2 = menu.querySelectorAll('.nav-subitem');
+          for (var k = 0; k < subs2.length; k++) {
+            if (subs2[k].style.display !== 'none' && hasPagePermission(subs2[k].dataset.page)) {
+              navigate(subs2[k].dataset.page, subs2[k].dataset.tab);
+              return;
+            }
+          }
+        });
+      })(toggles[gi]);
+    }
+  }
+
+  function switchBizLine(code) {
+    if (!code || code === currentBizLine) { toggleBizPop(false); return; }
+    captureBroadbandNav();
+    currentBizLine = code;
+    localStorage.setItem(BIZ_KEY, code);
+    applyBizLineUI(true);
+    toggleBizPop(false);
+  }
+
+  /** 按当前业务线渲染侧栏菜单与内容区。isSwitch=切线时同时刷新内容区 */
+  function applyBizLineUI(isSwitch) {
+    var nav = document.querySelector('.nav-menu');
+    if (!nav) return;
+    var nameEl = document.getElementById('bizLineName');
+    if (nameEl) nameEl.textContent = bizName(currentBizLine);
+    if (currentBizLine === 'broadband') {
+      if (_broadbandNavHTML) nav.innerHTML = _broadbandNavHTML;
+      bindNavEvents();
+      if (currentUser) applyPermissionUI();
+      if (isSwitch) navigate('dashboard');
+    } else {
+      captureBroadbandNav();
+      var b = bizName(currentBizLine);
+      nav.innerHTML = '<div class="nav-coming"><b>' + b + '</b><span>业务线建设中\n菜单与页面规划中</span></div>';
+      if (isSwitch) {
+        currentPage = '__' + currentBizLine;
+        var items = document.querySelectorAll('.nav-item, .nav-subitem');
+        for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
+        $('pageTitle').textContent = b;
+        updateCrumb('业务线', b);
+        $('contentBody').innerHTML = '<div class="empty-state"><p>' + b + ' · 建设中</p><p>该业务线的功能页面规划中，敬请期待</p></div>';
+      }
+    }
+  }
+
+  // 业务线卡片点击 → 弹层；点击别处收起
+  var bizSwitch = document.getElementById('bizLineSwitch');
+  if (bizSwitch) {
+    var pop = document.createElement('div');
+    pop.id = 'bizPop';
+    pop.className = 'biz-pop';
+    bizSwitch.parentNode.insertBefore(pop, bizSwitch.nextSibling);
+    bizSwitch.addEventListener('click', function(e) { e.stopPropagation(); toggleBizPop(); });
+  }
+  document.addEventListener('click', function() { toggleBizPop(false); });
+
   function toggleNavGroup(name) {
     var g = NAV_GROUPS[name];
     if (!g) return false;
@@ -229,7 +374,8 @@
       $('loginOverlay').style.display = 'none';
       loadPermissions(function() {
         applyPermissionUI();
-        navigate(currentPage);
+        if (currentBizLine !== 'broadband') { applyBizLineUI(true); }
+        else { navigate(currentPage); }
       });
     } else {
       $('userInfo').style.display = 'none';
@@ -278,50 +424,19 @@
         if (NAV_GROUPS.hasOwnProperty(g)) setNavGroup(g, false);
       }
       applyGroupHeaderVisibility();
+      if (currentBizLine !== 'broadband') {
+        currentBizLine = 'broadband';
+        localStorage.setItem(BIZ_KEY, 'broadband');
+        applyBizLineUI(false); // 只还原菜单，不触发 navigate（此刻未登录）
+      }
     });
   };
 
-  // ===== 导航绑定 =====
-  var navItems = document.querySelectorAll('.nav-item');
-  for (var ni = 0; ni < navItems.length; ni++) {
-    (function(el) {
-      el.addEventListener('click', function(e) {
-        if (el.dataset.page) { e.preventDefault(); navigate(el.dataset.page, el.dataset.tab); }
-      });
-    })(navItems[ni]);
-  }
-  var subItems = document.querySelectorAll('.nav-subitem');
-  for (var si = 0; si < subItems.length; si++) {
-    (function(el) {
-      el.addEventListener('click', function(e) { e.preventDefault(); navigate(el.dataset.page, el.dataset.tab); });
-    })(subItems[si]);
-  }
+  // ===== 导航绑定（bizline-v1：收进 bindNavEvents，切线重建 DOM 后可重绑；分组头仍由原循环绑定）=====
+  bindNavEvents();
 
-  /* 分组头：之前只绑了第一个 .nav-group-toggle，还写死了 settingsMenu ——
-     第二个分组（内容管理）点了没反应。改成按 data-group 逐个绑。 */
-  var groupToggles = document.querySelectorAll('.nav-group-toggle');
-  for (var gi = 0; gi < groupToggles.length; gi++) {
-    (function(el) {
-      el.addEventListener('click', function(e) {
-        e.preventDefault();
-        var name = el.getAttribute('data-group');
-        if (!name) return;
-        var open = toggleNavGroup(name);
-        if (!open) return;
-        // 展开时自动跳到该分组下第一个有权限的子项
-        var g = NAV_GROUPS[name];
-        var menu = g && document.getElementById(g.menu);
-        if (!menu) return;
-        var subs = menu.querySelectorAll('.nav-subitem');
-        for (var k = 0; k < subs.length; k++) {
-          if (subs[k].style.display !== 'none' && hasPagePermission(subs[k].dataset.page)) {
-            navigate(subs[k].dataset.page, subs[k].dataset.tab);
-            return;
-          }
-        }
-      });
-    })(groupToggles[gi]);
-  }
+  /* 分组头绑定已并入 bindNavEvents()（bizline-v1）：切线重建 DOM 后可重绑，
+     且 __navBound 防双绑 —— 旧的原地循环会与它叠加成双击开关，已移除。 */
 
   // 兼容旧调用方（settings.js 等可能仍引用）
   window.toggleSettingsMenu = function() { toggleNavGroup('settings'); };
@@ -366,4 +481,5 @@
     updateUserUI(null);
   }
   applyBrandingSettings();
+  applyBizLineUI(false);
 })();
