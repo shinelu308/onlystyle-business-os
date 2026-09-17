@@ -31,7 +31,12 @@ app.use(function(req, res, next) {
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   } else if (readable && CONTENT_CACHEABLE.test(req.path)) {
     // ETag 由 express 自动生成；响应体里带 version，任何一次内容变更都会让 ETag 变化
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    // 预览模式：后台实时预览面板的官网会带 ?pv=时间戳 拉接口 → 不缓存，保存即见
+    if (req.query.pv) {
+      res.setHeader('Cache-Control', 'no-store');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    }
   } else {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');

@@ -88,9 +88,10 @@ function listeningPids(port) {
   return [...pids];
 }
 
-function buildWebsite() {
+function buildWebsite(force) {
   const dist = path.join(ROOT, 'website', 'dist', 'index.html');
-  if (fs.existsSync(dist)) return false;
+  // rebuild = 强制重建；只有 start 时的自动补建才跳过「已存在」
+  if (!force && fs.existsSync(dist)) return false;
   console.log('  官网 dist 不存在，先构建（约 3~5s）…');
   execFileSync(NODE, ['node_modules/vite/bin/vite.js', 'build'],
     { cwd: path.join(ROOT, 'website'), stdio: 'inherit' });
@@ -247,6 +248,6 @@ async function status() {
   else if (cmd === 'serve-once') await serveOnce();
   else if (cmd === 'stop') await stop();
   else if (cmd === 'status') await status();
-  else if (cmd === 'rebuild') buildWebsite();
+  else if (cmd === 'rebuild') buildWebsite(true);
   else { console.log('未知命令：' + cmd + '（可用 start / stop / status / rebuild）'); process.exitCode = 1; }
 })().catch(e => { console.error('FATAL', e); process.exit(2); });

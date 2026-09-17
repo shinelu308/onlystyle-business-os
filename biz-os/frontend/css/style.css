@@ -2100,6 +2100,21 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 
 
 /* ================================================================
+   ==== 内容管理实时预览（preview-edit v1）：左表单右官网 ====
+   ================================================================ */
+.cm-split{display:flex;gap:16px;align-items:stretch}
+.cm-form-pane{flex:1;min-width:0;max-width:620px;overflow-y:auto}
+.cm-preview-pane{flex:1;min-width:360px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--ink-900);display:flex;flex-direction:column;overflow:hidden;position:sticky;top:12px;height:calc(100vh - 150px);min-height:480px}
+.cm-pv-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--ink-900);border-bottom:1px solid rgba(255,255,255,.08)}
+.cm-pv-tag{font-size:10.5px;font-weight:600;color:#3BE0FF;border:1px solid rgba(59,224,255,.4);border-radius:999px;padding:2px 10px;letter-spacing:.06em;white-space:nowrap}
+.cm-pv-url{font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm-pv-sp{flex:1}
+.cm-preview-pane .btn{background:transparent;border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.75)}
+.cm-preview-pane .btn:hover{border-color:#3BE0FF;color:#3BE0FF}
+.cm-pv-frame{flex:1;width:100%;border:none;background:#fff}
+@media (max-width:1100px){.cm-split{flex-direction:column}.cm-form-pane{max-width:none}.cm-preview-pane{position:static;height:520px}}
+
+/* ================================================================
    ==== 系统管理重设计（settings-v2）：统一图标语言 + 表单重排 ====
    ================================================================ */
 /* 文字按钮：行内操作弱化，hover 显色 */

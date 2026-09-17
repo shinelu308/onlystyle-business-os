@@ -215,6 +215,7 @@ function cmTxt(v) { return escapeHtml(v == null ? '' : String(v)); }
 function cmRun(promise, okMsg, cb) {
   promise.then(function (d) {
     cmLoadVersion();
+    if (typeof window.cmPreviewRefresh === 'function') window.cmPreviewRefresh(); // 保存即见：预览立即拉最新
     if (typeof cb === 'function') cb(d);
     if (okMsg) showAlert(okMsg, '操作成功');
   }).catch(function (e) {
@@ -224,11 +225,40 @@ function cmRun(promise, okMsg, cb) {
 
 function cmReload() { _renderContentTab(_contentCurrentTab); }
 
+/* ================================================================
+   实时预览（方案A）：右侧 iframe 加载官网真实页面。
+   · 页面 URL 带 ?preview=1 → 官网读接口自动带 pv 时间戳 → 后端 no-store，保存即见；
+   · 普通访客不带参数，照常吃 60 秒缓存，线上行为不变；
+   · 所有写操作走 cmRun 收口，成功后自动刷新预览。
+   ================================================================ */
+function cmPreviewOrigin() {
+  // 本地：3100 后台 / 3201 官网（Vite preview）；线上：8081 后台 / 8080 官网（nginx）；同域反代则直接用当前域
+  if (location.port === '3100') return location.protocol + '//' + location.hostname + ':3201';
+  if (location.port === '8081') return location.protocol + '//' + location.hostname + ':8080';
+  return location.origin;
+}
+function cmPreviewUrl(tab) {
+  var page = (tab === 'cases') ? '/cases' : '/';
+  return cmPreviewOrigin() + page + '?preview=1&t=' + Date.now();
+}
+function cmPreviewLoad(tab) {
+  var f = document.getElementById('cmPreview');
+  if (!f) return;
+  var url = cmPreviewUrl(tab);
+  f.src = url;
+  var u = document.getElementById('cmPvUrl');
+  if (u) u.textContent = url.replace(/^https?:\/\/[^/]+/, '').replace(/&t=\d+/, '');
+}
+window.cmPreviewRefresh = function () {
+  var f = document.getElementById('cmPreview');
+  if (f) f.src = cmPreviewUrl(_contentCurrentTab);
+};
+
 /* ---- 工具条 ---- */
 function cmToolbar() {
   return '<div class="cm-toolbar">' +
     '<span class="cm-ver">内容版本 <b id="cmVersion">—</b></span>' +
-    '<span class="cm-dim">前台有 60 秒缓存，保存后最多 1 分钟内自动更新</span>' +
+    '<span class="cm-dim">前台有 60 秒缓存；右侧预览不受缓存限制，保存即见</span>' +
     '<span class="cm-toolbar-sp"></span>' +
     '<button type="button" class="btn btn-sm btn-outline" onclick="cmLoadVersion()">刷新版本号</button>' +
     // 设计稿纪律：一个视图只出现一个渐变主按钮，留给当前 tab 的「保存」。
@@ -341,7 +371,18 @@ function renderContent() {
         cmTabBtn('catalog', tab, '服务与行业') +
         cmTabBtn('cases', tab, '案例') +
       '</div>' +
-      '<div class="settings-content" id="contentPane"></div>' +
+      '<div class="cm-split">' +
+        '<div class="settings-content cm-form-pane" id="contentPane"></div>' +
+        '<div class="cm-preview-pane" id="cmPreviewPane">' +
+          '<div class="cm-pv-bar">' +
+            '<span class="cm-pv-tag">实时预览</span>' +
+            '<span class="cm-pv-url" id="cmPvUrl"></span>' +
+            '<span class="cm-pv-sp"></span>' +
+            '<button type="button" class="btn btn-sm btn-outline" onclick="cmPreviewRefresh()">刷新预览</button>' +
+          '</div>' +
+          '<iframe id="cmPreview" class="cm-pv-frame" title="官网实时预览"></iframe>' +
+        '</div>' +
+      '</div>' +
     '</div>';
 
   var tabsEl = $('contentTabs');
@@ -391,6 +432,7 @@ function _renderContentTab(tab) {
   };
   if (renderers[tab]) setTimeout(function () { renderers[tab](pane); }, 20);
   cmLoadVersion();
+  cmPreviewLoad(tab);
 }
 
 function cmFail(pane, e) {

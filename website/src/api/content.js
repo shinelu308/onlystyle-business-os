@@ -29,10 +29,20 @@ const markDown = () => {
 async function req(path, { timeout = 6000, method = 'GET', body } = {}) {
   if (isApiDown()) throw new Error('content api unavailable (cooling down)');
 
+  // 预览模式（后台实时预览面板的 iframe 会带 ?preview=1 打开官网）：
+  // 所有读接口追加 pv=时间戳 → 后端识别后下发 no-store，绕过 60 秒 HTTP 缓存，保存即见。
+  // 普通访客的页面 URL 没有这个参数，照常走 60 秒缓存，线上行为不变。
+  let url = BASE + path;
+  try {
+    if (new URLSearchParams(location.search).get('preview') === '1') {
+      url += (path.indexOf('?') >= 0 ? '&' : '?') + 'pv=' + Date.now();
+    }
+  } catch { /* 非浏览器环境忽略 */ }
+
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeout);
   try {
-    const r = await fetch(BASE + path, {
+    const r = await fetch(url, {
       method,
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
