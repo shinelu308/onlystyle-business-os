@@ -1977,3 +1977,135 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 
 .cm-planet-opt.on .cm-planet-name{color:var(--blue-600);font-weight:600;
 }
+
+/* ================================================================
+   侧栏菜单「一二级层级」改造 · 方案 B（导轨分层）
+   ----------------------------------------------------------------
+   【改前实测，这就是「一二级分不清」的根因】
+     分组标题 .nav-group-h / .nav-group-toggle = 9.5px / 400 / 白 28% / 字距 .12em
+     一级项   .nav-item                        = 13.5px / 400 / 白 60% / padding 9px 10px
+     二级项   .nav-subitem                     = 13.5px / 400 / 白 60% / padding 9px 10px
+   → 一级与二级**逐值相同**，层级只靠 8px 缩进；分组标题低到像水印分隔符。
+   【改后：三种记号对应三种层级】
+     二级 = 2px 竖向导轨（当前那段染品牌渐变）
+     一级 = 左侧 3px 短横杠
+     分组标题 = 方块锚点（可折叠=青色 + 箭头 + hover；纯标签=灰方块、无 hover）
+   【纪律】
+     · 纯 CSS，零 DOM、零 JS 改动 —— 不动 app.js 的权限显隐链路
+     · sidebar-bv1 整段删除即回滚（index.html 的 ?v 一并退回 21）
+     · 不要挪到文件中间：窄屏例外写在本段末尾，靠**文件顺序**压住同权重的旧规则
+   ================================================================ */
+
+/* ---- 分组标题 · 可折叠（可点）：青色方块 + 提亮 + hover 反馈 ---- */
+.nav-group-toggle {
+  font-family: var(--display);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: none;
+  color: rgba(255,255,255,.66);
+  border-radius: 0;
+  padding: 15px 10px 9px;
+}
+.nav-group-toggle:hover { background: transparent; color: rgba(255,255,255,.9); }
+.nav-group-toggle::before {
+  content: '';
+  flex-shrink: 0;
+  width: 5px; height: 5px;
+  border-radius: 2px;
+  margin-right: 8px;
+  background: var(--cyan-500);
+  box-shadow: 0 0 7px rgba(59,224,255,.6);
+}
+
+/* ---- 分组标题 · 纯标签（不可点）：灰方块 + 更暗 + 无 hover ---- */
+/* ⚠️ 改前它和上面那个逐值相同（都 9.5px/白 28%），但一个不可点、一个可点 ——
+   这是「分不清哪个能点」的根源，必须让它们长得不一样。 */
+.nav-group-h {
+  display: flex;
+  align-items: center;
+  font-family: var(--display);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: none;
+  color: rgba(255,255,255,.5);
+  padding: 15px 10px 9px;
+}
+.nav-group-h::before {
+  content: '';
+  flex-shrink: 0;
+  width: 5px; height: 5px;
+  border-radius: 2px;
+  margin-right: 8px;
+  background: rgba(255,255,255,.26);
+  box-shadow: none;
+}
+.nav-group { margin-top: 6px; }
+
+/* ---- 一级项：提亮 + 左侧短横杠（与二级的竖向导轨区分开）---- */
+.nav-item { color: rgba(255,255,255,.82); }
+.nav-item:not(.active)::before {
+  content: '';
+  position: absolute;
+  left: 2px; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 13px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.5);
+}
+
+/* ---- 二级项：压暗 + 缩小 + 被一条竖向导轨串起 ---- */
+.nav-submenu { padding: 0; }
+.nav-submenu > div { position: relative; padding-left: 20px; }
+.nav-submenu > div::before {
+  content: '';
+  position: absolute;
+  left: 11px; top: 4px; bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.13);
+}
+.nav-subitem {
+  font-size: 12.5px;
+  color: rgba(255,255,255,.54);
+  padding: 7px 10px 7px 24px;
+}
+.nav-subitem svg { width: 14px; height: 14px; opacity: .7; }
+.nav-subitem:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.9); }
+.nav-subitem.active { color: #fff; }
+
+/* 当前项：让导轨那**一段**染成品牌渐变。
+   ⚠️ 先干掉既有的左竖条（.nav-item.active::before, .nav-subitem.active::before 那条，
+      在文件 1834 行），否则会同时出现两条相距 9px 的竖线，看起来像错位。
+   ⚠️ left:-9px 是算出来的、不是猜的：
+      div 的 padding-left:20px → 二级项盒左缘 = div 左缘 + 20px
+      导轨在 div 内 left:11px → 要让渐变段压在导轨上：11 - 20 = -9px */
+.nav-subitem.active::before { display: none; }
+.nav-subitem.active::after {
+  content: '';
+  position: absolute;
+  left: -9px; top: 7px; bottom: 7px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--brand-gradient);
+}
+
+/* ---- 顶部「当前业务线」卡片：和菜单拉开 ---- */
+/* 改前 margin-bottom 只有 6px，紧贴分组标题，容易被误读成第一个菜单分组 */
+.sb-line-switch { margin-bottom: 14px; }
+
+/* ---- 窄屏收口（必须有，且必须在最后）---- */
+/* 侧栏在 768px 下收到 60px：方块锚点/导轨/缩进全部收起，只留居中图标 */
+@media (max-width: 768px) {
+  .nav-group-h { display: none; }
+  .nav-group-h::before, .nav-group-toggle::before { display: none; }
+  .nav-group-toggle { justify-content: center; padding: 0 10px 8px; }
+  .nav-group-toggle .nav-arrow { margin-left: 0; }
+  .nav-submenu > div { padding-left: 0; }
+  .nav-submenu > div::before { display: none; }
+  .nav-subitem { justify-content: center; padding: 10px; }
+  .nav-subitem.active::after { display: none; }
+  .nav-item:not(.active)::before { display: none; }
+}
+/* ===================== sidebar-bv1 end ===================== */
