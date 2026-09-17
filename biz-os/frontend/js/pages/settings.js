@@ -75,7 +75,7 @@ function _renderSettingsTab(tab) {
 
 // 页面定义列表（给权限矩阵用）
 var PAGE_LABELS = {
-  dashboard: '数据看板', suppliers: '资源管理', spatial: '项目管理',
+  dashboard: '数据看板', suppliers: '线路管理', spatial: '项目管理',
   customers: '客户管理', contracts: '合同管理', content: '内容管理', settings: '系统设置'
 };
 

@@ -46,8 +46,8 @@ function renderSuppliers() {
         '<div class="card-header">' +
           '<h3>\uD83D\uDCE1 运营商线路列表</h3>' +
           '<div class="btn-group">' +
-            '<button class="btn btn-sm btn-outline" onclick="downloadCSV(\'/api/suppliers/template\', \'资源管理_导入模板.xlsx\')" title="下载导入模板">模板</button>' +
-            '<button class="btn btn-sm btn-outline" onclick="downloadCSV(\'/api/suppliers/export\', \'资源管理_运营商线路.xlsx\')" title="导出为Excel">导出</button>' +
+            '<button class="btn btn-sm btn-outline" onclick="downloadCSV(\'/api/suppliers/template\', \'线路管理_导入模板.xlsx\')" title="下载导入模板">模板</button>' +
+            '<button class="btn btn-sm btn-outline" onclick="downloadCSV(\'/api/suppliers/export\', \'线路管理_运营商线路.xlsx\')" title="导出为Excel">导出</button>' +
             '<button class="btn btn-sm btn-outline" onclick="importCSV(\'/api/suppliers/import\', \'资源\')" title="从CSV导入">导入</button>' +
             '<button class="btn btn-primary btn-sm" onclick="window.showSupplierForm()">+ 新增线路</button></div></div>' +
         '<div class="card-body" style="padding:0">' + searchHtml + batchBar +

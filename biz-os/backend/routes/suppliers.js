@@ -35,14 +35,14 @@ router.get('/export', async (req, res) => {
     return fields.map(function(f) { return r[f] || ''; });
   });
   var buf = await generateXlsx(fields, data);
-  sendExcelResponse(res, '资源管理_运营商线路.xlsx', buf);
+  sendExcelResponse(res, '线路管理_运营商线路.xlsx', buf);
 });
 
 // 下载模板
 router.get('/template', async (req, res) => {
   var fields = ['line_id', 'provider', 'circuit_number', 'total_bandwidth', 'purchase_date', 'expire_date', 'cost_annual', 'install_location', 'remarks'];
   var buf = await generateXlsx(fields, []);
-  sendExcelResponse(res, '资源管理_导入模板.xlsx', buf);
+  sendExcelResponse(res, '线路管理_导入模板.xlsx', buf);
 });
 
 // 导入 CSV 或 XLSX
