@@ -79,16 +79,6 @@ function dashKpi(k) {
     '</div>';
 }
 
-function dashRangeChips(range) {
-  var opts = [['7d', '近 7 天'], ['30d', '近 30 天'], ['q', '本季度']];
-  var h = '<div class="dash-range">';
-  for (var i = 0; i < opts.length; i++) {
-    h += '<button type="button" class="range-chip' + (opts[i][0] === range ? ' on' : '') +
-      '" onclick="dashSetRange(\'' + opts[i][0] + '\')">' + opts[i][1] + '</button>';
-  }
-  return h + '</div>';
-}
-
 function dashExpiringTable(rows, rangeDays) {
   // 已续约的不需要动作，单独拎出来提示「共 N 条」里有多少是要办的
   var pending = 0;
@@ -202,15 +192,8 @@ function renderDashboardV2(data) {
       '<div class="dash-scope">范围：<b>' + escapeHtml(scope.bizLine || '全部业务线') + '</b>' +
         ' · 最后更新 <b>' + escapeHtml(scope.updatedAt || '—') + '</b></div>' +
     '</div>' +
-    '<div class="dash-acts">' + dashRangeChips(scope.range || '30d') +
-      '<button type="button" class="btn btn-ghost" onclick="dashExport()">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
-        '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/>' +
-        '<line x1="12" y1="15" x2="12" y2="3"/></svg>导出报告</button>' +
-      '<button type="button" class="btn btn-primary" onclick="navigate(\'contracts\')">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">' +
-        '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建合同</button>' +
-    '</div></div>';
+  // 数据看板不需要时间切换 / 导出报告 / 新建合同（用户指定做减法，2026-09-17）
+    '</div>';
 
   h += '<div class="kpi-row">' +
     dashKpi(k.customers) + dashKpi(k.expiring) + dashKpi(k.contractSum) + dashKpi(k.renewRate) +
@@ -282,41 +265,8 @@ function renderDashboard() {
 
 /* ---------- 交互 ---------- */
 
-window.dashSetRange = function (r) {
-  if (['7d', '30d', 'q'].indexOf(r) < 0) return;
-  DASH_RANGE = r;
-  renderDashboard();
-};
-
 window.dashRenew = function (contractId) {
   if (typeof window.previewRenew === 'function') window.previewRenew(contractId);
   else navigate('contracts');
 };
 
-// 导出当前可见的到期合同为 CSV（纯前端，不依赖后端）
-window.dashExport = function () {
-  var rows = (DASH_LAST && DASH_LAST.expiring) || [];
-  if (!rows.length) {
-    if (typeof showAlert === 'function') showAlert('当前没有可导出的到期合同');
-    return;
-  }
-  var head = ['客户', '合同编号', '业务类型', '套餐/服务', '到期日期', '剩余天数', '状态', '月费'];
-  var lines = [head.join(',')];
-  for (var i = 0; i < rows.length; i++) {
-    var r = rows[i];
-    lines.push([r.company_name, r.contract_id, r.biz_type, r.plan, r.end_date,
-                r.days_left, r.status, r.monthly_fee]
-      .map(function (v) { return '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"'; })
-      .join(','));
-  }
-  var csv = '\uFEFF' + lines.join('\r\n');   // BOM 保证 Excel 正确识别 UTF-8
-  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = '合同到期提醒_' + DASH_RANGE + '_' +
-    new Date().toISOString().slice(0, 10) + '.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-};

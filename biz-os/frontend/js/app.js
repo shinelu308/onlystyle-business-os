@@ -136,6 +136,9 @@
     // 换页时清掉顶栏筛选，否则新页表格会莫名其妙少几行
     var search = document.getElementById('globalSearch');
     if (search && search.value) { search.value = ''; }
+    // 数据看板没有表格，「筛选当前页表格」没有意义 → 该页隐藏（客户管理等表格页保留）
+    var tbSearch = document.querySelector('.tb-search');
+    if (tbSearch) tbSearch.style.display = (page === 'dashboard') ? 'none' : '';
 
     var body = $('contentBody');
     body.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
