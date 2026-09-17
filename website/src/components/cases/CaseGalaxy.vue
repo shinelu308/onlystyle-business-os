@@ -242,8 +242,20 @@ const project = (x, y, z) => {
    贴图加载
    ══════════════════════════════════════════════════════════════ */
 
-/** 一个案例该用哪张贴图：显式地址 > 显式键 > 行业内置贴图 > 空（走程序化） */
+/**
+ * 一个案例该用哪张贴图，优先级从高到低：
+ *   ① `c.textureUrl` —— 后端按「星球库」解析好的地址（后台「选择星球」选的就是它）
+ *   ② `c.textureKey` 是个地址 或 命中 KNOWN_TEXTURES（接口没通、走兜底数据时走这条）
+ *   ③ 该行业的默认贴图
+ *   ④ 空 → 程序化生成一颗行星
+ *
+ * ⚠️ 星球清单的真相源在后端（`GALAXY_PLANETS`）。这里**故意不再维护一份完整清单**，
+ *    否则以后加星球时两边必然对不上；KNOWN_TEXTURES 只保留 3 个行业默认贴图，
+ *    那是「后端挂了也得能看」的最后一道兜底。
+ */
 function textureUrlFor(c, ind) {
+  const u = String(c.textureUrl || '').trim()
+  if (u) return u
   const t = String(c.textureKey || '').trim()
   if (t && /^(https?:)?\//.test(t)) return t
   if (t && KNOWN_TEXTURES[t]) return KNOWN_TEXTURES[t]
@@ -583,8 +595,18 @@ function drawOrbitRing(orbitR, tilt, rgb, alpha) {
    主循环
    ══════════════════════════════════════════════════════════════ */
 
+/**
+ * 已绘制帧数。
+ * ⚠️ `ready === true` 只代表**场景建好了**，不代表画过 —— boot() 里是
+ *    `ready = true` 之后才 requestAnimationFrame(draw)，所以第一帧之前
+ *    canvas 整块是透明黑（读像素得到 [0,0,0,0]）。
+ *    验收脚本要用「画面真的出来了」当信号，就必须等 frames > 0，否则会误判成「贴图没渲染」。
+ */
+let frames = 0
+
 function draw() {
   if (!alive) return
+  frames++
   ctx.clearRect(0, 0, W, H)
 
   if (autoRot) camQ = qMul(qFromAxis(0, 1, 0, AUTO_ROT), camQ)
@@ -989,6 +1011,7 @@ onMounted(async () => {
       selected: selectedPlanet ? selectedPlanet.id : null,
       W, H, dpr,
       ready,
+      frames,
       industries: industries.value.map((i) => ({
         key: i.key, label: i.label, color: i.color, orbit: i.orbit, tilt: i.tilt,
       })),

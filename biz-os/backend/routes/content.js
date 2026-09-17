@@ -81,9 +81,44 @@ function resultsOf(ext, metrics) {
  *    所以老数据零改动、后台老表单也不会把它们覆盖没。
  */
 const mapService = (r) => ({ ...r, points: parse(r.points, []) });
+
+/**
+ * 星球库 —— 「这个案例长成哪颗星球」的可选清单。
+ *
+ * 🔴 **这是唯一真相源**：官网 `/cases` 与后台的「选择星球」都取自这里（`GET /planets`），
+ *    任何一侧都不许再自己维护一份，否则加星球时必然两边对不上。
+ *
+ * 前 3 个是设计稿自带的行业贴图；后 4 个是后来补的 4 张星球设计稿。
+ * 贴图由 `design/site-audit/build-galaxy-textures.cjs` 产出到 website/public/media/galaxy/。
+ *
+ * ⚠️ 这张表里**没有「数量」概念** —— 星球总数 ≠ 可选星球数。
+ *    案例数、轨道数都不在这里配（案例数 = 已发布条数，轨道数 = 分类去重数）。
+ *    它只回答一个问题：「有哪些星球可以选」。
+ * ⚠️ key 会被写进 `content_cases.ext.texture`，**改 key 等于把已有案例的选择清空**；
+ *    要改就同时改旧数据，或干脆新增一个 key。
+ */
+const GALAXY_PLANETS = [
+  { key: 'estate', label: '商业地产', texture: '/media/galaxy/tex-estate.webp' },
+  { key: 'medical', label: '公共公益', texture: '/media/galaxy/tex-medical.webp' },
+  { key: 'culture', label: '文化旅游', texture: '/media/galaxy/tex-culture.webp' },
+  { key: 'eco', label: '绿色生态', texture: '/media/galaxy/tex-eco.webp' },
+  { key: 'city', label: '智慧城市', texture: '/media/galaxy/tex-city.webp' },
+  { key: 'industry', label: '工业制造', texture: '/media/galaxy/tex-industry.webp' },
+  { key: 'finance', label: '金融数据', texture: '/media/galaxy/tex-finance.webp' },
+];
+const PLANET_BY_KEY = {};
+for (const p of GALAXY_PLANETS) PLANET_BY_KEY[p.key] = p;
+
+/** 这个案例选了哪颗星球？留空返回 null —— 前端会回落到「行业内置贴图 / 程序化行星」 */
+function planetOf(ext) {
+  const k = String((ext && (ext.texture || ext.textureKey)) || '').trim();
+  return PLANET_BY_KEY[k] || null;
+}
+
 const mapCase = (r) => {
   const ext = parse(r.ext, {});
   const metrics = parse(r.metrics, []);
+  const planet = planetOf(ext);
   return {
     ...r,
     metrics,
@@ -95,6 +130,9 @@ const mapCase = (r) => {
     results: resultsOf(ext, metrics),
     color: (ext && ext.color) || '',
     textureKey: (ext && (ext.textureKey || ext.texture)) || '',
+    // 后台只存 key，地址在这里统一拼好下发 —— 前端不需要知道贴图放在哪
+    textureUrl: planet ? planet.texture : '',
+    planetLabel: planet ? planet.label : '',
   };
 };
 const mapBlock = (r) => ({ ...r, props: parse(r.props, {}), enabled: !!r.enabled });
@@ -234,6 +272,20 @@ router.get('/categories', (req, res) => {
        GROUP BY category ORDER BY MIN(sort) ASC`
     );
     ok(res, ['全部', ...rows.map((r) => r.category)]);
+  } catch (e) {
+    fail(res, 500, e.message);
+  }
+});
+
+/**
+ * 星球库 —— 后台「选择星球」的选项来源。
+ * 与官网共用 GALAXY_PLANETS 这一份清单，所以后台存下去的 key 官网一定认得。
+ * ⚠️ 返回裸数组（本项目列表接口的约定）。前端不显式拆包会在重渲染阶段抛错 →
+ *    症状是「后台改了前台死活不动」，而且不报错到用户看得见的地方。
+ */
+router.get('/planets', (req, res) => {
+  try {
+    ok(res, GALAXY_PLANETS);
   } catch (e) {
     fail(res, 500, e.message);
   }

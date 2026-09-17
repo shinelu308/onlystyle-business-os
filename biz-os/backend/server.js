@@ -49,6 +49,27 @@ app.use('/css', express.static(path.join(frontendDir, 'css')));
 app.use('/js', express.static(path.join(frontendDir, 'js')));
 app.use('/uploads', express.static(uploadsDir));
 
+/**
+ * 官网的媒体素材（星球贴图等）也要从**后端这个源**提供一份。
+ *
+ * 为什么：后台是在后端这个源上打开的（开发 = 3100；线上 = 8081 的 nginx，
+ * 它对后台 server 块是 `location / { proxy_pass 3100 }` 的**全量反代**）。
+ * 后台「案例 → 选择星球」的缩略图用的就是星球库给的 `/media/galaxy/*.webp` ——
+ * 后端不挂这一层的话，官网能显示、后台里 8 个缩略图全是空的深色圆。
+ *   ⚠️ 这个坑很难自然发现：`getComputedStyle().backgroundImage` 在 404 时
+ *      照样返回那个 URL，只看 CSS 是看不出图没加载的。
+ *
+ * 两个候选目录：开发指向源码 `website/public/media`；线上包里只有构建产物
+ * `website/dist/media`（Vite 会把 public/ 整个拷进 dist）。谁存在挂谁。
+ * 线上官网 8080 由 nginx 直接从 dist 发，不走这里；这里是给后台那一侧用的。
+ */
+for (const d of [
+  path.join(__dirname, '..', '..', 'website', 'public', 'media'),
+  path.join(__dirname, '..', '..', 'website', 'dist', 'media'),
+]) {
+  if (require('fs').existsSync(d)) app.use('/media', express.static(d));
+}
+
 // ======== API 路由 ========
 app.use('/api/suppliers', require('./routes/suppliers'));
 app.use('/api/spatial', require('./routes/spatial'));

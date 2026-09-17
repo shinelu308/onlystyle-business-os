@@ -1943,3 +1943,37 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 
 .sidebar-collapsed .logo-text, .sidebar-collapsed .sb-line-switch, .sidebar-collapsed .nav-group-h, .sidebar-collapsed .user-detail {display:none;
 }
+
+/* ---- 选择星球（后台「案例」表单里的星球缩略图选择器）----
+   选项来自后端星球库（GET /api/content/planets），这里只管观感。
+   ⚠️ .cm-planet-thumb 是 <span>：默认 display:inline 时 width/height 会**失效**（塌成 0×0），
+      必须显式 display:block —— 在 flex 容器里会被 blockify 所以看不出问题，换个容器就现原形。 */
+.cm-planet-pick{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;
+}
+
+.cm-planet-opt{position:relative;width:86px;cursor:pointer;text-align:center;
+  border:1px solid var(--border);border-radius:var(--r-md);padding:8px 4px 6px;background:var(--surface);
+  transition:border-color .15s,box-shadow .15s,background .15s;
+}
+
+.cm-planet-opt:hover{border-color:var(--blue-300);
+}
+
+.cm-planet-opt input{position:absolute;opacity:0;width:0;height:0;pointer-events:none;
+}
+
+.cm-planet-opt.on{border-color:var(--blue-500);background:var(--blue-50);box-shadow:0 0 0 2px var(--blue-100);
+}
+
+.cm-planet-thumb{display:block;width:58px;height:58px;margin:0 auto 6px;border-radius:50%;
+  background-color:#071229;background-size:cover;background-position:center;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);
+  font-family:var(--mono);font-size:11px;line-height:58px;color:var(--gray-400);text-align:center;
+}
+
+.cm-planet-name{display:block;font-size:11px;line-height:1.35;color:var(--gray-600);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.cm-planet-opt.on .cm-planet-name{color:var(--blue-600);font-weight:600;
+}

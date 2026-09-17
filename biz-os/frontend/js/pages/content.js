@@ -13,6 +13,14 @@
 
 var CM_API = '/api/content/admin';
 
+/**
+ * 星球库（后台「选择星球」的选项）。
+ * 由 `GET /api/content/planets` 拉取 —— 与官网共用后端那一份 GALAXY_PLANETS，
+ * 所以后台存下去的 key 官网一定认得。**前端不要自己再写一份清单。**
+ * 拉不到时保持空数组，选择器退化成「只能选自动」，其余字段照常可编辑。
+ */
+var CM_PLANETS = [];
+
 /* ---- 区块类型中文名 ---- */
 var CM_TYPE_LABEL = {
   hero: '首屏 Hero',
@@ -124,8 +132,8 @@ var CM_SCHEMAS = {
         ph: '一行一条，显示在星球详情面板；留空则用上面的「结构化指标」' },
       { k: 'ext.color', label: '星系 · 星球主色', type: 'text',
         ph: '留空按行业自动配色，如 #1F5BFF' },
-      { k: 'ext.texture', label: '星系 · 星球贴图', type: 'text',
-        ph: '留空用内置贴图；也可填 /uploads/xxx.png' },
+      { k: 'ext.texture', label: '星系 · 选择星球', type: 'planet',
+        ph: '留空 = 自动（按分类落到对应的行业星球；该行业没有贴图就程序化生成一颗）' },
 
       { k: 'featured', label: '首页推荐', type: 'check', def: 0, table: true, onLabel: '推荐', offLabel: '普通' },
       { k: 'sort', label: '排序', type: 'num', table: true },
@@ -774,8 +782,15 @@ function renderContentCatalog(pane) {
 
 function renderContentCases(pane) {
   pane.innerHTML = cmToolbar() + '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
-  API.content.get(CM_API + '/cases').then(function (rows) {
-    pane.innerHTML = cmToolbar() + cmCrudCard('cases', Array.isArray(rows) ? rows : []);
+  // 星球库和案例一起拉 —— 表单里的「选择星球」要有它才出得来缩略图。
+  // ⚠️ 星球库拉不到**不算失败**：退化成「只能选自动」，其余字段照常可编辑，
+  //    总比整页报错强（后台不该因为一个附加清单挂掉）。
+  Promise.all([
+    API.content.get(CM_API + '/cases'),
+    API.content.get('/api/content/planets').catch(function () { return []; }),
+  ]).then(function (r) {
+    CM_PLANETS = Array.isArray(r[1]) ? r[1] : [];
+    pane.innerHTML = cmToolbar() + cmCrudCard('cases', Array.isArray(r[0]) ? r[0] : []);
     cmLoadVersion();
   }).catch(function (e) { cmFail(pane, e); });
 }
@@ -833,12 +848,52 @@ function cmCell(col, row) {
 
 /* ---- 表单 ---- */
 
+/**
+ * 「选择星球」被点中时高亮。
+ * ⚠️ 用 `<label>` + 内嵌 `<input type=radio>`，点整块都能选中（浏览器原生行为），
+ *    这里只负责视觉高亮 —— 不要改成自己管选中状态，否则键盘操作与无障碍会一起失效。
+ */
+function cmPickPlanet(el) {
+  var box = el.parentNode;
+  if (!box || !box.getElementsByClassName) return;
+  var opts = box.getElementsByClassName('cm-planet-opt');
+  for (var i = 0; i < opts.length; i++) opts[i].className = String(opts[i].className).replace(/\s*\bon\b/, '');
+  el.className = String(el.className) + ' on';
+}
+
 function cmField(col, row) {
   var id = cmFieldId('cmM_', col.k);
   var cur = cmDeepGet(row, col.k);
   var v = cur != null ? cur : (col.def != null ? col.def : '');
   var label = '<label' + (col.required ? ' class="required"' : '') + '>' + cmTxt(col.label) +
     (col.ph ? ' <span class="cm-hint">' + cmTxt(col.ph) + '</span>' : '') + '</label>';
+
+  /* 选择星球：把设计好的星球摆成缩略图让人点，而不是让人去背一个代号。
+     选项来自后端星球库（CM_PLANETS），所以「加一颗新星球」只需要改后端那一张表，
+     后台与官网会同时认得它。 */
+  if (col.type === 'planet') {
+    var nm = 'cmplanet_' + cmKeyId(col.k);
+    var opts = [{ key: '', label: '自动', texture: '' }].concat(CM_PLANETS);
+    var pv = v == null ? '' : String(v);
+    // 存的 key 已经不在星球库里（某颗星球被下线）→ 补一个占位项。
+    // 不补的话，一打开表单就会静默变成「自动」，人还没动手数据就被改了。
+    var known = false;
+    for (var q = 0; q < opts.length; q++) if (String(opts[q].key) === pv) known = true;
+    if (!known) opts.push({ key: pv, label: '（已下线）' + pv, texture: '' });
+
+    var pick = '<div class="form-group full">' + label + '<div class="cm-planet-pick">';
+    for (var i = 0; i < opts.length; i++) {
+      var o = opts[i];
+      var on = String(o.key) === pv;
+      pick += '<label class="cm-planet-opt' + (on ? ' on' : '') + '" onclick="cmPickPlanet(this)">' +
+        '<input type="radio" name="' + nm + '" value="' + cmTxt(o.key) + '"' + (on ? ' checked' : '') + '>' +
+        '<span class="cm-planet-thumb"' + (o.texture ? ' style="background-image:url(\'' + cmTxt(o.texture) + '\')"' : '') + '>' +
+          (o.texture ? '' : '自动') + '</span>' +
+        '<span class="cm-planet-name">' + cmTxt(o.label) + '</span></label>';
+    }
+    return pick + '</div><p class="cm-note">后台只存星球代号，贴图地址由星球库统一提供。' +
+      '「自动」= 按案例分类落到对应的行业星球。</p></div>';
+  }
 
   if (col.type === 'check') {
     return '<div class="form-group">' + label +
@@ -894,6 +949,12 @@ function cmReadField(col) {
   }
   if (col.type === 'json') return cmJson(cmVal(id), []);
   if (col.type === 'metrics') return cmRepRead('cmM_' + cmKeyId(col.k) + '_rep');
+  if (col.type === 'planet') {
+    // 没有 id 可读（是一组同名 radio），必须走 name 查选中项
+    var ins = document.getElementsByName('cmplanet_' + cmKeyId(col.k));
+    for (var n = 0; n < ins.length; n++) if (ins[n].checked) return ins[n].value;
+    return '';
+  }
   return cmVal(id);
 }
 
