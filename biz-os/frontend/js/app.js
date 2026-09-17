@@ -171,7 +171,7 @@
     var pop = document.createElement('div');
     pop.id = 'bizPop';
     pop.className = 'biz-pop';
-    bizSwitch.parentNode.insertBefore(pop, bizSwitch.nextSibling);
+    bizSwitch.appendChild(pop);
     bizSwitch.addEventListener('click', function(e) { e.stopPropagation(); toggleBizPop(); });
   }
   document.addEventListener('click', function() { toggleBizPop(false); });
