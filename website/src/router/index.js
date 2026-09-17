@@ -37,7 +37,7 @@ const routes = [
     name: 'cases',
     component: () => import('@/pages/Cases.vue'),
     meta: {
-      title: '成功案例 - ONLYSTYLE',
+      title: '案例星球 - ONLYSTYLE',
       description: '跨越公共公益、文化旅游、商业地产、零售医药等多个行业的数字化落地案例。',
       // 整页沉浸式：App.vue 在这一页不渲染 SiteNav / SiteFooter，
       // 由案例星系的全屏 canvas 铺满（见 components/cases/CaseGalaxy.vue）
@@ -45,12 +45,12 @@ const routes = [
     },
   },
   {
-    path: '/news',
-    name: 'news',
-    component: () => import('@/pages/News.vue'),
+    path: '/products',
+    name: 'products',
+    component: () => import('@/pages/Products.vue'),
     meta: {
-      title: '洞察动态 - ONLYSTYLE',
-      description: 'ONLYSTYLE 的新闻动态与行业洞察报告，分享数字化转型的实践与思考。',
+      title: '产品介绍 - ONLYSTYLE',
+      description: '主打自研「楼达人资产管理平台」（SAAS），提供资产数字化、租赁、业财一体、招商与数据大屏的一站式资管运营能力。',
     },
   },
   {

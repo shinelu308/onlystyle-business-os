@@ -43,20 +43,20 @@ export const site = {
   /** 导航菜单（可后台配置；EN 按钮按决策先隐藏） */
   nav: [
     { text: '首页', to: '/', sort: 1, visible: true },
-    { text: '关于我们', to: '/about', sort: 2, visible: true },
+    { text: '产品介绍', to: '/products', sort: 2, visible: true },
     { text: '解决方案', to: '/services', sort: 3, visible: true },
-    { text: '案例展示', to: '/cases', sort: 4, visible: true },
-    { text: '洞察动态', to: '/news', sort: 5, visible: true },
+    { text: '案例星球', to: '/cases', sort: 4, visible: true },
+    { text: '关于我们', to: '/about', sort: 5, visible: true },
   ],
   /** 导航右侧 CTA（与主导航分开，便于后台单独改） */
   navCta: { text: '联系我们', to: '/contact', visible: true },
   /** 页脚快速导航（可与主导航不同） */
   footerNav: [
     { text: '首页', to: '/', sort: 1, visible: true },
-    { text: '关于我们', to: '/about', sort: 2, visible: true },
+    { text: '产品介绍', to: '/products', sort: 2, visible: true },
     { text: '解决方案', to: '/services', sort: 3, visible: true },
-    { text: '案例展示', to: '/cases', sort: 4, visible: true },
-    { text: '洞察动态', to: '/news', sort: 5, visible: true },
-    { text: '联系我们', to: '/contact', sort: 6, visible: true },
+    { text: '案例星球', to: '/cases', sort: 4, visible: true },
+    { text: '联系我们', to: '/contact', sort: 5, visible: true },
+    { text: '关于我们', to: '/about', sort: 6, visible: true },
   ],
 };
