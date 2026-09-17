@@ -32,9 +32,15 @@ const FOV = (60 * Math.PI) / 180
 const NEAR = 10
 const INIT_TILT = (25 * Math.PI) / 180
 const AUTO_ROT = 0.002
-const CAM_Z0 = 700
+const CAM_Z_REF = 700      // 设计稿基准距离：星球屏幕尺寸以它为参照（原 CAM_Z0）
 const CAM_Z_MIN = 250
-const CAM_Z_MAX = 1400
+const CAM_Z_FAR = 6000     // 自适应取景的搜索上界
+const BASE_PLANET_R = 44   // 基准距离下的星球屏幕半径（= 原 displayR 的夹取值）
+const BASE_STAR_R = 55     // 基准距离下的核心徽标半径（= 原夹取值）
+/** 纵向压缩的下限（再扁就不像星系了）。见 fitView() 的说明 */
+const K_MIN = 0.45
+let CAM_Z0 = CAM_Z_REF     // 自适应后的「默认距离」，resetView 用
+let CAM_Z_MAX = 1400       // 自适应后放宽，保证「缩到能看全」一定可达
 const CLICK_DIST = 6
 const CLICK_MS = 400
 
@@ -215,6 +221,15 @@ let dpr = 1
 
 let camQ = qFromAxis(1, 0, 0, INIT_TILT)
 let camZ = CAM_Z0
+/**
+ * 纵向压缩系数（1 = 不压）。
+ *
+ * 屏幕是宽的、星系是圆的 → **垂直方向永远是瓶颈**；把椭圆压扁比整体拉远划算得多：
+ * 拉远会连水平方向一起浪费掉（星球变小、两边留白一大片）。
+ * 只压 **位置**，星球本身仍是正圆（drawSprite 画的是圆，且尺寸只由 viewScale 决定）。
+ * 轨道环、连线、背景星全都走 project() → 一定同步，不会错位。
+ */
+let fitK = 1
 let autoRot = true
 let star = { r: 38, angle: 0 }
 let planets = []
@@ -249,7 +264,138 @@ const project = (x, y, z) => {
   const dz = camZ - z
   if (dz <= NEAR) return null
   const f = W / 2 / Math.tan(FOV / 2)
-  return { x: (x * f) / dz + W / 2, y: (-y * f) / dz + H / 2, scale: f / dz, z }
+  // y 乘 fitK：把轨道盘纵向压扁，好塞进「宽而矮」的视口
+  return { x: (x * f) / dz + W / 2, y: (-y * fitK * f) / dz + H / 2, scale: f / dz, z, dz }
+}
+
+/**
+ * 把「基准距离下的屏幕尺寸」换算成「当前相机距离下的尺寸」。
+ *
+ * ⚠️ 这一步不能省。原型里星球半径是 `Math.min(44, pl.r * scale * 200)` —— 而
+ * `26 * 1.78 * 200 = 9258` 在任何合理的 camZ 下都被夹到 44，**等于常量**。
+ * 也就是说：拉远相机会压缩轨道间距、却不会缩小星球 → 星球互相重叠。
+ * 只有让尺寸跟着距离等比缩，拉远才是真正的「整体缩放」。
+ */
+const viewScale = (baseR, dz, lo = 8, hi = 56) =>
+  Math.max(lo, Math.min(hi, baseR * (CAM_Z_REF / dz)))
+
+/** 用户手动缩放过之后，就别再用自适应去动他的视角 */
+let userZoomed = false
+
+/**
+ * 自适应取景：算出「让所有轨道上的全部星球，在自动旋转一整圈的过程中都完整落在视口内」
+ * 所需的最小相机距离。
+ *
+ * 为什么不是「只让当前位置可见」：视图在自动旋转，按当前位置取景，转一会儿又出去了。
+ * 所以按**整条轨道**采样（相位 × 相机环绕角），一次算准。
+ *
+ * 采样必须走和渲染**完全相同**的路径（qRotVec → project），否则算出来的是另一个坐标系里的数。
+ *
+ * 相机姿态只按「初始倾斜 + 绕 Y 轴任意角」采样：自动旋转就是绕 Y 轴累积，
+ * 用户手动拖拽不可预测（那是用户自己的选择，不保证）。
+ */
+/**
+ * 采样「相机空间」里所有可能出现的位置 —— 轨道相位 × 相机环绕角。
+ *
+ * 必须走和渲染**完全相同**的路径（qRotVec），否则算出来的是另一个坐标系里的数。
+ * 相机姿态只按「初始倾斜 + 绕 Y 轴任意角」采样：自动旋转就是绕 Y 轴累积；
+ * 用户手动拖拽不可预测，那属于用户自己的选择，不保证。
+ *
+ * 采样密度宁高勿低：它是「取景断言恒成立」的前提，少采一个相位就可能刚好漏掉
+ * 那个会出界的极值，而代价只是一次性几十毫秒的计算。
+ */
+function sampleCamSpace() {
+  const NTH = 36                      // 每条轨道的公转相位采样
+  const NPHI = 16                     // 相机绕 Y 轴的采样
+  const camQ0 = qFromAxis(1, 0, 0, INIT_TILT)
+  const pts = []
+  const seen = new Set()
+  for (const p of planets) {
+    const sig = p.orbitR + '|' + p.tilt
+    if (seen.has(sig)) continue       // 同一条轨道只采一次
+    seen.add(sig)
+    const ct = Math.cos(p.tilt)
+    const st = Math.sin(p.tilt)
+    for (let i = 0; i < NTH; i++) {
+      const th = (i / NTH) * Math.PI * 2
+      const wx = Math.cos(th) * p.orbitR
+      const wy = Math.sin(th) * p.orbitR * ct
+      const wz = Math.sin(th) * p.orbitR * st
+      for (let j = 0; j < NPHI; j++) {
+        const q = qMul(qFromAxis(0, 1, 0, (j / NPHI) * Math.PI * 2), camQ0)
+        pts.push(qRotVec(q, [wx, wy, wz]))
+      }
+    }
+  }
+  return pts
+}
+
+/**
+ * 自适应取景 —— 同时求「相机距离」与「纵向压缩系数」。
+ *
+ * 为什么不是单纯拉远相机：屏幕是宽的、星系是圆的，**垂直方向永远是瓶颈**。
+ *   实测 1920×911（用户视口 2.11:1）：
+ *     只拉远   → camZ 1660、星球半径中位数 19px、横向只占 43%（星系缩成中间一小团）
+ *     拉远+压缩 → camZ  865、星球半径中位数 36px、横向占 89%           ← 选中
+ * 所以：**横向约束决定相机距离**（横向不能压，压了会撞边），**纵向用压缩系数补**。
+ * 结果：星球尺寸几乎保住，只是轨道盘变扁 —— 宽屏配扁椭圆本来就自然。
+ */
+function fitView() {
+  if (!planets.length || W <= 0 || H <= 0) { fitK = 1; return CAM_Z_REF }
+  const f = W / 2 / Math.tan(FOV / 2)
+  const MARGIN = 16     // 与画布边缘的最小留白
+  const LABEL_H = 29    // 星球中心 → 名字底部（间距 16 + 字号 13）
+  const pts = sampleCamSpace()
+  if (!pts.length) { fitK = 1; return CAM_Z_REF }
+
+  /**
+   * 给定相机距离下，还能承受多大的纵向压缩。
+   * 返回 0 = **横向**就已经撞边了（这个距离不可用）。
+   */
+  const kFor = (z) => {
+    let k = 1
+    for (const v of pts) {
+      const dz = z - v[2]
+      if (dz <= NEAR) return 0
+      const sc = f / dz
+      const sr = viewScale(BASE_PLANET_R, dz)
+      if (Math.abs(v[0]) * sc + sr > W / 2 - MARGIN) return 0
+      const availY = H / 2 - MARGIN - sr - LABEL_H
+      const needY = Math.abs(v[1]) * sc
+      if (needY > 0) k = Math.min(k, availY / needY)
+    }
+    return k
+  }
+
+  if (kFor(CAM_Z_FAR) < K_MIN) {
+    // 视口极端扁，连最远距离都压不到下限 → 用最远距离 + 下限
+    fitK = K_MIN
+    return CAM_Z_FAR
+  }
+  // 越远越宽松 → kFor 单调不减 → 二分求「压到 K_MIN 以内也放得下」的最近距离
+  let lo = CAM_Z_MIN, hi = CAM_Z_FAR
+  for (let i = 0; i < 26; i++) {
+    const mid = (lo + hi) / 2
+    if (kFor(mid) >= K_MIN) hi = mid; else lo = mid
+  }
+  // ⚠️ 必须 ceil：临界点极其锋利（1440×820 下 z=811 横向差 0.1px 判失败、812 通过），
+  //    round 一旦向下取整 → kFor=0 → fitK=0 → 整片星系被压成一条线。
+  const z = Math.ceil(hi)
+  // ⚠️ 硬下限：即使上面出任何意外，也绝不允许压成一条线。
+  fitK = Math.min(1, Math.max(0.32, kFor(z)))
+  return z
+}
+
+/**
+ * 重新取景。场景重建（数据变了）与视口尺寸变化时都要调。
+ * 用户已经手动缩放过就不动他的视角，只是把「重置视角」的落点更新掉。
+ */
+function refit() {
+  const z = fitView()
+  const prev = CAM_Z0
+  CAM_Z0 = z
+  CAM_Z_MAX = Math.max(1400, Math.round(z * 1.5))
+  if (!userZoomed || Math.abs(camZ - prev) < 1) camZ = CAM_Z0
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -396,6 +542,8 @@ function buildScene() {
       tws: 0.015 + Math.random() * 0.03,
     })
   }
+  // 星球 / 轨道刚重建 → 重新取景，保证「后台加了新案例」也能一屏看到
+  refit()
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -670,15 +818,15 @@ function draw() {
 
   for (const obj of list) {
     if (obj.type === 'star') {
-      const sr = star.r * obj.p.scale * 200
-      drawStar(obj.p.x, obj.p.y, Math.max(18, Math.min(55, sr)), star.angle)
+      drawStar(obj.p.x, obj.p.y, viewScale(BASE_STAR_R, obj.p.dz, 18, 56), star.angle)
       continue
     }
     const pl = obj.pl
     const active = activeFilter.value === 'all' || activeFilter.value === pl.industry
     const isHov = hoveredPlanet && hoveredPlanet.id === pl.id
     const isSel = selectedPlanet && selectedPlanet.id === pl.id
-    const displayR = Math.max(8, Math.min(44, pl.r * obj.p.scale * 200))
+    // 保留案例自定义 size 的相对比例（基准 26），其余交给 viewScale 等比
+    const displayR = viewScale(BASE_PLANET_R * ((pl.r || 26) / 26), obj.p.dz, 8, 56)
     const scaledR = displayR * (isHov || isSel ? 1.14 : 1)
     const alpha = active ? 1 : 0.15
     const glow = isHov || isSel ? 2.2 : 1
@@ -715,6 +863,7 @@ function draw() {
     pl._sx = obj.p.x
     pl._sy = obj.p.y
     pl._sr = scaledR
+    pl._dz = obj.p.dz          // 推进镜头时要用它反解「这颗球最多能放大多少倍」
   }
 
   // ── 最后统一画标签（永远压在星球体之上） ──
@@ -792,7 +941,32 @@ function openPanel(pl) {
     color: pl.color,
   }
   panelOpen.value = true
-  flyAnim = { fromZ: camZ, toZ: Math.max(320, camZ * 0.68), t: 0 }
+
+  /*
+   * 推进镜头 —— 但必须保证**被点的那颗球仍在画面内**。
+   *
+   * ⚠️ 不能无条件按 camZ * 0.68 推进：只沿 Z 推进时，屏幕偏移与 1/dz 成正比，
+   *    于是整幅画面从中心按 1.47 倍向外炸开，靠边的星球直接被推出视口 ——
+   *    用户点了哪颗球，那颗球反而看不见了。
+   *    放大倍率一直是这样，是自适应取景把星球放到更靠边的位置后才暴露。
+   *
+   * 做法：这颗球中心离视口边界的余量是 (半宽 − |偏移| − 半径)，
+   *       放大 s 倍后余量按 s 收缩 → s ≤ 余量 / (|偏移| + 半径)。
+   *       取两轴更严的那个，换算回相机距离。
+   */
+  const MG = 24                 // 留给「焦点环 + 脉冲」的额外余量
+  const toZ0 = Math.max(320, camZ * 0.68)   // 默认推进
+  let toZ = toZ0
+  if (pl._dz > 0) {
+    const ox = Math.abs(pl._sx - W / 2) + pl._sr
+    const oy = Math.abs(pl._sy - H / 2) + pl._sr + 29
+    const sx = ox > 0 ? (W / 2 - MG) / ox : Infinity
+    const sy = oy > 0 ? (H / 2 - MG) / oy : Infinity
+    const sMax = Math.max(1, Math.min(sx, sy))   // ≥1：贴边时宁可不推近，也绝不推远
+    const zp = camZ - pl._dz                     // 这颗球的相机空间 z
+    toZ = zp + pl._dz / sMax
+  }
+  flyAnim = { fromZ: camZ, toZ: Math.min(camZ, Math.max(320, toZ)), t: 0 }
   autoRot = false
 }
 
@@ -880,6 +1054,7 @@ function onMouseLeave() {
 
 function onWheel(e) {
   e.preventDefault()
+  userZoomed = true
   camZ = Math.max(CAM_Z_MIN, Math.min(CAM_Z_MAX, camZ * (e.deltaY < 0 ? 0.88 : 1.14)))
 }
 
@@ -918,6 +1093,7 @@ function onTouchMove(e) {
   } else if (e.touches.length === 2) {
     const dx = e.touches[0].clientX - e.touches[1].clientX
     const dy = e.touches[0].clientY - e.touches[1].clientY
+    userZoomed = true
     camZ = Math.max(CAM_Z_MIN, Math.min(CAM_Z_MAX, camZ0 * (pinchD0 / Math.sqrt(dx * dx + dy * dy))))
   }
 }
@@ -938,10 +1114,12 @@ function onTouchEnd(e) {
 }
 
 /* ── 控件 ── */
-const zoomIn = () => { camZ = Math.max(CAM_Z_MIN, camZ * 0.82) }
-const zoomOut = () => { camZ = Math.min(CAM_Z_MAX, camZ * 1.22) }
+const zoomIn = () => { userZoomed = true; camZ = Math.max(CAM_Z_MIN, camZ * 0.82) }
+const zoomOut = () => { userZoomed = true; camZ = Math.min(CAM_Z_MAX, camZ * 1.22) }
 function resetView() {
   camQ = qFromAxis(1, 0, 0, INIT_TILT)
+  userZoomed = false          // 交还控制权，之后视口变化会继续自动取景
+  refit()
   camZ = CAM_Z0
   flyAnim = null
   closePanel()
@@ -972,6 +1150,8 @@ function resize() {
   cv.style.height = H + 'px'
   ctx = cv.getContext('2d')
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  // 视口变了 → 可容纳的范围也变了 → 重新取景
+  refit()
 }
 
 async function boot() {
@@ -1044,6 +1224,31 @@ onMounted(async () => {
        *    这两者不一致时画面就是错的（回退成程序化行星），而断言却全是绿的。
        */
       textures: Object.keys(IMGS),
+      /** 取景状态：自适应后的默认距离，以及此刻跑到画面外的星球（应当恒为空） */
+      fit: {
+        camZ0: CAM_Z0,
+        camZ,
+        camZRef: CAM_Z_REF,
+        camZMin: CAM_Z_MIN,
+        camZMax: CAM_Z_MAX,
+        fitK,
+        margin: 16,
+        labelH: 29,
+        /**
+         * 此刻跑到画面外的星球（应当恒为空）。
+         *
+         * ⚠️ 判据必须用**真实半径 + 标签高度**，不能用「离边缘 44px」这类魔数：
+         *    小星球的圆心完全可以合法地比 44px 更贴近边缘（只要整个球还在画面里），
+         *    魔数会把「完全可见」误报成「出界」—— 反向也会漏报大星球压边。
+         */
+        outOfView: planets.filter((p) => p._sx != null
+          && (p._sx - p._sr < 0 || p._sx + p._sr > W
+            || p._sy - p._sr < 0 || p._sy + p._sr + 29 > H)).map((p) => p.name),
+        /** 所有星球里离视口最近的那条边距（px，负数 = 出界）；用于量化「贴边程度」 */
+        minEdgeGap: planets.reduce((m, p) => (p._sx == null ? m : Math.min(
+          m, p._sx - p._sr, W - p._sx - p._sr, p._sy - p._sr, H - p._sy - p._sr - 29
+        )), Infinity),
+      },
       industries: industries.value.map((i) => ({
         key: i.key, label: i.label, color: i.color, orbit: i.orbit, tilt: i.tilt,
       })),
