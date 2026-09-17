@@ -39,6 +39,9 @@ const routes = [
     meta: {
       title: '成功案例 - ONLYSTYLE',
       description: '跨越公共公益、文化旅游、商业地产、零售医药等多个行业的数字化落地案例。',
+      // 整页沉浸式：App.vue 在这一页不渲染 SiteNav / SiteFooter，
+      // 由案例星系的全屏 canvas 铺满（见 components/cases/CaseGalaxy.vue）
+      immersive: true,
     },
   },
   {

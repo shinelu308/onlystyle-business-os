@@ -109,12 +109,63 @@ var CM_SCHEMAS = {
           for (var i = 0; i < n; i++) out.push((v[i].value || '') + ' ' + (v[i].label || ''));
           return out.join(' · ') + (v.length > n ? ' +' + (v.length - n) : '');
         } },
+
+      /* ── 案例星系（官网 /cases 页的 3D 星球）──
+         这 4 个字段**存在 ext 这一列 JSON 里**，不新增数据库列：
+         老数据零改动，也不用跑迁移。
+         键名带「ext.」前缀，由 cmDeepGet / cmDeepSet 负责钻取与回填。
+
+         ⚠️ 星球的**数量和轨道**不在这里配 —— 那是从「案例条数」和「分类」自动推导的：
+            新增一条案例 = 多一颗星球；新增一个分类 = 多一条轨道。
+            下面这些只是「这一颗星球长什么样」的微调。 */
+      { k: 'ext.industry', label: '星系 · 行业轨道', type: 'text',
+        ph: '留空按「分类」自动推导；同分类 = 同一条轨道' },
+      { k: 'ext.results', label: '星系 · 关键成果', type: 'list', rows: 3,
+        ph: '一行一条，显示在星球详情面板；留空则用上面的「结构化指标」' },
+      { k: 'ext.color', label: '星系 · 星球主色', type: 'text',
+        ph: '留空按行业自动配色，如 #1F5BFF' },
+      { k: 'ext.texture', label: '星系 · 星球贴图', type: 'text',
+        ph: '留空用内置贴图；也可填 /uploads/xxx.png' },
+
       { k: 'featured', label: '首页推荐', type: 'check', def: 0, table: true, onLabel: '推荐', offLabel: '普通' },
       { k: 'sort', label: '排序', type: 'num', table: true },
       { k: 'status', label: '发布状态', type: 'check', def: 1, table: true, onLabel: '已发布', offLabel: '草稿' }
     ]
   }
 };
+
+/* ---- 点号路径读写 ----
+   让表单一套代码既能写顶层列（title / sort），也能写 JSON 列里的字段（ext.color）。
+   键名用 'ext.color' 这种写法，保存时自动收拢成 body.ext = { color: ... }。
+
+   ⚠️ 为什么不让后端识别 'ext.color'：admin-content.js 的列白名单来自 PRAGMA，
+      'ext.color' 不是真实列名，会被静默过滤掉 —— 表现成「填了没保存」，极难查。 */
+var CM_BAD_KEYS = { __proto__: 1, constructor: 1, prototype: 1 };
+
+function cmDeepGet(obj, path) {
+  if (obj == null) return undefined;
+  var parts = String(path).split('.');
+  var cur = obj;
+  for (var i = 0; i < parts.length; i++) {
+    if (cur == null) return undefined;
+    cur = cur[parts[i]];
+  }
+  return cur;
+}
+
+function cmDeepSet(obj, path, val) {
+  var parts = String(path).split('.');
+  var cur = obj;
+  for (var i = 0; i < parts.length - 1; i++) {
+    var k = parts[i];
+    if (CM_BAD_KEYS[k]) return obj;
+    if (cur[k] == null || typeof cur[k] !== 'object') cur[k] = {};
+    cur = cur[k];
+  }
+  var last = parts[parts.length - 1];
+  if (!CM_BAD_KEYS[last]) cur[last] = val;
+  return obj;
+}
 
 /* ---- 页面状态 ---- */
 var _contentCurrentTab = 'home';
@@ -765,7 +816,8 @@ function cmCrudCard(type, rows) {
 }
 
 function cmCell(col, row) {
-  var v = row[col.k];
+  // 用 cmDeepGet：列键可能是 'ext.industry' 这种点号路径（案例星系的字段在 ext JSON 里）
+  var v = cmDeepGet(row, col.k);
   if (col.type === 'check') {
     return v
       ? '<span class="badge success">' + cmTxt(col.onLabel || '是') + '</span>'
@@ -783,7 +835,8 @@ function cmCell(col, row) {
 
 function cmField(col, row) {
   var id = cmFieldId('cmM_', col.k);
-  var v = row && row[col.k] != null ? row[col.k] : (col.def != null ? col.def : '');
+  var cur = cmDeepGet(row, col.k);
+  var v = cur != null ? cur : (col.def != null ? col.def : '');
   var label = '<label' + (col.required ? ' class="required"' : '') + '>' + cmTxt(col.label) +
     (col.ph ? ' <span class="cm-hint">' + cmTxt(col.ph) + '</span>' : '') + '</label>';
 
@@ -874,6 +927,46 @@ function cmOpenForm(type, id) {
   }
 }
 
+/**
+ * 案例星系的预览：让运营在后台就看见「这颗星球会长什么样」。
+ * ⚠️ 不要在这里再引入 .cm-metrics 类名 —— verify-content-admin.cjs 会数
+ *    `#cmM_metrics_preview .cm-metrics b` 的个数来断言指标预览渲染正确。
+ */
+function cmGalaxyPreview() {
+  var trim = function (s) { return String(s == null ? '' : s).replace(/^\s+|\s+$/g, ''); };
+  var ind = trim(cmVal('cmM_ext_industry'));
+  var color = trim(cmVal('cmM_ext_color'));
+  var track = ind || trim(cmVal('cmM_category')) || '未分类';
+  var sw = /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#5A6B8C';
+
+  // 成果清单：显式填了用显式的，否则与官网一致 —— 从「结构化指标」派生
+  var out = [];
+  var lines = cmVal('cmM_ext_results').split('\n');
+  for (var i = 0; i < lines.length; i++) { var s = trim(lines[i]); if (s) out.push(s); }
+  if (!out.length) {
+    var m = cmRepRead('cmM_metrics_rep');
+    for (var j = 0; j < m.length; j++) {
+      var t = trim((m[j].value || '') + ' ' + (m[j].label || ''));
+      if (t) out.push(t);
+    }
+  }
+
+  return '<div class="cm-preview-label" style="margin-top:20px">前台效果预览 · 案例星系</div>' +
+    '<div style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;' +
+      'background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px">' +
+      '<span style="width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px;' +
+        'background:' + sw + ';box-shadow:0 0 10px ' + sw + '"></span>' +
+      '<div style="min-width:0">' +
+        '<b>' + cmTxt(track) + '</b> 轨道' +
+        '<span class="cm-dim"> · ' + (color ? cmTxt(color) : '自动配色') + '</span>' +
+        '<p class="cm-dim" style="margin-top:6px">关键成果：' +
+          (out.length ? cmTxt(out.join(' · ')) : '留空 → 用「结构化指标」') + '</p>' +
+      '</div>' +
+    '</div>' +
+    '<p class="cm-note">星球的**数量与轨道**由「案例条数」和「分类」自动推导 —— ' +
+      '新增一条已发布的案例，官网 /cases 就多一颗星，不需要改代码。</p>';
+}
+
 /** 案例指标的前台效果预览：数值规则与官网一致（design-system.css 的 --brand-gradient） */
 function cmPreviewMetrics() {
   var box = $('cmM_metrics_preview');
@@ -891,6 +984,7 @@ function cmPreviewMetrics() {
   } else {
     h += '<p class="cm-dim" style="margin-top:12px">还没有指标</p>';
   }
+  h += cmGalaxyPreview();
   box.innerHTML = h;
 }
 
@@ -898,12 +992,16 @@ function cmSaveForm(type, id) {
   var sc = CM_SCHEMAS[type];
   if (!sc) return;
 
+  // 用 cmDeepSet 组装：'ext.color' 会收拢成 body.ext = { color: ... }，后端再整体序列化进 ext 列。
+  // ⚠️ 后端 PUT 是**整列覆盖** —— ext 一旦被发送就整体替换，
+  //    所以属于 ext 的字段必须全部出现在表单里，漏一个就会被这次保存清空。
   var body = {};
-  for (var i = 0; i < sc.cols.length; i++) body[sc.cols[i].k] = cmReadField(sc.cols[i]);
+  for (var i = 0; i < sc.cols.length; i++) cmDeepSet(body, sc.cols[i].k, cmReadField(sc.cols[i]));
 
   for (var j = 0; j < sc.cols.length; j++) {
     var c = sc.cols[j];
-    if (c.required && (body[c.k] === '' || body[c.k] == null)) {
+    var val = cmDeepGet(body, c.k);
+    if (c.required && (val === '' || val == null)) {
       showAlert('「' + c.label + '」不能为空', '还差一项');
       return;
     }

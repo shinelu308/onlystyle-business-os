@@ -32,9 +32,71 @@ function ok(res, data) {
 }
 const fail = (res, code, msg) => res.status(code).json({ ok: false, error: msg });
 
-/** 内容行 → 前端形状（解析 JSON 字段、把 0/1 转成布尔） */
+/**
+ * 分类 → 星球行业键。
+ * 设计稿给的星球贴图只有 3 个行业（estate / medical / culture），
+ * 后台却有 4 个分类（商业地产 / 公共公益 / 文化旅游 / 零售医药）。
+ * 这里**不写死成 4 个分支**：已知分类映射到有贴图的键，未知分类走稳定哈希键，
+ * 前端遇到没有贴图的行业会程序化生成一颗行星 ——
+ * 于是「后台新增一个分类」天然就等于「多出一条轨道」，不需要改前端。
+ */
+const INDUSTRY_BY_CATEGORY = {
+  商业地产: 'estate',
+  公共公益: 'medical',
+  文化旅游: 'culture',
+  零售医药: 'retail',
+};
+
+/** 字符串 → 稳定短键（djb2 → base36）。同一个分类每次必须得到同一个键，否则轨道会漂移 */
+function stableKey(s) {
+  let h = 5381;
+  const str = String(s || 'other');
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+function industryKey(category, ext) {
+  if (ext && ext.industry) return String(ext.industry);
+  if (INDUSTRY_BY_CATEGORY[category]) return INDUSTRY_BY_CATEGORY[category];
+  return 'cat-' + stableKey(category);
+}
+
+/**
+ * 详情面板的「关键成果」。
+ * 优先用后台显式填的 ext.results；没填就从结构化 metrics 派生（「45% 销售额增长」）。
+ * 派生这一步是为了让**已有的 4 条案例不改数据就能直接出成果列表**。
+ */
+function resultsOf(ext, metrics) {
+  if (ext && Array.isArray(ext.results) && ext.results.length) return ext.results.map(String);
+  return (metrics || [])
+    .map((m) => [m && m.value, m && m.label].filter(Boolean).join(' '))
+    .filter(Boolean);
+}
+
+/**
+ * 内容行 → 前端形状（解析 JSON 字段、把 0/1 转成布尔）
+ *
+ * ⚠️ mapCase 额外投影了案例星系的字段（industry / results / color / textureKey）。
+ *    这些字段的真相源是 `ext` 这一列 JSON —— **不新增数据库列**，
+ *    所以老数据零改动、后台老表单也不会把它们覆盖没。
+ */
 const mapService = (r) => ({ ...r, points: parse(r.points, []) });
-const mapCase = (r) => ({ ...r, metrics: parse(r.metrics, []), featured: !!r.featured });
+const mapCase = (r) => {
+  const ext = parse(r.ext, {});
+  const metrics = parse(r.metrics, []);
+  return {
+    ...r,
+    metrics,
+    featured: !!r.featured,
+    ext,
+    // ── 案例星系（/cases） ──
+    industry: industryKey(r.category, ext),
+    industryLabel: r.category || '其他',
+    results: resultsOf(ext, metrics),
+    color: (ext && ext.color) || '',
+    textureKey: (ext && (ext.textureKey || ext.texture)) || '',
+  };
+};
 const mapBlock = (r) => ({ ...r, props: parse(r.props, {}), enabled: !!r.enabled });
 const mapPage = (r) => ({
   ...r,

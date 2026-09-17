@@ -13,6 +13,16 @@
   padding-top: 0;
 }
 
+/* ─── 沉浸式路由（/cases 案例星系）───
+   路由 meta.immersive=true 时，App.vue 不渲染 SiteNav / SiteFooter，
+   并在 <html> 上挂 .immersive。整页交给星系画布，必须禁掉滚动，
+   否则滚轮缩放（canvas 上 preventDefault）与页面滚动会互相抢事件。 */
+html.immersive,
+html.immersive body {
+  overflow: hidden;
+  height: 100%;
+}
+
 /* ─── 当前路由高亮（设计稿是单页锚点，没有"当前页"概念） ─── */
 .nav-links a.router-link-active {
   color: var(--cyan);
