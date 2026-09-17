@@ -138,8 +138,17 @@ function startViaCIM(s) {
     s.args.map(a => '"' + a + '"').join(' ') + ' > "' + logPath + '" 2>&1"';
   const esc = t => String(t).replace(/'/g, "''");
   const ps =
-    "$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ " +
-    "CommandLine = '" + esc(cmdline) + "'; CurrentDirectory = '" + esc(s.cwd) + "' }; " +
+    // ⚠️ WMI Create 默认给进程分配**可见**控制台窗口 —— 每拉一个服务就弹一个 cmd 黑框，
+    //    用 Win32_ProcessStartup.ShowWindow = 0（SW_HIDE）隐藏。
+    // ⚠️ 不用 Invoke-CimMethod + New-CimInstance(-ClientOnly)：嵌入实例会报「类型不匹配」
+    //    （HRESULT 0x80041005）。经典 [wmiclass] 接口在 Windows PowerShell 5.1 下最稳。
+    "$si = ([wmiclass]'Win32_ProcessStartup').CreateInstance(); $si.ShowWindow = 0; " +
+    "$proc = [wmiclass]'Win32_Process'; " +
+    "$in = $proc.GetMethodParameters('Create'); " +
+    "$in.CommandLine = '" + esc(cmdline) + "'; " +
+    "$in.CurrentDirectory = '" + esc(s.cwd) + "'; " +
+    "$in.ProcessStartupInformation = $si; " +
+    "$r = $proc.InvokeMethod('Create', $in, $null); " +
     "Write-Output ('RET=' + $r.ReturnValue + ' PID=' + $r.ProcessId)";
   try {
     const out = execFileSync('powershell.exe', ['-NoProfile', '-Command', ps], { encoding: 'utf8' });
