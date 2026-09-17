@@ -41,6 +41,7 @@
   var BIZ_KEY = 'bos_bizline';
   var currentBizLine = localStorage.getItem(BIZ_KEY) || 'broadband';
   var _broadbandNavHTML = null; // 宽带菜单快照（首次切走前捕获）
+  var _platformNavHTML = null; // 平台级菜单快照（网站管理/系统管理，独立于业务线）
 
   function bizName(code) {
     for (var i = 0; i < BIZ_LINES.length; i++) { if (BIZ_LINES[i].code === code) return BIZ_LINES[i].name; }
@@ -76,6 +77,13 @@
     var show = (typeof force === 'boolean') ? force : !pop.classList.contains('show');
     if (show) renderBizPop();
     pop.classList.toggle('show', show);
+  }
+
+  function capturePlatformNav() {
+    if (_platformNavHTML) return;
+    var cg = document.getElementById('contentGroup');
+    var sg = document.getElementById('settingsGroup');
+    if (cg && sg) _platformNavHTML = cg.outerHTML + sg.outerHTML;
   }
 
   function captureBroadbandNav() {
@@ -153,7 +161,11 @@
     } else {
       captureBroadbandNav();
       var b = bizName(currentBizLine);
-      nav.innerHTML = '<div class="nav-coming"><b>' + b + '</b><span>业务线建设中\n菜单与页面规划中</span></div>';
+      capturePlatformNav();
+      // 占位态 + 平台级菜单（网站管理/系统管理不随业务线切换收起）
+      nav.innerHTML = '<div class="nav-coming"><b>' + b + '</b><span>业务线建设中\n菜单与页面规划中</span></div>' + (_platformNavHTML || '');
+      bindNavEvents();
+      if (currentUser) applyPermissionUI();
       if (isSwitch) {
         currentPage = '__' + currentBizLine;
         var items = document.querySelectorAll('.nav-item, .nav-subitem');
