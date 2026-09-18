@@ -11,8 +11,12 @@ const route = useRoute()
  * 沉浸式页面（/cases 案例星系）：整页交给全屏 canvas，不渲染导航与页脚。
  * 同时在 <html> 上挂 .immersive —— 由 styles/site.css 负责禁掉滚动，
  * 否则「滚轮缩放」会和「页面滚动」抢同一个事件。
+ *
+ * meta.hideNav（/products 设计稿页）：只藏 SiteNav —— 设计稿自带导航，
+ * 但页脚仍用全站 SiteFooter（与整站一致），渲染在 iframe 下方。
  */
 const immersive = computed(() => !!route.meta.immersive)
+const showNav = computed(() => !immersive.value && !route.meta.hideNav)
 
 watchEffect(() => {
   document.documentElement.classList.toggle('immersive', immersive.value)
@@ -45,7 +49,7 @@ onMounted(() => nextTick(() => initReveal()))
 </script>
 
 <template>
-  <SiteNav v-if="!immersive" />
+  <SiteNav v-if="showNav" />
   <RouterView />
   <SiteFooter v-if="!immersive" />
 </template>

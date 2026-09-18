@@ -2,12 +2,13 @@
 /**
  * 产品介绍（2026-09-18 全新设计版）
  * 完整 Lovart 设计稿整页落地：website/public/products-embed.html
- * （自带导航/Hero 双视频星球/产品区/页脚与全部交互，资源本地化 /products-design/）。
- * 本组件只做全屏 iframe 载体；路由 meta.immersive = true，
- * App.vue 在此页不渲染 SiteNav / SiteFooter，保证设计稿效果 100% 还原。
- * 设计稿导航内的站内链接已加 target="_top" 跳出 iframe。
- *
- * 品牌一致性（bos-brand-v1）：设计稿 nav 里的 logo 图标与品牌名不写死，
+ * （自带导航/Hero 双视频星球/产品区与全部交互，资源本地化 /products-design/；
+ * 设计稿自带的简陋页脚已移除）。
+ * 布局：路由 meta.hideNav 只隐藏站内 SiteNav（设计稿自带导航）；
+ * SiteFooter 由 App.vue 统一渲染在 iframe 下方（本页非 immersive），
+ * 与整站同一组件、同一数据源，天然一致。iframe 内部滚动到底后
+ * 滚动链自然过渡到父页面页脚。⚠️ 本组件不要再放 <SiteFooter>，会双渲染。
+ * 品牌一致性（bos-brand-v1）：nav 的 logo 图标与品牌名不写死，
  * 由本页从 useSite()（/api/content/site，与全站导航同源同兜底）取 brand.logo /
  * brand.nameParts，postMessage 灌给 iframe —— 后台换 logo，此处同步。
  */

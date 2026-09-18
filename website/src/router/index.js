@@ -51,9 +51,9 @@ const routes = [
     meta: {
       title: '产品介绍 - ONLYSTYLE',
       description: '主打自研「楼达人资产管理平台」（SAAS）与「唯风数字营销自动化平台」，提供资产数字化一站式运营与营销内容生产分发全流程自动化能力。',
-      // 整页沉浸式：完整 Lovart 设计稿（products-embed.html）自带导航与页脚，
-      // App.vue 在此页不渲染 SiteNav / SiteFooter，保证设计稿 100% 效果
-      immersive: true,
+      // 设计稿页（products-embed.html）自带导航：只藏 SiteNav；
+      // 页脚用全站 SiteFooter（与整站一致），渲染在 iframe 下方
+      hideNav: true,
     },
   },
   {
