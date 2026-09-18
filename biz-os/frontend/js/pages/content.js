@@ -351,8 +351,8 @@ function renderContent() {
       '<div class="settings-tabs" id="contentTabs">' +
         cmTabBtn('home', tab, '首页布局') +
         cmTabBtn('products', tab, '产品介绍') +
-        cmTabBtn('catalog', tab, '解决方案') +
-        cmTabBtn('cases', tab, '案例星球') +
+      // 解决方案板块已整块下线（/services 路由重定向首页），tab 一并移除
+      cmTabBtn('cases', tab, '案例星球') +
         cmTabBtn('about', tab, '关于我们') +
         cmTabBtn('site', tab, '站点配置') +
       '</div>' +

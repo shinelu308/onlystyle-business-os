@@ -23,7 +23,7 @@ export const homeBlocks = [
       descFrom: 'brand', // desc 用「公司全称 · slogan」拼，避免改公司名时要改两处
       desc: '',
       cta: [
-        { text: '了解我们的方案', to: '/services', style: 'primary' },
+        { text: '了解我们的产品', to: '/products', style: 'primary' },
         { text: '查看成功案例', to: '/cases', style: 'outline' },
       ],
       stats: [

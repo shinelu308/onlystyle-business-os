@@ -24,13 +24,10 @@ const routes = [
     },
   },
   {
+    // 解决方案板块已整块下线（2026-09-18）：导航/页脚/设计稿页均已移除入口，
+    // 旧链接与收藏一律回落首页。Services.vue 保留文件但不再挂路由。
     path: '/services',
-    name: 'services',
-    component: () => import('@/pages/Services.vue'),
-    meta: {
-      title: '解决方案 - ONLYSTYLE',
-      description: '覆盖咨询、平台开发、部署与运维全周期的数字化服务，以及面向地产、医疗、文旅等行业的智能化解决方案。',
-    },
+    redirect: '/',
   },
   {
     path: '/cases',

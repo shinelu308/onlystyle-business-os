@@ -126,7 +126,7 @@ watch(products, pushProducts, { deep: true });
   <!-- ⚠️ embed 内容有更新时必须升 ?v= 版本参数，否则用户浏览器会拿旧缓存 -->
   <iframe
     class="pd-frame"
-    src="/products-embed.html?v=b3"
+    src="/products-embed.html?v=b4"
     title="产品介绍"
     @load="pushAll"
   ></iframe>

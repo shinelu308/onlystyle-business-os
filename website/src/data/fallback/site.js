@@ -44,7 +44,6 @@ export const site = {
   nav: [
     { text: '首页', to: '/', sort: 1, visible: true },
     { text: '产品介绍', to: '/products', sort: 2, visible: true },
-    { text: '解决方案', to: '/services', sort: 3, visible: true },
     { text: '案例星球', to: '/cases', sort: 4, visible: true },
     { text: '关于我们', to: '/about', sort: 5, visible: true },
   ],
@@ -54,7 +53,6 @@ export const site = {
   footerNav: [
     { text: '首页', to: '/', sort: 1, visible: true },
     { text: '产品介绍', to: '/products', sort: 2, visible: true },
-    { text: '解决方案', to: '/services', sort: 3, visible: true },
     { text: '案例星球', to: '/cases', sort: 4, visible: true },
     { text: '联系我们', to: '/contact', sort: 5, visible: true },
     { text: '关于我们', to: '/about', sort: 6, visible: true },
