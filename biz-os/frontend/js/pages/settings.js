@@ -203,7 +203,7 @@ function renderRolePermEditor(rolePerms) {
     var badges = '';
     for (var pi = 0; pi < r.pages.length; pi++) {
       var label = PAGE_LABELS[r.pages[pi]] || r.pages[pi];
-      badges += '<span class="badge ' + colorName + '" style="margin:2px;font-size:11px">' + label + '</span>';
+      badges += '<span class="badge ' + colorName + '" style="margin:2px;font-size:11.5px">' + label + '</span>';
     }
     var tint = ST_TINTS[colorName] || ST_TINTS.secondary;
     cardsHtml +=
@@ -220,7 +220,7 @@ function renderRolePermEditor(rolePerms) {
   // 可编辑权限矩阵
   var matrixHtml = '<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th style="min-width:70px">角色</th>';
   for (var pi = 0; pi < pageKeys.length; pi++) {
-    matrixHtml += '<th style="text-align:center;font-size:10px;padding:10px 4px;cursor:pointer" onclick="toggleAllRoleForPage(\'' + pageKeys[pi] + '\')" title="点击切换此模块全选/全不选">' + (PAGE_LABELS[pageKeys[pi]] || pageKeys[pi]) + '</th>';
+    matrixHtml += '<th style="text-align:center;font-size:11.5px;padding:10px 4px;cursor:pointer" onclick="toggleAllRoleForPage(\'' + pageKeys[pi] + '\')" title="点击切换此模块全选/全不选">' + (PAGE_LABELS[pageKeys[pi]] || pageKeys[pi]) + '</th>';
   }
   matrixHtml += '</tr></thead><tbody>';
   for (var ri = 0; ri < roleKeys.length; ri++) {

@@ -326,12 +326,12 @@ table {
 th {
   text-align: left;
   white-space: nowrap;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: .1em;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
   text-transform: uppercase;
-  color: var(--gray-400);
+  color: var(--gray-500);
   background: var(--gray-50);
   border-bottom: 1px solid var(--border);
   padding: 10px 12px;
@@ -346,12 +346,12 @@ td {
 }
 
 th {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: .1em;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
   text-transform: uppercase;
-  color: var(--gray-400);
+  color: var(--gray-500);
   background: var(--gray-50);
   border-bottom: 1px solid var(--border);
   padding: 10px 12px;
@@ -562,8 +562,8 @@ label.required::after, .form-group label.required::after, .settings-field label.
 .badge {
   display: inline-block;
   border-radius: var(--r-full);
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: inherit;
+  font-size: 11.5px;
   font-weight: 600;
   padding: 2px 8px;
   border: none;
