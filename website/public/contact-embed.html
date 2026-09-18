@@ -1,0 +1,847 @@
+<!DOCTYPE html><html lang="zh-CN" data-lvt-canonical="1"><!-- 设计 brief（Lovart 原稿说明）已剔除；其中关于提交方式的假设已随实现变更失效 --><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>联系我们 · ONLYSTYLE</title>
+<!-- ds-contact-embed-v1 | generated from Lovart design "design (8).html"; assets localized to /contact-design/ -->
+<meta name="description" content="向 ONLYSTYLE 星际舰队发送讯息 — 上海唯风信息技术有限公司，地址：上海市莲花南路1500弄8-9号306室，电话 021-33580166。">
+<style>
+/* ===== VARIABLES ===== */
+:root{
+  --bg:#071229;
+  --blue:#1F5BFF;
+  --cyan:#3BE0FF;
+  --fg:#FFFFFF;
+  --fg-muted:rgba(255,255,255,0.72);
+  --fg-dim:rgba(255,255,255,0.42);
+  --card-bg:rgba(255,255,255,0.06);
+  --hairline:rgba(255,255,255,0.10);
+  --surface:#0A1A3E;
+  --nav-h:64px;
+  --max-w:1200px;
+  --r:16px;
+  --cn:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --en:"Inter",-apple-system,"PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:var(--cn);line-height:1.6;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+ul{list-style:none}
+img{display:block;max-width:100%}
+.container{max-width:var(--max-w);margin:0 auto;padding:0 24px}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--blue);border-radius:2px}
+
+/* ===== REVEAL ===== */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-d1{transition-delay:.08s}.reveal-d2{transition-delay:.16s}
+.reveal-d3{transition-delay:.24s}.reveal-d4{transition-delay:.32s}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  *{animation-duration:.001s!important;animation-iteration-count:1!important}
+}
+
+/* ===== SECTION HEADS ===== */
+.sec{padding:100px 0;position:relative}
+.sec-head{margin-bottom:52px}
+.sec-eyebrow{
+  font-family:var(--en);font-size:12px;font-weight:600;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--cyan);display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;
+}
+.sec-eyebrow::before{content:"";width:28px;height:1px;background:linear-gradient(90deg,var(--cyan),transparent)}
+.sec-eyebrow .cn{letter-spacing:.18em;color:var(--fg-dim);font-weight:400}
+.sec-title{font-size:clamp(28px,3.2vw,36px);font-weight:600;letter-spacing:.01em;line-height:1.3}
+.sec-title em{font-style:normal;background:linear-gradient(90deg,#fff 40%,var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sec-sub{margin-top:12px;font-size:15px;color:var(--fg-muted);max-width:620px;line-height:1.8}
+
+/* ===== NAV ===== */
+.nav{
+  position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:1000;
+  background:rgba(7,18,41,0.35);
+  border-bottom:1px solid transparent;
+  transition:background .3s,border-color .3s,backdrop-filter .3s;
+}
+.nav.scrolled{
+  background:rgba(7,18,41,0.88);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom-color:rgba(31,91,255,.18);
+}
+.nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 24px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.nav-logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.nav-logo-icon{width:34px;height:34px}
+.nav-logo-text{
+  font-family:var(--en);font-size:18px;font-weight:700;letter-spacing:.10em;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.nav-links{display:flex;align-items:center;gap:2px}
+.nav-links a{padding:6px 13px;font-size:14px;color:var(--fg-muted);border-radius:8px;transition:color .2s,background .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--fg);background:rgba(255,255,255,.06)}
+.nav-links a.active{color:var(--cyan)}
+.nav-cta{
+  padding:8px 20px;font-size:14px;font-weight:600;border-radius:24px;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));color:#fff;white-space:nowrap;
+  transition:opacity .2s,transform .2s;flex-shrink:0;
+}
+.nav-cta:hover{opacity:.85;transform:translateY(-1px)}
+.nav-mobile-toggle{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;background:none;border:0}
+.nav-mobile-toggle span{display:block;width:22px;height:2px;background:var(--fg);border-radius:2px}
+.nav-mobile{
+  display:none;position:fixed;top:var(--nav-h);left:0;right:0;z-index:999;
+  background:rgba(7,18,41,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--hairline);padding:14px 24px 20px;
+}
+.nav-mobile.open{display:flex;flex-direction:column;gap:4px}
+.nav-mobile a{padding:11px 8px;font-size:15px;color:var(--fg-muted);border-radius:8px}
+.nav-mobile a.active{color:var(--cyan)}
+
+/* ===== HERO (video background) ===== */
+.hero{
+  position:relative;min-height:620px;height:88vh;max-height:860px;
+  display:flex;align-items:center;overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;z-index:0;overflow:hidden;
+  /* fallback：视频加载失败时透出静态首帧（CSS 背景层，位于视频之下） */
+  background:#071229 url("/contact-design/QlODixy1KX1MXK0t.jpg") center right / cover no-repeat;
+}
+.hero-video{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:right center;display:block;
+}
+.hero-mask{
+  position:absolute;inset:0;z-index:1;
+  background:linear-gradient(90deg,#071229 0%,rgba(7,18,41,.82) 34%,rgba(7,18,41,.38) 62%,rgba(7,18,41,.30) 100%);
+}
+.hero-mask::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(7,18,41,.55) 0%,transparent 22%,transparent 72%,#071229 100%);
+}
+.hero-content{position:relative;z-index:2;width:100%;padding-top:var(--nav-h)}
+.hero-inner{max-width:640px}
+.breadcrumb{font-size:13px;color:var(--fg-dim);letter-spacing:.06em;margin-bottom:26px;display:flex;align-items:center;gap:8px}
+.breadcrumb .sep{color:rgba(255,255,255,.65);font-family:var(--mono)}
+.breadcrumb .cur{color:var(--cyan)}
+.hero-title{
+  font-size:clamp(44px,5.2vw,56px);font-weight:600;line-height:1.15;letter-spacing:.02em;margin-bottom:22px;
+}
+.hero-title .grad{
+  background:linear-gradient(120deg,#fff 30%,var(--cyan) 110%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-sub{font-size:clamp(16px,1.6vw,19px);font-weight:400;color:var(--fg-muted);letter-spacing:.04em}
+.hero-sub b{font-weight:400;color:#fff}
+.hero-signal{
+  margin-top:34px;display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--cyan);
+  padding:8px 16px;border:1px solid rgba(59,224,255,.28);border-radius:20px;background:rgba(59,224,255,.06);
+}
+.hero-signal .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.35}50%{opacity:1}}
+.hero-scroll{
+  position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:2;
+  display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--fg-dim);font-size:11px;letter-spacing:.2em;font-family:var(--en);
+}
+.hero-scroll .line{width:1px;height:36px;background:linear-gradient(180deg,var(--cyan),transparent);animation:scrollPulse 1.8s ease-in-out infinite}
+@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+
+/* ===== COORDINATE CARDS ===== */
+#coords{padding-top:84px}
+.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.info-card{
+  position:relative;padding:30px 24px 28px;border-radius:var(--r);
+  background:var(--card-bg);border:1px solid var(--hairline);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  transition:transform .3s cubic-bezier(.22,1,.36,1),border-color .3s,box-shadow .3s;
+  overflow:hidden;
+}
+.info-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(59,224,255,.5),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.info-card:hover{
+  transform:translateY(-6px);
+  border-color:rgba(59,224,255,.35);
+  box-shadow:0 18px 44px rgba(4,10,26,.5),0 0 28px rgba(31,91,255,.18);
+}
+.info-card:hover::before{opacity:1}
+.card-icon{
+  width:52px;height:52px;border-radius:14px;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(31,91,255,.10);border:1px solid rgba(59,224,255,.22);
+  position:relative;
+}
+.card-icon::after{
+  content:"";position:absolute;inset:-6px;border-radius:18px;
+  background:radial-gradient(circle,rgba(59,224,255,.16),transparent 70%);
+  pointer-events:none;
+}
+.card-tag{
+  font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--cyan);
+  margin-bottom:8px;text-transform:uppercase;
+}
+.card-label{font-size:15px;font-weight:600;color:#fff;margin-bottom:10px}
+.card-value{font-size:14px;line-height:1.7;color:var(--fg-muted);word-break:break-all}
+.card-value a{color:var(--fg-muted);transition:color .2s;border-bottom:1px dashed rgba(59,224,255,.35)}
+.card-value a:hover{color:var(--cyan)}
+
+/* ===== MESSAGE (FORM + TERMINAL) ===== */
+.msg-grid{display:grid;grid-template-columns:60% 40%;gap:28px;align-items:start}
+.panel{
+  border-radius:var(--r);background:var(--card-bg);border:1px solid var(--hairline);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  padding:36px;position:relative;overflow:hidden;
+}
+.panel::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(59,224,255,.4),transparent);
+}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:13px;color:var(--fg-muted);margin-bottom:8px;letter-spacing:.04em}
+.field label .req{color:var(--cyan);margin-left:2px}
+.field input,.field select,.field textarea{
+  width:100%;padding:12px 14px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--hairline);
+  color:#fff;font-size:14px;font-family:var(--cn);
+  transition:border-color .25s,box-shadow .25s;
+  appearance:none;-webkit-appearance:none;
+}
+.field textarea{resize:vertical;min-height:120px;line-height:1.7}
+.field select{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%233BE0FF' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer;
+}
+.field select option{background:#0A1A3E;color:#fff}
+.field input::placeholder,.field textarea::placeholder{color:rgba(255,255,255,.3)}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(31,91,255,.22),0 0 18px rgba(59,224,255,.14);
+}
+.btn-send{
+  width:100%;margin-top:6px;padding:15px 20px;border:0;border-radius:12px;cursor:pointer;
+  font-family:var(--cn);font-size:16px;font-weight:600;color:#fff;letter-spacing:.06em;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  box-shadow:0 10px 30px rgba(31,91,255,.4),inset 0 1px 0 rgba(255,255,255,.25);
+  position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.btn-send::after{
+  content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
+  transition:left .6s;
+}
+.btn-send:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(31,91,255,.55),0 0 24px rgba(59,224,255,.3)}
+.btn-send:hover::after{left:120%}
+.btn-send svg{flex-shrink:0}
+.form-note{margin-top:14px;font-size:12px;color:var(--fg-dim);letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+.form-note::before{content:"";width:12px;height:12px;flex-shrink:0;background:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M6 1l4 1.8v3C10 8.4 8.3 10.4 6 11 3.7 10.4 2 8.4 2 5.8v-3L6 1z' stroke='%233BE0FF' stroke-width='1'/%3E%3Cpath d='M4.3 5.9L5.5 7.1 7.8 4.8' stroke='%233BE0FF' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center/contain}
+.form-status{margin-top:12px;font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--cyan);min-height:18px}
+
+/* ===== TERMINAL (map + wechat) ===== */
+.terminal-col{display:flex;flex-direction:column;gap:28px}
+.term-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px}
+.term-title{font-size:17px;font-weight:600;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.term-title::before{content:"";width:8px;height:8px;border-radius:2px;background:linear-gradient(135deg,var(--blue),var(--cyan));box-shadow:0 0 10px rgba(59,224,255,.7)}
+.term-code{font-family:var(--mono);font-size:11px;color:var(--fg-dim);letter-spacing:.16em;white-space:nowrap}
+.map-stage{
+  position:relative;height:230px;border-radius:12px;overflow:hidden;
+  background:#060E22;
+  border:1px solid rgba(59,224,255,.16);
+}
+.map-img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center;display:block;
+}
+.map-shade{
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(7,18,41,.30) 0%,rgba(7,18,41,.05) 34%,rgba(4,10,26,.55) 78%,rgba(4,10,26,.88) 100%);
+}
+.map-ping{
+  position:absolute;left:50%;top:58%;width:12px;height:12px;margin:-6px 0 0 -6px;
+  border-radius:50%;background:var(--cyan);box-shadow:0 0 14px var(--cyan),0 0 34px rgba(59,224,255,.5);
+  z-index:2;
+}
+.map-ping::before,.map-ping::after{
+  content:"";position:absolute;inset:-6px;border:1px solid rgba(59,224,255,.6);border-radius:50%;
+  animation:ping 2.4s ease-out infinite;
+}
+.map-ping::after{animation-delay:1.2s}
+@keyframes ping{0%{transform:scale(.5);opacity:1}100%{transform:scale(3.4);opacity:0}}
+.map-scan{
+  position:absolute;left:0;right:0;height:2px;top:0;z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(59,224,255,.5),transparent);
+  animation:scan 5s linear infinite;opacity:.7;pointer-events:none;
+}
+@keyframes scan{0%{top:-2px}100%{top:100%}}
+.map-coord{
+  position:absolute;left:16px;top:14px;font-family:var(--mono);font-size:11px;z-index:2;
+  color:var(--cyan);letter-spacing:.14em;opacity:.9;
+  text-shadow:0 1px 6px rgba(4,10,26,.9);
+}
+.map-addr{
+  position:absolute;left:16px;right:16px;bottom:14px;font-size:13px;color:#fff;z-index:2;
+  line-height:1.6;text-shadow:0 1px 8px rgba(4,10,26,.95);
+}
+.term-note{margin-top:12px;font-size:12px;color:var(--fg-dim);line-height:1.6;letter-spacing:.02em}
+
+.qr-stage{display:flex;gap:20px;align-items:center}
+.qr-box{
+  position:relative;width:148px;height:148px;flex-shrink:0;border-radius:10px;
+  background:#FFFFFF;padding:10px;
+  border:1px solid rgba(59,224,255,.45);
+  animation:qrGlow 3.2s ease-in-out infinite;
+  overflow:hidden;
+}
+.qr-box img{width:100%;height:100%;object-fit:contain;display:block}
+@keyframes qrGlow{
+  0%,100%{box-shadow:0 0 14px rgba(59,224,255,.22),0 0 4px rgba(31,91,255,.2)}
+  50%{box-shadow:0 0 26px rgba(59,224,255,.45),0 0 10px rgba(31,91,255,.35)}
+}
+.qr-box .corner{position:absolute;width:18px;height:18px;border:2px solid var(--blue);opacity:.85;z-index:2;pointer-events:none}
+.qr-box .c1{top:5px;left:5px;border-right:0;border-bottom:0;border-radius:4px 0 0 0}
+.qr-box .c2{top:5px;right:5px;border-left:0;border-bottom:0;border-radius:0 4px 0 0}
+.qr-box .c3{bottom:5px;left:5px;border-right:0;border-top:0;border-radius:0 0 0 4px}
+.qr-box .c4{bottom:5px;right:5px;border-left:0;border-top:0;border-radius:0 0 4px 0}
+.qr-scan{
+  position:absolute;left:8%;right:8%;height:2px;top:0;z-index:2;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(31,91,255,.55),transparent);
+  animation:qrScan 3s ease-in-out infinite;
+}
+@keyframes qrScan{0%{top:4%;opacity:0}12%{opacity:1}88%{opacity:1}100%{top:94%;opacity:0}}
+.qr-info{font-size:13px;color:var(--fg-muted);line-height:1.8}
+.qr-info strong{display:block;color:#fff;font-size:14px;font-weight:600;margin-bottom:6px}
+.qr-hint{margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--fg-dim);letter-spacing:.06em}
+
+/* ===== FOOTER ===== */
+.footer{border-top:1px solid var(--hairline);background:linear-gradient(180deg,#060F24,#040A1A);padding:64px 0 0;margin-top:40px}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1.2fr;gap:44px;padding-bottom:48px}
+.footer-brand .f-logo{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.footer-brand p{font-size:13px;color:var(--fg-muted);line-height:1.9;max-width:320px}
+.footer h4{font-size:14px;font-weight:600;letter-spacing:.1em;color:#fff;margin-bottom:18px}
+.footer h4::after{content:"";display:block;width:22px;height:2px;margin-top:8px;background:linear-gradient(90deg,var(--blue),var(--cyan));border-radius:1px}
+.footer-links li{margin-bottom:10px}
+.footer-links a{font-size:13px;color:var(--fg-muted);transition:color .2s}
+.footer-links a:hover{color:var(--cyan)}
+.footer-contact li{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--fg-muted);margin-bottom:12px;line-height:1.7}
+.footer-contact svg{flex-shrink:0}
+.footer-contact a:hover{color:var(--cyan)}
+.footer-bottom{
+  border-top:1px solid var(--hairline);padding:20px 0 26px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  font-size:12px;color:var(--fg-dim);letter-spacing:.04em;
+}
+.footer-bottom a{color:var(--fg-dim);transition:color .2s}
+.footer-bottom a:hover{color:var(--cyan)}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:1080px){
+  .msg-grid{grid-template-columns:1fr}
+  .info-grid{grid-template-columns:repeat(2,1fr)}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:36px}
+}
+@media (max-width:860px){
+  .nav-links,.nav-cta{display:none}
+  .nav-mobile-toggle{display:flex}
+  .sec{padding:72px 0}
+  .hero{height:76vh;min-height:540px}
+  .panel{padding:26px 22px}
+  .qr-stage{flex-direction:column;align-items:flex-start}
+}
+@media (max-width:600px){
+  .info-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr;gap:32px}
+  .footer-bottom{flex-direction:column;align-items:flex-start}
+  .hero-title{font-size:40px}
+  .map-stage{height:200px}
+}
+</style>
+<style>
+  /* ds-contact-v1: 表单状态行三态（设计稿只给了基类）*/
+  .form-status.is-ok{color:var(--cyan)}
+  .form-status.is-err{color:#FF6B6B}
+  .form-status.is-busy{color:var(--fg-dim)}
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav class="nav" id="nav" aria-label="主导航" data-lvt-eid="a5d467aa01">
+  <div class="nav-inner" data-lvt-eid="fa3d99d18c">
+    <a href="/" target="_top" class="nav-logo" aria-label="ONLYSTYLE 首页" data-lvt-eid="04feca53ad">
+      <span id="brandLogoSlot" style="width:34px;height:34px;display:block;flex:none"></span>
+      <span class="nav-logo-text" data-lvt-eid="19c6239c72"><span id="brandName1">ONLY</span><span id="brandName2">STYLE</span></span>
+    </a>
+    <ul class="nav-links" role="list" data-lvt-eid="4ce4d697d2">
+      <li data-lvt-eid="b0f48b343b"><a href="/" target="_top" data-lvt-eid="34d7c3d287">首页</a></li>
+      <li data-lvt-eid="3b7fb9e4fc"><a href="/products" target="_top" data-lvt-eid="c8ef550c12">产品介绍</a></li>
+      <li data-lvt-eid="9a84f35b26"><a href="/cases" target="_top" data-lvt-eid="f306c6ac75">案例星球</a></li>
+      <li data-lvt-eid="ca07551573"><a href="/about" target="_top" data-lvt-eid="3bafd778a6">关于我们</a></li>
+      <li data-lvt-eid="3d78cfb306"><a href="#" class="active" aria-current="page" data-lvt-eid="ded8cb92f1">联系我们</a></li>
+    </ul>
+    <a href="#message" class="nav-cta" data-lvt-eid="5dc0d13d3e">联系我们</a>
+    <button class="nav-mobile-toggle" id="menuBtn" aria-label="打开菜单" aria-expanded="false" data-lvt-eid="1aed856ff3">
+      <span data-lvt-eid="f4394f145f"></span><span data-lvt-eid="1fa84ffa5f"></span><span data-lvt-eid="9d72ef2497"></span>
+    </button>
+  </div>
+</nav>
+<div class="nav-mobile" id="navMobile" role="menu" data-lvt-eid="fa032e3aeb">
+  <a href="/" target="_top" role="menuitem" data-lvt-eid="69abe15067">首页</a>
+  <a href="/products" target="_top" role="menuitem" data-lvt-eid="4f42c9a134">产品介绍</a>
+  <a href="/cases" target="_top" role="menuitem" data-lvt-eid="714b4c892c">案例星球</a>
+  <a href="/about" target="_top" role="menuitem" data-lvt-eid="55859ecb74">关于我们</a>
+  <a href="#message" class="active" role="menuitem" aria-current="page" data-lvt-eid="debb1979d2">联系我们</a>
+</div>
+
+<!-- ===== HERO（视频背景 + 静态首帧 fallback） ===== -->
+<header class="hero" data-lvt-eid="f16832ddc0">
+  <div class="hero-bg" data-lvt-eid="a1fb9f85ca">
+    <video class="hero-video" src="/contact-design/61QGAllvvf218wI3.mp4" poster="/contact-design/QlODixy1KX1MXK0t.jpg" autoplay muted loop playsinline preload="auto" aria-hidden="true" tabindex="-1"></video>
+  </div>
+  <div class="hero-mask" aria-hidden="true" data-lvt-eid="6bd59b16fa"></div>
+  <div class="hero-content" data-lvt-eid="8ecbef7a88">
+    <div class="container" data-lvt-eid="8900fbaa05">
+      <div class="hero-inner" data-lvt-eid="f90e0165c4">
+        <nav class="breadcrumb" aria-label="面包屑" data-lvt-eid="4214b1a581">
+          <a href="/" target="_top" data-lvt-eid="ab706768f9">首页</a><span class="sep" data-lvt-eid="6ea4391f27">/</span><span class="cur" data-lvt-eid="5d642dd750">联系我们</span>
+        </nav>
+        <h1 class="hero-title" data-lvt-eid="d568822aa9"><span class="grad" data-lvt-eid="10bda83060">联系我们</span></h1>
+        <p class="hero-sub" data-lvt-eid="a967a42155">向 <b data-lvt-eid="db2e24a135">ONLYSTYLE 星际舰队</b>发送讯息，期待与您建立连接</p>
+        <div class="hero-signal" data-lvt-eid="763740e3ef"><span class="dot" data-lvt-eid="234a7e33ab"></span>COMM CHANNEL OPEN · 通讯频道已开启</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true" data-lvt-eid="5040987c13">
+    <span class="line" data-lvt-eid="bea324817b"></span>SCROLL
+  </div>
+</header>
+
+<!-- ===== COORDINATES ===== -->
+<section class="sec" id="coords" data-lvt-eid="5c350e293a">
+  <div class="container" data-lvt-eid="5e610c8730">
+    <div class="sec-head reveal" data-lvt-eid="091f9a8482">
+      <div class="sec-eyebrow" data-lvt-eid="7d01e08b87">COMMUNICATION COORDINATES <span class="cn" data-lvt-eid="b9c7a8cc3b">/ 通讯坐标</span></div>
+      <h2 class="sec-title" data-lvt-eid="f3f9d17d45">舰队<em data-lvt-eid="6f1d327fa4">通讯坐标</em></h2>
+    </div>
+    <div class="info-grid" data-lvt-eid="49d21916a2">
+      <div class="info-card reveal reveal-d1" data-lvt-eid="1c92a7348c">
+        <div class="card-icon" data-lvt-eid="282db85d68">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true" data-lvt-eid="a1bdaf0bb9">
+            <defs data-lvt-eid="2573c96ade"><linearGradient id="ic-pin" x1="2" y1="2" x2="24" y2="24" gradientUnits="userSpaceOnUse" data-lvt-eid="05f8ae32a1"><stop stop-color="#1F5BFF" data-lvt-eid="35d13e6f84"></stop><stop offset="1" stop-color="#3BE0FF" data-lvt-eid="12167e6315"></stop></linearGradient></defs>
+            <g stroke="url(#ic-pin)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="35a7b83eea">
+              <path d="M13 24s7-6.4 7-12a7 7 0 10-14 0c0 5.6 7 12 7 12z" data-lvt-eid="72ad76741a"></path><circle cx="13" cy="12" r="2.6" data-lvt-eid="1c96700c70"></circle>
+            </g>
+          </svg>
+        </div>
+        <div class="card-tag" data-lvt-eid="4874a0e1f3">SECTOR-01</div>
+        <div class="card-label" data-lvt-eid="4db5c443c7">舰队坐标 / 公司地址</div>
+        <div class="card-value" id="dsCtAddr" data-lvt-eid="fce3f811a1">上海市莲花南路1500弄8-9号306室</div>
+      </div>
+      <div class="info-card reveal reveal-d2" data-lvt-eid="1634617dfa">
+        <div class="card-icon" data-lvt-eid="088ab6baf7">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true" data-lvt-eid="e2cd780e2b">
+            <defs data-lvt-eid="620eba9fa4"><linearGradient id="ic-tel" x1="2" y1="2" x2="24" y2="24" gradientUnits="userSpaceOnUse" data-lvt-eid="c3c4521282"><stop stop-color="#1F5BFF" data-lvt-eid="a6670dcb4a"></stop><stop offset="1" stop-color="#3BE0FF" data-lvt-eid="7e6e070681"></stop></linearGradient></defs>
+            <g stroke="url(#ic-tel)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="3aa483b605">
+              <path d="M6 3h4l2 5-2.5 1.5a12 12 0 007 7L18 14l5 2v4a2 2 0 01-2 2C11.6 22 4 14.4 4 5a2 2 0 012-2z" data-lvt-eid="d098e6b210"></path>
+            </g>
+          </svg>
+        </div>
+        <div class="card-tag" data-lvt-eid="5e6bfab3dc">CHANNEL-02</div>
+        <div class="card-label" data-lvt-eid="01278a3396">通讯频道 / 联系电话</div>
+        <div class="card-value" id="dsCtTel" data-lvt-eid="1e2248387f"><a href="tel:021-33580166" data-lvt-eid="8fcfa48ddc">021-33580166</a></div>
+      </div>
+      <div class="info-card reveal reveal-d3" data-lvt-eid="f9b6a5b241">
+        <div class="card-icon" data-lvt-eid="2e0d4765aa">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true" data-lvt-eid="1a098dd29d">
+            <defs data-lvt-eid="9c9259d2e6"><linearGradient id="ic-mail" x1="2" y1="2" x2="24" y2="24" gradientUnits="userSpaceOnUse" data-lvt-eid="76b86f3bc5"><stop stop-color="#1F5BFF" data-lvt-eid="1c15408d50"></stop><stop offset="1" stop-color="#3BE0FF" data-lvt-eid="ffcd3c0838"></stop></linearGradient></defs>
+            <g stroke="url(#ic-mail)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="6ad629c5a0">
+              <rect x="3" y="6" width="20" height="14" rx="2" data-lvt-eid="c89f2071bd"></rect><path d="M3.5 7.5L13 14l9.5-6.5" data-lvt-eid="1f5fe29a1c"></path>
+            </g>
+          </svg>
+        </div>
+        <div class="card-tag" data-lvt-eid="0faebc2c83">QUANTUM-03</div>
+        <div class="card-label" data-lvt-eid="76c39c58f3">量子邮件 / 电子邮箱</div>
+        <div class="card-value" id="dsCtMail" data-lvt-eid="0a2976cfe7"><a href="mailto:shine@onlystyle.com.cn" data-lvt-eid="9cdf4c8c99">shine@onlystyle.com.cn</a></div>
+      </div>
+      <div class="info-card reveal reveal-d4" data-lvt-eid="5543a9a9bc">
+        <div class="card-icon" data-lvt-eid="e9449826a9">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true" data-lvt-eid="d4b5966e44">
+            <defs data-lvt-eid="861413820a"><linearGradient id="ic-clock" x1="2" y1="2" x2="24" y2="24" gradientUnits="userSpaceOnUse" data-lvt-eid="5cea403a6e"><stop stop-color="#1F5BFF" data-lvt-eid="4b9e018275"></stop><stop offset="1" stop-color="#3BE0FF" data-lvt-eid="00aab8350b"></stop></linearGradient></defs>
+            <g stroke="url(#ic-clock)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="b6f86c2aed">
+              <circle cx="13" cy="13" r="9.5" data-lvt-eid="88ff6b72a2"></circle><path d="M13 7.5V13l3.6 2.4" data-lvt-eid="638dd62b72"></path>
+            </g>
+          </svg>
+        </div>
+        <div class="card-tag" data-lvt-eid="ddd01972bd">DUTY-04</div>
+        <div class="card-label" data-lvt-eid="87787a57e5">值班时间 / 工作时间</div>
+        <div class="card-value" id="dsCtHours" data-lvt-eid="956c2bdaa5">周一至周五: 9:00 - 18:00</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== MESSAGE ===== -->
+<section class="sec" id="message" style="padding-top:20px" data-lvt-eid="f6b46e0528">
+  <div class="container" data-lvt-eid="f6a00a56bb">
+    <div class="msg-grid" data-lvt-eid="1bdb903511">
+      <!-- LEFT: FORM -->
+      <div class="panel reveal" data-lvt-eid="18c4d4fc0a">
+        <div class="sec-head" style="margin-bottom:30px" data-lvt-eid="8db3b0d96d">
+          <div class="sec-eyebrow" data-lvt-eid="43783afdfb">SEND MESSAGE <span class="cn" data-lvt-eid="38838e94a9">/ 发送讯息</span></div>
+          <h2 class="sec-title" data-lvt-eid="47b86953e0">告诉我们您的<em data-lvt-eid="5caafdf866">需求</em></h2>
+          <p class="sec-sub" data-lvt-eid="924b64618e">填写下面的信息，我们的顾问会尽快与您联系。</p>
+        </div>
+        <form id="msgForm" novalidate="" data-lvt-eid="9b6bde5f47">
+          <div class="form-row" data-lvt-eid="a0bce6e41a">
+            <div class="field" data-lvt-eid="a9f7bf280e">
+              <label for="f-name" data-lvt-eid="2a64b6633c">您的称呼<span class="req" data-lvt-eid="affb31e779">*</span></label>
+              <input id="f-name" name="name" type="text" placeholder="请输入您的称呼" required="" data-lvt-eid="c2edcc674d">
+            </div>
+            <div class="field" data-lvt-eid="b44a07392c">
+              <label for="f-phone" data-lvt-eid="da52b7730c">联系电话<span class="req" data-lvt-eid="48b8a4ea0c">*</span></label>
+              <input id="f-phone" name="phone" type="tel" placeholder="请输入联系电话" required="" data-lvt-eid="28de2de867">
+            </div>
+          </div>
+          <div class="form-row" data-lvt-eid="322a9fffc2">
+            <div class="field" data-lvt-eid="037b0ba7a5">
+              <label for="f-company" data-lvt-eid="728aec1f96">公司名称</label>
+              <input id="f-company" name="company" type="text" placeholder="请输入公司名称" data-lvt-eid="5ac13c3e8f">
+            </div>
+            <div class="field" data-lvt-eid="93492535be">
+              <label for="f-topic" data-lvt-eid="def37ecedc">需求方向</label>
+              <select id="f-topic" name="topic" data-lvt-eid="1aa4e9771d">
+                <option value="" data-lvt-eid="9f19e65c49">请选择需求方向</option>
+                <option data-lvt-eid="cd729dc91d">数字化转型咨询</option>
+                <option data-lvt-eid="2cea70eac9">IT 服务解决方案</option>
+                <option data-lvt-eid="6a63d86866">AI 应用开发</option>
+                <option data-lvt-eid="92f1b0243f">网络安全服务</option>
+                <option data-lvt-eid="48e40aab1f">其他合作</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" data-lvt-eid="d8fb57953a">
+            <label for="f-desc" data-lvt-eid="eb40d99c54">需求描述</label>
+            <textarea id="f-desc" name="desc" placeholder="请简要描述您的需求，便于顾问为您准备方案" data-lvt-eid="6bc39cd912"></textarea>
+          </div>
+          <button type="submit" class="btn-send" data-lvt-eid="0d12682115">发送讯息 <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true" data-lvt-eid="d4903a7b8e"><path d="M1 6h14.5M11.5 1.5L16.5 6l-5 4.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="a4bf56c702"></path></svg></button>
+          <div class="form-status" id="formStatus" role="status" aria-live="polite" data-lvt-eid="9a3c1f1545"></div>
+          <p class="form-note" data-lvt-eid="60b56cfade">我们承诺不外泄您的联系方式</p>
+        </form>
+      </div>
+
+      <!-- RIGHT: TERMINAL -->
+      <div class="terminal-col" data-lvt-eid="cd5b5a32be">
+        <div class="panel reveal reveal-d1" data-lvt-eid="315f7c51b2">
+          <div class="term-head" data-lvt-eid="a07be0b104">
+            <div class="term-title" data-lvt-eid="903327430c">舰队停泊点</div>
+            <div class="term-code" data-lvt-eid="61a8d86289">DOCK // SH-306</div>
+          </div>
+          <div class="map-stage" role="img" aria-label="舰队停泊点位置图：上海市莲花南路1500弄8-9号306室" data-lvt-eid="bc50c568d7">
+            <img class="map-img" src="/contact-design/LzVNROUdHqCWuJoB.png" alt="舰队停泊点位置图" loading="lazy" decoding="async">
+            <div class="map-shade" aria-hidden="true"></div>
+            <div class="map-scan" aria-hidden="true" data-lvt-eid="ae46936ec1"></div>
+            <div class="map-ping" aria-hidden="true" data-lvt-eid="2dbda52a1b"></div>
+            <div class="map-coord" id="dsCtCoord" aria-hidden="true" data-lvt-eid="a6a21fb691">31.15°N · 121.40°E</div>
+            <div class="map-addr" id="dsCtMapAddr" data-lvt-eid="beb2fa3156">上海市莲花南路1500弄8-9号306室</div>
+          </div>
+        </div>
+
+        <div class="panel reveal reveal-d2" data-lvt-eid="1272826320">
+          <div class="term-head" data-lvt-eid="2120c72537">
+            <div class="term-title" data-lvt-eid="e140317617">微信直连</div>
+            <div class="term-code" data-lvt-eid="ada81135f7">LINK // WECHAT</div>
+          </div>
+          <div class="qr-stage" data-lvt-eid="014850dbc2">
+            <div class="qr-box" role="img" aria-label="微信顾问二维码" data-lvt-eid="ea764ed534">
+              <img src="/contact-design/HBXu6dYOVMKrO7YZ.png" alt="微信二维码" loading="lazy" decoding="async">
+              <span class="corner c1" data-lvt-eid="95ebed6c70"></span><span class="corner c2" data-lvt-eid="e5e48ad73d"></span>
+              <span class="corner c3" data-lvt-eid="2dc18edafc"></span><span class="corner c4" data-lvt-eid="262d729c84"></span>
+              <span class="qr-scan" aria-hidden="true"></span>
+            </div>
+            <div class="qr-info" data-lvt-eid="e094fb55d7">
+              <strong data-lvt-eid="f9d5e37a34">扫码添加顾问</strong>
+              获取一对一方案沟通
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<!-- footer removed: 全站 SiteFooter 渲染在 iframe 下方（见 Contact.vue / App.vue），保证页脚与整站一致 -->
+
+<script>
+(function(){
+  "use strict";
+  /* 导航滚动加深 */
+  var nav=document.getElementById("nav");
+  var onScroll=function(){nav.classList.toggle("scrolled",window.scrollY>24)};
+  window.addEventListener("scroll",onScroll,{passive:true});onScroll();
+
+  /* 移动端菜单 */
+  var btn=document.getElementById("menuBtn"),mob=document.getElementById("navMobile");
+  btn.addEventListener("click",function(){
+    var open=mob.classList.toggle("open");
+    btn.setAttribute("aria-expanded",open?"true":"false");
+  });
+  mob.addEventListener("click",function(e){
+    if(e.target.tagName==="A"){mob.classList.remove("open");btn.setAttribute("aria-expanded","false")}
+  });
+
+  /* Hero 视频：部分浏览器自动播放被拦截时静默重试；失败则保留 poster / CSS 静态首帧 */
+  var hv=document.querySelector(".hero-video");
+  if(hv){
+    var tryPlay=function(){var p=hv.play();if(p&&p.catch){p.catch(function(){setTimeout(function(){hv.muted=true;var p2=hv.play();if(p2&&p2.catch){p2.catch(function(){})}},600)})}};
+    tryPlay();
+    hv.addEventListener("loadeddata",tryPlay);
+  }
+
+  /* 滚动入场（单个 Observer，不可用时直接全部显示） */
+  var items=document.querySelectorAll(".reveal");
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){en.target.classList.add("visible");io.unobserve(en.target)}
+      });
+    },{threshold:.12,rootMargin:"0px 0px -40px 0px"});
+    items.forEach(function(el){io.observe(el)});
+  }else{
+    items.forEach(function(el){el.classList.add("visible")});
+  }
+
+  /* 表单：必填校验 + 真提交到内容中台 /api/leads（见下方 DATA_JS，本段只做 UI 绑定占位） */
+  window.__ctFormInit && window.__ctFormInit();
+})();
+
+/* ═══ contact data layer (bos-contact-v1) ═══ */
+(function () {
+  "use strict";
+  var CONTACT_PAGE = '/contact';   // 线索的 source_page（父页面可用 bos-contact 覆盖）
+  var SUBMIT_URL = '/api/leads';
+  var state = { applied: 0, contact: {}, topics: [], page: CONTACT_PAGE, status: '', result: null, submitting: false };
+
+  function el(id) { return document.getElementById(id); }
+  function txt(v) { return v == null ? '' : String(v).trim(); }
+
+  /** 空值回落：没值就保持设计稿原文，绝不清空（与 about-embed 同一约定） */
+  function setText(node, v) {
+    if (!node) return;
+    var t = txt(v);
+    if (!t) return;
+    node.textContent = t;
+  }
+
+  /* ---- 联系方式灌入 ---- */
+  function applyContact(c) {
+    c = c || {};
+    setText(el('dsCtAddr'), c.address);
+    setText(el('dsCtMapAddr'), c.address);
+    setText(el('dsCtHours'), c.hours);
+    setText(el('dsCtCoord'), c.coord);
+
+    var tel = txt(c.tel);
+    if (tel && el('dsCtTel')) {
+      el('dsCtTel').innerHTML = '';
+      var a = document.createElement('a');
+      a.setAttribute('href', 'tel:' + tel);
+      a.textContent = tel;
+      el('dsCtTel').appendChild(a);
+    }
+    var mail = txt(c.email);
+    if (mail && el('dsCtMail')) {
+      el('dsCtMail').innerHTML = '';
+      var m = document.createElement('a');
+      m.setAttribute('href', 'mailto:' + mail);
+      m.textContent = mail;
+      el('dsCtMail').appendChild(m);
+    }
+  }
+
+  /* ---- 需求方向下拉：由服务目录生成（后台加服务 → 前台选项自动多一项）---- */
+  function applyTopics(list) {
+    var sel = el('f-topic');
+    if (!sel) return;
+    var topics = (list || []).map(txt).filter(Boolean);
+    if (!topics.length) return;   // 空值回落：保持设计稿原选项
+    var keep = sel.options.length && !txt(sel.options[0].value) ? sel.options[0].textContent : '';
+    var cur = sel.value;
+    sel.innerHTML = '';
+    if (keep) {
+      var ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = keep;
+      sel.appendChild(ph);
+    }
+    topics.forEach(function (t) {
+      var o = document.createElement('option');
+      o.value = t;
+      o.textContent = t;
+      sel.appendChild(o);
+    });
+    if (topics.indexOf(cur) >= 0) sel.value = cur;
+    state.topics = topics;
+  }
+
+  /* ---- 表单提交 ---- */
+  function setStatus(msg, kind) {
+    var st = el('formStatus');
+    if (!st) return;
+    st.textContent = msg || '';
+    st.className = 'form-status' + (kind ? ' is-' + kind : '');
+    state.status = msg || '';
+  }
+
+  function validate() {
+    var name = el('f-name'), phone = el('f-phone');
+    if (!txt(name && name.value) || !txt(phone && phone.value)) {
+      setStatus('> 请补全必填频道参数：您的称呼 / 联系电话', 'err');
+      (!txt(name && name.value) ? name : phone).focus();
+      return false;
+    }
+    var p = txt(phone.value);
+    if (!/^[\d\s+()-]{6,20}$/.test(p)) {
+      setStatus('> 通讯频道格式有误，请检查联系电话', 'err');
+      phone.focus();
+      return false;
+    }
+    return true;
+  }
+
+  function collect() {
+    var sel = el('f-topic');
+    return {
+      name: txt(el('f-name') && el('f-name').value),
+      phone: txt(el('f-phone') && el('f-phone').value),
+      company: txt(el('f-company') && el('f-company').value),
+      interest: sel ? txt(sel.value) : '',
+      message: txt(el('f-desc') && el('f-desc').value),
+      page: state.page,
+      source: 'website-contact',
+    };
+  }
+
+  function doSubmit(payload) {
+    var body = payload || collect();
+    var btn = document.querySelector('#msgForm .btn-send');
+    if (state.submitting) return Promise.resolve(null);
+    state.submitting = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute('data-orig', btn.innerHTML);
+      btn.textContent = '发送中…';
+    }
+    setStatus('> 正在建立通讯链路…', 'busy');
+
+    return fetch(SUBMIT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (r) {
+      return r.text().then(function (t) {
+        var j = null;
+        try { j = t ? JSON.parse(t) : null; } catch (e) { /* 非 JSON */ }
+        if (!r.ok || (j && j.ok === false)) {
+          throw new Error((j && j.error) || ('提交失败（' + r.status + '）'));
+        }
+        return (j && j.data) || j || {};
+      });
+    }).then(function (data) {
+      state.result = { ok: true, id: data.id || null, customer_id: data.customer_id || null };
+      setStatus('> 讯息已送达，我们会在 1 个工作日内与您联系', 'ok');
+      var f = el('msgForm');
+      if (f) {
+        ['f-name', 'f-phone', 'f-company', 'f-desc'].forEach(function (id) {
+          var n = el(id); if (n) n.value = '';
+        });
+        var sel = el('f-topic'); if (sel) sel.value = '';
+      }
+      return state.result;
+    }).catch(function (e) {
+      // 失败不把用户堵死：给出可用的兜底联系方式
+      state.result = { ok: false, error: e.message };
+      setStatus('> ' + e.message + '。您也可以直接致电 021-33580166 或发邮件至 shine@onlystyle.com.cn', 'err');
+      return state.result;
+    }).then(function (r) {
+      state.submitting = false;
+      var b = document.querySelector('#msgForm .btn-send');
+      if (b) {
+        b.disabled = false;
+        if (b.getAttribute('data-orig')) b.innerHTML = b.getAttribute('data-orig');
+      }
+      return r;
+    });
+  }
+
+  /* 供设计稿脚本里的 window.__ctFormInit() 调用（执行顺序：先绑事件） */
+  window.__ctFormInit = function () {
+    var form = el('msgForm');
+    if (!form || form.getAttribute('data-bound')) return;
+    form.setAttribute('data-bound', '1');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!validate()) return;
+      doSubmit();
+    });
+  };
+  window.__ctFormInit();
+
+  /* ---- 父页面协议 ---- */
+  window.addEventListener('message', function (e) {
+    var d = e && e.data;
+    if (!d || typeof d !== 'object') return;
+
+    if (d.type === 'bos-brand') {
+      var slot = el('brandLogoSlot');
+      if (slot) {
+        if (d.logo) {
+          slot.innerHTML = '<img src="' + d.logo + '" width="34" height="34" alt="" style="display:block;object-fit:contain;flex:none">';
+        } else {
+          slot.innerHTML = '<svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="5.4" fill="#1F5BFF"/><ellipse cx="17" cy="17" rx="13" ry="6.4" stroke="#3BE0FF" stroke-width="1.6" transform="rotate(-24 17 17)"/></svg>';
+        }
+      }
+      if (d.nameParts && d.nameParts.length >= 2) {
+        var n1 = el('brandName1'), n2 = el('brandName2');
+        if (n1) n1.textContent = d.nameParts[0];
+        if (n2) n2.textContent = d.nameParts[1];
+      }
+      return;
+    }
+
+    if (d.type === 'bos-contact') {
+      if (d.page) state.page = String(d.page);
+      if (d.contact) state.contact = d.contact;
+      applyContact(d.contact);
+      applyTopics(d.topics);
+      state.applied++;
+      return;
+    }
+  });
+
+  /* ---- 只读探针（验收断言用；canvas/DOM 都是黑盒，没有探针就只能靠看）---- */
+  window.__ctContact = {
+    get applied() { return state.applied; },
+    get contact() { return state.contact; },
+    get topics() { return state.topics.slice(); },
+    get status() { return state.status; },
+    get result() { return state.result; },
+    get submitting() { return state.submitting; },
+    get page() { return state.page; },
+    submit: doSubmit,
+  };
+})();
+</script>
+
+
+</body></html>

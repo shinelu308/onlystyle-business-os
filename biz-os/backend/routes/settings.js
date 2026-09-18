@@ -123,9 +123,9 @@ router.get('/role-permissions', (req, res) => {
   const db = getDatabase();
   const row = db.get("SELECT setting_value FROM system_settings WHERE setting_key = 'role_permissions'");
   var defaultPerms = {
-    admin: { name: '管理员', pages: ['dashboard','suppliers','spatial','customers','contracts','content','settings'] },
-    manager: { name: '经理', pages: ['dashboard','suppliers','spatial','customers','contracts','content','settings'] },
-    operator: { name: '专员', pages: ['dashboard','suppliers','spatial','customers','contracts'] },
+    admin: { name: '管理员', pages: ['dashboard','suppliers','spatial','customers','leads','contracts','content','settings'] },
+    manager: { name: '经理', pages: ['dashboard','suppliers','spatial','customers','leads','contracts','content','settings'] },
+    operator: { name: '专员', pages: ['dashboard','suppliers','spatial','customers','leads','contracts'] },
     viewer: { name: '观察员', pages: ['dashboard','customers','contracts'] }
   };
   if (row && row.setting_value) {

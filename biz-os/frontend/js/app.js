@@ -6,6 +6,7 @@
     suppliers: { title: '线路管理', render: renderSuppliers },
     spatial: { title: '项目管理', render: renderSpatial },
     customers: { title: '客户管理', render: renderCustomers },
+    leads: { title: '客户线索', render: renderLeads },
     contracts: { title: '合同管理', render: renderContracts },
     content: { title: '内容管理', render: renderContent, hasTabs: true },
     settings: { title: '系统设置', render: renderSettings, hasTabs: true }
@@ -14,7 +15,7 @@
   // 顶栏面包屑的根节点（设计稿 .crumb：根 › 当前页）
   var CRUMB_ROOT = {
     dashboard: '数据看板',
-    customers: '业务管理', contracts: '业务管理',
+    customers: '业务管理', leads: '业务管理', contracts: '业务管理',
     suppliers: '资源管理', spatial: '资源管理',
     content: '网站管理', settings: '系统管理'
   };
@@ -242,9 +243,9 @@
     }).catch(function() {
       // 默认权限保底（与 routes/settings.js 的 defaultPerms 保持一致，含 content）
       _permissions = {
-        admin: ['dashboard','suppliers','spatial','customers','contracts','content','settings'],
-        manager: ['dashboard','suppliers','spatial','customers','contracts','content','settings'],
-        operator: ['dashboard','suppliers','spatial','customers','contracts','content'],
+        admin: ['dashboard','suppliers','spatial','customers','leads','contracts','content','settings'],
+        manager: ['dashboard','suppliers','spatial','customers','leads','contracts','content','settings'],
+        operator: ['dashboard','suppliers','spatial','customers','leads','contracts','content'],
         viewer: ['dashboard','customers','contracts']
       };
       if (typeof callback === 'function') callback();

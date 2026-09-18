@@ -1,184 +1,124 @@
 <script setup>
 /**
- * 联系我们 —— 联系方式来自内容中台，需求方向下拉由「服务目录」生成
- * （后台加了新服务，表单里的选项自动跟着多一项，不用改前端）
+ * 联系我们（2026-09-19 全新设计版）
+ * 完整 Lovart 设计稿整页落地：website/public/contact-embed.html
+ * （Hero 视频背景 / 四张通讯坐标卡 / 舰队停泊点地图 / 微信直连二维码 / 全息表单终端，
+ *  全部交互与动画原样保留；资源本地化 /contact-design/）。
+ *
+ * 布局（与 /about、/products 同一套约定）：
+ *  · 路由 meta.hideNav → 只隐藏站内 SiteNav（设计稿自带导航，logo/品牌名由本页同源灌入）；
+ *  · SiteFooter 由 App.vue 统一渲染在 iframe 下方（本页非 immersive）——
+ *    与整站同一组件、同一数据源，保证**页脚全局一致**。
+ *    ⚠️ 本组件不要再放 <SiteFooter>，会双渲染。
+ *
+ * 两个 postMessage 协议（都从本页发往 iframe）：
+ *  ① bos-brand-v1   —— 设计稿导航的 logo / 品牌名，从 useSite() 取（与全站同源同兜底）；
+ *  ② bos-contact-v1 —— 联系方式（地址/电话/邮箱/工作时间/经纬度）与需求方向下拉选项。
+ *
+ * ⚠️ 与 /about 同一条约定：**不设本页兜底文案**。
+ *    embed 里的静态 markup 就是设计稿原文，而它的 setText 遇空值会跳过 →
+ *    「字段为空 = 保持设计稿原文」，天然逐字段回落，不需要在 Vue 里再抄一份（抄两份必然漂移）。
+ *
+ * ⚠️ 表单**不是**本页负责提交的：embed 内部的脚本直接 POST /api/leads
+ *    （见 contact-embed.html 的 data layer）。这样线索提交不依赖 Vue 是否挂载成功，
+ *    后台「客户线索」页即可看到。
  */
-import { reactive, ref, computed } from 'vue';
-import PageHero from '@/components/PageHero.vue';
-import SvcIcon from '@/components/SvcIcon.vue';
+import { computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useSite } from '@/composables/useSite.js';
 import { useContent } from '@/composables/useContent.js';
 import { services as fbServices } from '@/data/fallback/services.js';
-import { getServices, submitLead } from '@/api/content.js';
+import { getServices } from '@/api/content.js';
 
 const { data: site } = useSite();
 const { data: services } = useContent('services', fbServices, getServices);
 
-const interests = computed(() => {
+/* ── 需求方向下拉：由「服务目录」生成 ──
+   后台加了新服务，表单里的选项自动跟着多一项，不用改前端 */
+const topics = computed(() => {
   const list = (services.value || [])
-    .filter((s) => s.status !== 0)
+    .filter((s) => s && s.status !== 0)
     .slice()
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
-    .map((s) => s.title);
+    .map((s) => String(s.title || '').trim())
+    .filter(Boolean);
   return [...list, '其他合作'];
 });
 
-const infoItems = computed(() => [
-  { icon: 'pin', label: '公司地址', value: site.value.contact.address, href: '' },
-  { icon: 'phone', label: '联系电话', value: site.value.contact.tel, href: `tel:${site.value.contact.tel}` },
-  { icon: 'mail', label: '电子邮箱', value: site.value.contact.email, href: `mailto:${site.value.contact.email}` },
-  { icon: 'clock', label: '工作时间', value: site.value.contact.hours, href: '' },
-]);
+/* ── 经纬度装饰小字：由站点配置里的地图中心点派生（与地图同源，不写死）── */
+const coord = computed(() => {
+  const c = site.value?.contact?.amap?.center;
+  if (!Array.isArray(c) || c.length < 2) return '';
+  const [lng, lat] = [Number(c[0]), Number(c[1])];
+  if (!isFinite(lng) || !isFinite(lat)) return '';
+  return `${lat.toFixed(2)}°N · ${lng.toFixed(2)}°E`;
+});
 
-const form = reactive({ name: '', phone: '', company: '', interest: '', message: '' });
-const errors = reactive({ name: '', phone: '' });
-const sending = ref(false);
-const result = ref(null); // { ok, msg }
-
-const amap = computed(() => site.value.contact.amap || {});
-const mapHref = computed(
-  () =>
-    `https://uri.amap.com/search?keyword=${encodeURIComponent(site.value.contact.address)}&view=map`
-);
-const hasKey = computed(() => !!amap.value.key);
-
-function validate() {
-  errors.name = form.name.trim() ? '' : '请填写您的称呼';
-  const p = form.phone.trim();
-  errors.phone = !p ? '请填写联系电话' : /^[\d\s+()-]{6,20}$/.test(p) ? '' : '电话格式看起来不对';
-  return !errors.name && !errors.phone;
+function postToEmbed(payload) {
+  const frame = document.querySelector('iframe.ct-frame');
+  if (!frame || !frame.contentWindow) return;
+  // ⚠️ payload 里全是 Vue 的 reactive Proxy（对象/数组），structured clone 不认 Proxy，
+  //    直接 postMessage 会抛 DataCloneError。JSON 往返一次拿到纯对象。
+  frame.contentWindow.postMessage(JSON.parse(JSON.stringify(payload)), '*');
 }
 
-async function onSubmit() {
-  result.value = null;
-  if (!validate()) return;
-  if (!form.interest) form.interest = interests.value[0];
-  sending.value = true;
-  try {
-    await submitLead({ ...form, source: 'website-contact', page: location.pathname });
-    result.value = { ok: true, msg: '提交成功，我们会在 1 个工作日内与您联系。' };
-    Object.assign(form, { name: '', phone: '', company: '', message: '', interest: interests.value[0] });
-  } catch (e) {
-    // 接口未就绪 / 网络失败：给出可用的兜底联系方式，不把用户堵死
-    result.value = {
-      ok: false,
-      msg: `${e.name === 'AbortError' ? '请求超时' : e.message}。您也可以直接致电 ${site.value.contact.tel} 或发邮件至 ${site.value.contact.email}。`,
-    };
-  } finally {
-    sending.value = false;
-  }
+function pushBrand() {
+  // ⚠️ nameParts 是 Vue reactive Proxy 数组，必须先 spread 成纯数组
+  const parts = [...(site.value?.brand?.nameParts || ['ONLY', 'STYLE'])];
+  postToEmbed({
+    type: 'bos-brand',
+    logo: String(site.value?.brand?.logo || ''),
+    nameParts: parts.map(String),
+  });
 }
+
+function pushContact() {
+  const c = site.value?.contact || {};
+  postToEmbed({
+    type: 'bos-contact',
+    page: '/contact',
+    contact: {
+      address: String(c.address || ''),
+      tel: String(c.tel || ''),
+      email: String(c.email || ''),
+      hours: String(c.hours || ''),
+      coord: coord.value,
+    },
+    topics: [...topics.value],
+  });
+}
+
+function pushAll() {
+  pushBrand();
+  pushContact();
+}
+
+onMounted(() => {
+  // iframe 内监听器就绪时机不确定，挂 load + 前几秒补发几次
+  pushAll();
+  const timers = [300, 900, 2000].map((t) => setTimeout(pushAll, t));
+  onBeforeUnmount(() => timers.forEach(clearTimeout));
+});
+watch(() => site.value?.brand, pushBrand, { deep: true });
+watch(() => site.value?.contact, pushContact, { deep: true });
+watch(topics, pushContact, { deep: true });
 </script>
 
 <template>
-  <div class="page">
-    <PageHero crumb="联系我们" title="联系我们" sub="期待与您的沟通" />
-
-    <!-- 联系方式四宫格 -->
-    <section class="section">
-      <div class="container">
-        <div class="info-grid info-grid-4">
-          <div v-for="it in infoItems" :key="it.label" class="info-card contact-card">
-            <div class="service-icon"><SvcIcon :name="it.icon" :size="24" /></div>
-            <div class="contact-label">{{ it.label }}</div>
-            <a v-if="it.href" class="contact-value link" :href="it.href">{{ it.value }}</a>
-            <div v-else class="contact-value">{{ it.value }}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 表单 + 地图/二维码 -->
-    <section class="section section-alt">
-      <div class="container">
-        <div class="contact-split">
-          <!-- 表单 -->
-          <div class="contact-form-wrap">
-            <div class="section-header" style="margin-bottom:28px;">
-              <div class="eyebrow">Get in Touch</div>
-              <h2 class="section-title" style="font-size:28px;">告诉我们您的需求</h2>
-              <p class="section-desc">填写下面的信息，我们的顾问会尽快与您联系。</p>
-            </div>
-
-            <form class="form-grid" novalidate @submit.prevent="onSubmit">
-              <div class="field" :class="{ 'has-error': errors.name }">
-                <label for="f-name">您的称呼<span class="req">*</span></label>
-                <input id="f-name" v-model="form.name" type="text" placeholder="如：张先生" autocomplete="name" />
-                <div class="field-error">{{ errors.name }}</div>
-              </div>
-
-              <div class="field" :class="{ 'has-error': errors.phone }">
-                <label for="f-phone">联系电话<span class="req">*</span></label>
-                <input id="f-phone" v-model="form.phone" type="tel" placeholder="手机或座机" autocomplete="tel" />
-                <div class="field-error">{{ errors.phone }}</div>
-              </div>
-
-              <div class="field">
-                <label for="f-company">公司名称</label>
-                <input id="f-company" v-model="form.company" type="text" placeholder="选填" autocomplete="organization" />
-                <div class="field-error"></div>
-              </div>
-
-              <div class="field">
-                <label for="f-interest">需求方向</label>
-                <select id="f-interest" v-model="form.interest">
-                  <option v-for="i in interests" :key="i" :value="i">{{ i }}</option>
-                </select>
-                <div class="field-error"></div>
-              </div>
-
-              <div class="field full">
-                <label for="f-msg">需求描述</label>
-                <textarea id="f-msg" v-model="form.message" placeholder="简单描述您的业务场景或想解决的问题（选填）"></textarea>
-                <div class="field-error"></div>
-              </div>
-
-              <div class="full form-actions">
-                <button type="submit" class="btn-primary" :disabled="sending">
-                  {{ sending ? '提交中…' : '提交需求' }}
-                  <svg v-if="!sending" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5"
-                          stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </button>
-                <span class="form-note">我们承诺不外泄您的联系方式</span>
-              </div>
-
-              <div v-if="result" class="full form-result" :class="result.ok ? 'ok' : 'err'">
-                {{ result.msg }}
-              </div>
-            </form>
-          </div>
-
-          <!-- 地图 + 二维码 -->
-          <aside class="contact-aside">
-            <div class="aside-block">
-              <div class="aside-title">公司位置</div>
-              <div class="map-box">
-                <template v-if="hasKey">
-                  <div id="amap-container" class="map-canvas"></div>
-                </template>
-                <div v-else class="map-placeholder">
-                  <SvcIcon name="pin" :size="30" />
-                  <p class="map-addr">{{ site.contact.address }}</p>
-                  <a class="btn-outline map-btn" :href="mapHref" target="_blank" rel="noopener">
-                    在高德地图中查看
-                  </a>
-                  <p class="map-hint">地图组件待接入高德 JS API（需在控制台配置域名白名单）</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="aside-block">
-              <div class="aside-title">微信咨询</div>
-              <div class="qr-box">
-                <img :src="site.contact.qrcode" alt="微信咨询二维码" loading="lazy" />
-                <p class="qr-hint">扫码添加顾问，获取一对一方案沟通</p>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </div>
-    </section>
-  </div>
+  <!-- ⚠️ embed 内容有更新时必须升 ?v= 版本参数，否则用户浏览器会拿旧缓存 -->
+  <iframe
+    class="ct-frame"
+    src="/contact-embed.html?v=c2"
+    title="联系我们"
+    @load="pushAll"
+  ></iframe>
 </template>
+
+<style scoped>
+.ct-frame {
+  display: block;
+  width: 100%;
+  height: 100vh;
+  border: none;
+  background: #050810;
+}
+</style>

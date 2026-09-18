@@ -100,6 +100,8 @@ async function initializeDatabase() {
     contentSchema.seedContent(_db);
     contentSchema.migrateContentPermissions(_db);
     contentSchema.migrateAboutBlocks(_db);
+    contentSchema.migrateLeadColumns(_db);
+    contentSchema.migrateLeadPermissions(_db);
   } catch (e) {
     console.error('[Content] 内容域初始化失败（不影响主业务）:', e.message);
   }

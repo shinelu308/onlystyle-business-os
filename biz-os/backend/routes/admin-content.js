@@ -17,7 +17,7 @@ const path = require('path');
 const router = express.Router();
 const { getDatabase } = require('../database');
 const { bumpContentVersion, getContentVersion } = require('../content-schema');
-const { verifyStaffToken, safeEqual } = require('../content-auth');
+const { auth } = require('../lib/admin-auth');
 const certImage = require('../lib/cert-image');
 
 /* ── 类型 → 表映射（外部只能传这些 key，杜绝任意表名）── */
@@ -36,31 +36,8 @@ const TYPES = {
 const OK = (res, data) => res.json({ ok: true, data, version: getContentVersion(getDatabase()) });
 const fail = (res, code, msg) => res.status(code).json({ ok: false, error: msg });
 
-/* ── 鉴权：两把钥匙都认 ──
-   ① 共享令牌 admin.content_token —— 给脚本 / e2e / CI 用，首次启动打印一次；
-   ② 登录签发的 staff token —— 运营在后台点按钮时自动带上，不用手贴密钥。
-   两者都由 content-auth.js 提供（safeEqual / verifyStaffToken）。 */
-function auth(req, res, next) {
-  const db = getDatabase();
-  const row = db.get("SELECT value FROM content_settings WHERE key = 'admin.content_token'");
-  const token = req.headers['x-admin-token'] || req.query.token || '';
-
-  // ① 共享令牌（定长比较，避免时序侧信道）
-  if (row && row.value && token && safeEqual(token, row.value)) {
-    req.contentAuth = { kind: 'shared' };
-    return next();
-  }
-
-  // ② 登录签发的 staff token（无状态 HMAC，校验签名 + 过期）
-  const payload = verifyStaffToken(db, token);
-  if (payload) {
-    req.contentAuth = { kind: 'staff', sid: payload.sid, role: payload.role };
-    return next();
-  }
-
-  if (!row || !row.value) return fail(res, 503, 'admin token 未初始化，请重启服务端一次');
-  return fail(res, 401, 'unauthorized');
-}
+/* ── 鉴权：见 lib/admin-auth.js ──
+   抽出去是因为 routes/leads.js 要用同一套 —— 鉴权逻辑抄两份必然漂移，漂一处就是一个洞。 */
 
 /* ── 结构工具 ── */
 

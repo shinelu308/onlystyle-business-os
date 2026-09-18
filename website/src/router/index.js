@@ -63,6 +63,9 @@ const routes = [
     meta: {
       title: '联系我们 - ONLYSTYLE',
       description: '联系上海唯风信息技术有限公司，获取数字化转型咨询与方案支持。',
+      // 设计稿页（contact-embed.html）自带导航：只藏 SiteNav；
+      // 页脚用全站 SiteFooter（与整站一致），渲染在 iframe 下方
+      hideNav: true,
     },
   },
   {

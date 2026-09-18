@@ -180,6 +180,8 @@ const TABLES = `
     utm         TEXT DEFAULT '',
     status      TEXT DEFAULT 'new',
     customer_id TEXT DEFAULT '',
+    follow_note TEXT DEFAULT '',
+    updated_at  TEXT DEFAULT '',
     created_at  TEXT DEFAULT (datetime('now','localtime'))
   );
 
@@ -914,4 +916,66 @@ function getContentVersion(db) {
   return parseInt(row?.value, 10) || 1;
 }
 
-module.exports = { initContentSchema, seedContent, migrateContentPermissions, migrateAboutBlocks, ABOUT_BLOCKS, bumpContentVersion, getContentVersion, SEED };
+/**
+ * leads 表补跟进列（幂等）
+ *
+ * 为什么必须有迁移：CREATE TABLE IF NOT EXISTS 对**已存在**的表什么都不做，
+ * 老库里 leads 没有 follow_note / updated_at → 后台「客户线索」页一写跟进就报 no such column。
+ * 判据用 PRAGMA table_info（按列名，不按列数）—— 列数判据在多列并存时会误判。
+ *
+ * ⚠️ 走 db.run 而不是 db.exec：DatabaseWrapper.exec 不落盘，改了会丢。
+ */
+function migrateLeadColumns(db) {
+  var cols = db.all('PRAGMA table_info(leads)').map(function (r) { return r.name; });
+  var ddl = [];
+  if (cols.indexOf('follow_note') < 0) ddl.push("ALTER TABLE leads ADD COLUMN follow_note TEXT DEFAULT ''");
+  if (cols.indexOf('updated_at') < 0) ddl.push("ALTER TABLE leads ADD COLUMN updated_at TEXT DEFAULT ''");
+  ddl.forEach(function (sql) { db.run(sql); });
+  if (ddl.length) console.log('[Content] leads 迁移：新增 ' + ddl.length + ' 列');
+}
+
+/**
+ * 角色权限补入 leads 页（幂等）
+ *
+ * 🔴 为什么必须有迁移：role_permissions 是**存在 system_settings 里的快照**，
+ *    不是每次从代码推导。新增页面后，已有安装的权限表里没有这个 key，
+ *    app.js 的 hasPagePermission('leads') 一律返回 false → 菜单点了没反应
+ *    （而且不报错，纯静默）。所以「加页面」必须同时补迁移。
+ *
+ * 只补 admin / manager / operator，**不给 viewer**：
+ *   线索里是待跟进的客户手机号，属销售资源；观察员角色通常只是看经营数据。
+ *   要放开就让运营自己在「系统设置 → 部门/权限」里勾 —— 权限表是快照，这里不去强行覆盖。
+ *
+ * 插在 customers 之后：线索与客户是同一个池子（架构方案 §6），权限上天然一起给。
+ */
+function migrateLeadPermissions(db) {
+  var MARK = 'leads.perms_migrated';
+  if (db.get('SELECT 1 AS x FROM content_settings WHERE key = ?', MARK)) return;
+  var ROLES = ['admin', 'manager', 'operator'];
+  try {
+    var row = db.get("SELECT setting_value FROM system_settings WHERE setting_key = 'role_permissions'");
+    if (row && row.setting_value) {
+      var perms = JSON.parse(row.setting_value);
+      var changed = 0;
+      ROLES.forEach(function (role) {
+        var p = perms[role];
+        if (!p || !Array.isArray(p.pages) || p.pages.indexOf('leads') >= 0) return;
+        var at = p.pages.indexOf('customers');
+        p.pages.splice(at >= 0 ? at + 1 : p.pages.length, 0, 'leads');
+        changed++;
+      });
+      if (changed) {
+        db.run(
+          "UPDATE system_settings SET setting_value=?, updated_at=datetime('now','localtime') WHERE setting_key='role_permissions'",
+          JSON.stringify(perms)
+        );
+        console.log('[Content] 角色权限已补入 leads 页：' + changed + ' 个角色');
+      }
+    }
+  } catch (e) {
+    console.warn('[Content] leads 权限迁移跳过:', e.message);
+  }
+  db.run("INSERT INTO content_settings (key, value, grp) VALUES (?, '1', 'system')", MARK);
+}
+
+module.exports = { initContentSchema, seedContent, migrateContentPermissions, migrateAboutBlocks, migrateLeadColumns, migrateLeadPermissions, ABOUT_BLOCKS, bumpContentVersion, getContentVersion, SEED };
