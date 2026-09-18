@@ -157,7 +157,16 @@
       if (_broadbandNavHTML) nav.innerHTML = _broadbandNavHTML;
       bindNavEvents();
       if (currentUser) applyPermissionUI();
-      if (isSwitch) navigate('dashboard');
+      if (isSwitch) {
+        // 落点与登录同策略：dashboard 无权限时自动落第一个有权限页，不弹「无权限」提示
+        if (hasPagePermission('dashboard')) {
+          navigate('dashboard');
+        } else {
+          var first = firstAllowedPage();
+          if (first) { navigate(first); }
+          else { showAlert('该账号暂未分配任何页面权限，请联系管理员配置'); }
+        }
+      }
     } else {
       captureBroadbandNav();
       var b = bizName(currentBizLine);
