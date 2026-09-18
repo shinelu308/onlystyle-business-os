@@ -52,6 +52,7 @@ if (!require('fs').existsSync(uploadsDir)) require('fs').mkdirSync(uploadsDir);
 // ======== 提供前端静态文件 ========
 app.use('/css', express.static(path.join(frontendDir, 'css')));
 app.use('/js', express.static(path.join(frontendDir, 'js')));
+app.use('/assets', express.static(path.join(frontendDir, 'assets')));
 app.use('/uploads', express.static(uploadsDir));
 
 /**

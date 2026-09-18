@@ -143,7 +143,7 @@ function renderDeptTab(container) {
       var roleName = (rolePerms[s.role] && rolePerms[s.role].name) || s.role;
       var roleCls = { admin:'danger', manager:'warning', operator:'info', viewer:'secondary' }[s.role] || 'info';
       var statusLabel = s.status === 'active' ? '<span class="badge success">启用</span>' : '<span class="badge secondary">禁用</span>';
-      staffRows += '<tr><td><strong>' + s.staff_id + '</strong></td><td>' + escapeHtml(s.name) + '</td><td><code>' + escapeHtml(s.username) + '</code></td><td>' + escapeHtml(s.dept_name || '-') + '</td><td>' + escapeHtml(s.position || '-') + '</td><td><span class="badge ' + roleCls + '">' + escapeHtml(roleName) + '</span></td><td>' + statusLabel + '</td><td><div class="btn-group"><button class="st2-textbtn" onclick="showStaffSettingsForm(\'' + s.staff_id + '\')">编辑</button><button class="st2-textbtn danger" onclick="deleteStaffSetting(\'' + s.staff_id + '\')">删除</button></div></td></tr>';
+      staffRows += '<tr><td><strong>' + s.staff_id + '</strong></td><td><div class="staff-name-cell">' + (s.avatar ? '<img class="staff-mini-avatar" src="/assets/avatars/' + s.avatar + '.png" alt="">' : '<span class="staff-mini-avatar">' + escapeHtml(s.name ? s.name.charAt(0) : '?') + '</span>') + '<span>' + escapeHtml(s.name) + '</span></div></td><td><code>' + escapeHtml(s.username) + '</code></td><td>' + escapeHtml(s.dept_name || '-') + '</td><td>' + escapeHtml(s.position || '-') + '</td><td><span class="badge ' + roleCls + '">' + escapeHtml(roleName) + '</span></td><td>' + statusLabel + '</td><td><div class="btn-group"><button class="st2-textbtn" onclick="showStaffSettingsForm(\'' + s.staff_id + '\')">编辑</button><button class="st2-textbtn danger" onclick="deleteStaffSetting(\'' + s.staff_id + '\')">删除</button></div></td></tr>';
     }
     html += _stCard(ST_ICONS.users, '人员列表', '共 ' + staff.length + ' 人', null,
       '<div class="table-wrapper"><table><thead><tr><th>编号</th><th>姓名</th><th>账号</th><th>部门</th><th>职位</th><th>角色</th><th>状态</th><th style="text-align:right">操作</th></tr></thead><tbody>' + staffRows + '</tbody></table></div>',
@@ -446,9 +446,22 @@ window.deleteDeptSetting = function(id) {
   });
 };
 
+// ===== 3D 卡通头像（av01~av12，位于 /assets/avatars/）=====
+function saImgTag(code) { return '<img src="/assets/avatars/' + code + '.png" alt="">'; }
+function saGridHtml(sel) {
+  var h = '';
+  for (var i = 1; i <= 12; i++) {
+    var code = 'av' + (i < 10 ? '0' + i : i);
+    h += '<button type="button" class="sa-cell' + (sel === code ? ' sel' : '') + '" data-code="' + code + '" title="' + code + '" onclick="pickStaffAvatar(\'' + code + '\', this)">' + saImgTag(code) + '</button>';
+  }
+  return h;
+}
+function saPreviewHtml(data) {
+  return data.avatar ? saImgTag(data.avatar) : '<span class="sa-initial">' + (data.name ? escapeHtml(data.name.charAt(0)) : '?') + '</span>';
+}
 // ===== 人员表单（复用）=====
 window.showStaffSettingsForm = function(id) {
-  var data = { staff_id: '', name: '', username: '', password: '', phone: '', email: '', dept_id: '', position: '', role: 'operator', status: 'active' };
+  var data = { staff_id: '', name: '', username: '', password: '', phone: '', email: '', dept_id: '', position: '', role: 'operator', status: 'active', avatar: '' };
   var isEdit = false;
   function openForm(depts, roles) {
     var deptOpts = '<option value="">（未分配）</option>';
@@ -465,6 +478,9 @@ window.showStaffSettingsForm = function(id) {
     var pwField = isEdit ? '<div class="form-group full"><label>新密码（留空不修改）</label><input name="password" type="password" placeholder="留空则不修改密码"></div>' : '<div class="form-group full"><label>密码</label><input name="password" type="password" required placeholder="输入登录密码"></div>';
     openModal(isEdit ? '编辑人员' : '新增人员',
       '<form id="staffForm" class="form-grid" onsubmit="return false">' +
+        '<div class="form-group full"><label>3D 卡通头像</label>' +
+          '<input type="hidden" name="avatar" id="saValue" value="' + (data.avatar || '') + '">' +
+          '<div class="staff-avatar-picker"><div class="sa-preview" id="saPreview">' + saPreviewHtml(data) + '</div><div class="sa-grid" id="saGrid">' + saGridHtml(data.avatar || '') + '</div></div></div>' +
         '<div class="form-group"><label class="required">人员编号</label><input name="staff_id" value="' + data.staff_id + '"' + (isEdit ? ' readonly style="background:#f1f5f9"' : ' required placeholder="如 STAFF-011"') + '></div>' +
         '<div class="form-group"><label class="required">姓名</label><input name="name" required value="' + escapeHtml(data.name) + '" placeholder="真实姓名"></div>' +
         '<div class="form-group"><label class="required">登录账号</label><input name="username" required value="' + escapeHtml(data.username) + '"' + (isEdit ? ' readonly style="background:#f1f5f9"' : '') + '></div>' + pwField +
@@ -483,11 +499,36 @@ window.showStaffSettingsForm = function(id) {
   p2.then(function(d) { roles = d; if (depts && roles) { if (id) { API.get('/api/staff/' + id).then(function(r) { data = r; isEdit = true; openForm(depts, roles); }); } else { openForm(depts, roles); } } });
 };
 
+window.pickStaffAvatar = function(code, el) {
+  var v = document.getElementById('saValue');
+  if (v) v.value = code;
+  var pv = document.getElementById('saPreview');
+  if (pv) pv.innerHTML = '<img src="/assets/avatars/' + code + '.png" alt="">';
+  var grid = el && el.parentNode;
+  if (grid) {
+    var cells = grid.querySelectorAll('.sa-cell');
+    for (var i = 0; i < cells.length; i++) cells[i].classList.toggle('sel', cells[i] === el);
+  }
+};
+
 window.submitStaffSetting = function(isEdit) {
   var form = document.querySelector('#staffForm');
   var data = formToObject(form);
   var req = (isEdit === true || isEdit === 'true') ? API.put('/api/staff/' + data.staff_id, data) : API.post('/api/staff', data);
-  req.then(function() { closeModal(); _renderSettingsTab('dept'); }).catch(function(e) {
+  req.then(function() {
+    closeModal();
+    // 本人修改头像 → 同步会话快照与左下角侧栏，无需重新登录
+    try {
+      var su = JSON.parse(sessionStorage.getItem('bos_user') || 'null');
+      if (su && su.username === data.username) {
+        su.avatar = data.avatar || '';
+        sessionStorage.setItem('bos_user', JSON.stringify(su));
+        var ua = document.getElementById('userAvatar');
+        if (ua) ua.innerHTML = su.avatar ? '<img src="/assets/avatars/' + su.avatar + '.png" alt="">' : escapeHtml(su.name ? su.name.charAt(0) : '?');
+      }
+    } catch (e) {}
+    _renderSettingsTab('dept');
+  }).catch(function(e) {
     showAlert('操作失败: ' + (e.message || '未知错误'));
   });
 };
@@ -834,7 +875,7 @@ function renderWechatTab(container) {
         staffGridHtml +=
           '<div class="wechat-staff-item' + (checked ? ' selected' : '') + '">' +
             '<input type="checkbox" class="reminder-staff-checkbox" value="' + s.staff_id + '"' + checked + ' style="display:none">' +
-            '<div class="wechat-staff-avatar" style="background:' + avatarBg + ';color:' + avatarColor + '">' + initial + '</div>' +
+            '<div class="wechat-staff-avatar" style="background:' + avatarBg + ';color:' + avatarColor + '">' + (s.avatar ? '<img src="/assets/avatars/' + s.avatar + '.png" alt="">' : initial) + '</div>' +
             '<div class="wechat-staff-info">' +
               '<div class="wechat-staff-name">' + escapeHtml(s.name) + '</div>' +
               '<div class="wechat-staff-pos">' + escapeHtml(s.position || '-') + '</div>' +

@@ -152,6 +152,8 @@ async function initializeDatabase() {
   } catch(e) { /* 表可能已被迁移 */ }
   // 迁移：为 staff 表添加 wechat_openid 字段
   try { _db.run("ALTER TABLE staff ADD COLUMN wechat_openid TEXT DEFAULT ''"); console.log('[Migrate] staff 表添加 wechat_openid 列'); } catch(e) { /* 已存在则忽略 */ }
+  // 迁移：为 staff 表添加 avatar 字段（3D 卡通头像编号 av01~av12，空 = 首字母头像）
+  try { _db.run("ALTER TABLE staff ADD COLUMN avatar TEXT DEFAULT ''"); console.log('[Migrate] staff 表添加 avatar 列'); } catch(e) { /* 已存在则忽略 */ }
 
   seedData();
 

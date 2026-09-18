@@ -40,13 +40,13 @@ router.get('/:id', (req, res) => {
 // 创建人员
 router.post('/', (req, res) => {
   const db = getDatabase();
-  const { staff_id, name, username, password, phone, email, dept_id, position, role, wechat_openid } = req.body;
+  const { staff_id, name, username, password, phone, email, dept_id, position, role, wechat_openid, avatar } = req.body;
   if (!staff_id || !name || !username || !password) {
     return res.status(400).json({ error: '编号、姓名、账号、密码不能为空' });
   }
   try {
-    db.run('INSERT INTO staff (staff_id, name, username, password, phone, email, dept_id, position, role, wechat_openid) VALUES (?,?,?,?,?,?,?,?,?,?)',
-      staff_id, name, username, password, phone || '', email || '', dept_id || null, position || '', role || 'operator', wechat_openid || '');
+    db.run('INSERT INTO staff (staff_id, name, username, password, phone, email, dept_id, position, role, wechat_openid, avatar) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+      staff_id, name, username, password, phone || '', email || '', dept_id || null, position || '', role || 'operator', wechat_openid || '', avatar || '');
     res.json({ success: true, staff_id });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -56,14 +56,14 @@ router.post('/', (req, res) => {
 // 更新人员
 router.put('/:id', (req, res) => {
   const db = getDatabase();
-  const { name, username, password, phone, email, dept_id, position, role, status, wechat_openid } = req.body;
+  const { name, username, password, phone, email, dept_id, position, role, status, wechat_openid, avatar } = req.body;
   try {
     if (password) {
-      db.run("UPDATE staff SET name=?, username=?, password=?, phone=?, email=?, dept_id=?, position=?, role=?, status=?, wechat_openid=?, updated_at=datetime('now','localtime') WHERE staff_id=?",
-        name, username, password, phone || '', email || '', dept_id || null, position || '', role || 'operator', status || 'active', wechat_openid || '', req.params.id);
+      db.run("UPDATE staff SET name=?, username=?, password=?, phone=?, email=?, dept_id=?, position=?, role=?, status=?, wechat_openid=?, avatar=?, updated_at=datetime('now','localtime') WHERE staff_id=?",
+        name, username, password, phone || '', email || '', dept_id || null, position || '', role || 'operator', status || 'active', wechat_openid || '', avatar || '', req.params.id);
     } else {
-      db.run("UPDATE staff SET name=?, username=?, phone=?, email=?, dept_id=?, position=?, role=?, status=?, wechat_openid=?, updated_at=datetime('now','localtime') WHERE staff_id=?",
-        name, username, phone || '', email || '', dept_id || null, position || '', role || 'operator', status || 'active', wechat_openid || '', req.params.id);
+      db.run("UPDATE staff SET name=?, username=?, phone=?, email=?, dept_id=?, position=?, role=?, status=?, wechat_openid=?, avatar=?, updated_at=datetime('now','localtime') WHERE staff_id=?",
+        name, username, phone || '', email || '', dept_id || null, position || '', role || 'operator', status || 'active', wechat_openid || '', avatar || '', req.params.id);
     }
     res.json({ success: true });
   } catch (e) {

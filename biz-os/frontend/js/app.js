@@ -373,14 +373,15 @@
       var initial = user.name.charAt(0);
       var roleMap = { admin: '管理员', manager: '经理', operator: '专员', viewer: '观察员' };
       var roleText = roleMap[user.role] || user.role;
-      $('userAvatar').textContent = initial;
+      $('userAvatar').innerHTML = user.avatar ? '<img src="/assets/avatars/' + user.avatar + '.png" alt="">' : initial;
       $('userName').textContent = user.name;
       $('userRole').textContent = roleText;
       // 顶栏也有一份用户块（设计稿 .tb-user），两处同步
       var topUser = $('topUser');
       if (topUser) {
         topUser.style.display = 'flex';
-        $('topAvatar').textContent = initial;
+        var ta = $('topAvatar');
+        if (ta) ta.innerHTML = user.avatar ? '<img src="/assets/avatars/' + user.avatar + '.png" alt="">' : initial;
         $('topUserName').textContent = user.name;
       }
       $('loginOverlay').style.display = 'none';
