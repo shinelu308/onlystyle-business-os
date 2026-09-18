@@ -256,14 +256,10 @@ window.cmPreviewRefresh = function () {
 };
 
 /* ---- 工具条 ----
-   2026-09-18 简化：撤掉「内容版本号 / 刷新版本号 / 立即发布」。
-   版本号机制在后端照常工作（每次写操作自动 bump，官网 60 秒缓存据此失效），
-   只是运营不需要看到 —— 缓存规则一句话说清即可。 */
-function cmToolbar() {
-  return '<div class="cm-toolbar">' +
-    '<span class="cm-dim">官网前台最多 60 秒内自动更新；右侧预览保存即见</span>' +
-    '</div>';
-}
+   2026-09-18 简化：版本号 / 刷新 / 发布按钮与提示语全部撤掉（用户确认不需要）。
+   版本号机制在后端照常工作（每次写操作自动 bump，官网 60 秒缓存据此失效）。
+   保留空函数兼容各 tab 的调用点。 */
+function cmToolbar() { return ''; }
 
 function cmLoadVersion() { /* 版本号 UI 已撤；保留空函数兼容既有调用点 */ }
 
