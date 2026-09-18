@@ -288,7 +288,7 @@
     var titleObj = pages[page];
     var tabNames = {
       dept: '组织架构', general: '常规配置', wechat: '微信配置', biz: '业务配置',
-      home: '首页布局', site: '站点配置', catalog: '服务与行业', cases: '案例'
+      home: '首页布局', site: '站点配置', cases: '案例'
     };
     var titleText;
     if (titleObj && tab && titleObj.hasTabs) {

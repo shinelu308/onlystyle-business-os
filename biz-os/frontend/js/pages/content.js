@@ -238,7 +238,7 @@ function cmPreviewOrigin() {
   return location.origin;
 }
 function cmPreviewUrl(tab) {
-  var map = { home: '/', products: '/products', catalog: '/services', cases: '/cases', about: '/about', site: '/' };
+  var map = { home: '/', products: '/products', cases: '/cases', about: '/about', site: '/' };
   var page = map[tab] || '/';
   return cmPreviewOrigin() + page + '?preview=1&t=' + Date.now();
 }
@@ -405,14 +405,13 @@ function _renderContentTab(tab) {
   var subs = document.querySelectorAll('.nav-subitem[data-page="content"]');
   for (var j = 0; j < subs.length; j++) subs[j].classList.toggle('active', subs[j].dataset.tab === tab);
 
-  var titles = { home: '首页布局', products: '产品介绍', catalog: '解决方案', cases: '案例星球', about: '关于我们', site: '站点配置' };
+  var titles = { home: '首页布局', products: '产品介绍', cases: '案例星球', about: '关于我们', site: '站点配置' };
   if ($('pageTitle')) $('pageTitle').textContent = '内容管理 - ' + (titles[tab] || '');
 
   pane.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
   var renderers = {
     home: renderContentHome,
     products: renderContentProducts,
-    catalog: renderContentCatalog,
     cases: renderContentCases,
     about: renderContentAbout,
     site: renderContentSite
@@ -787,23 +786,6 @@ function cmSaveSettings(grp) {
 /* ================================================================
    Tab 3 · 服务与行业
    ================================================================ */
-
-function renderContentCatalog(pane) {
-  pane.innerHTML = cmToolbar() + '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
-  var got = { services: null, industries: null };
-  var failed = false;
-
-  function done() {
-    if (failed || got.services == null || got.industries == null) return;
-    pane.innerHTML = cmToolbar() + cmCrudCard('services', got.services) + cmCrudCard('industries', got.industries);
-    cmLoadVersion();
-  }
-
-  API.content.get(CM_API + '/services').then(function (r) { got.services = r || []; done(); })
-    .catch(function (e) { failed = true; cmFail(pane, e); });
-  API.content.get(CM_API + '/industries').then(function (r) { got.industries = r || []; done(); })
-    .catch(function (e) { failed = true; cmFail(pane, e); });
-}
 
 /* ================================================================
    Tab 4 · 案例
