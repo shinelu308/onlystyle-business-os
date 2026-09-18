@@ -328,6 +328,17 @@
     if (sep) sep.style.display = show ? '' : 'none';
   }
 
+  /** 登录/会话恢复落点：按侧栏 DOM 顺序返回第一个有权限的页面，一个都没有则返回 null */
+  function firstAllowedPage() {
+    var items = document.querySelectorAll('.nav-item, .nav-subitem');
+    for (var i = 0; i < items.length; i++) {
+      var el = items[i];
+      var pg = el.dataset.page;
+      if (pg && pages[pg] && hasPagePermission(pg)) return pg;
+    }
+    return null;
+  }
+
   // ===== 按权限隐藏导航项 =====
   function applyPermissionUI() {
     if (!currentUser) return;
@@ -388,7 +399,16 @@
       loadPermissions(function() {
         applyPermissionUI();
         if (currentBizLine !== 'broadband') { applyBizLineUI(true); }
-        else { navigate(currentPage); }
+        else {
+          // 落点优化：当前页无权限时自动落到第一个有权限的菜单页，
+          // 而不是一进后台就弹「您没有访问该页面的权限」
+          if (!hasPagePermission(currentPage)) {
+            var first = firstAllowedPage();
+            if (first) { currentPage = first; }
+            else { showAlert('该账号暂未分配任何页面权限，请联系管理员配置'); return; }
+          }
+          navigate(currentPage);
+        }
       });
     } else {
       $('userInfo').style.display = 'none';
