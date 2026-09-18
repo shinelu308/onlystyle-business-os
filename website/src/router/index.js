@@ -21,6 +21,9 @@ const routes = [
     meta: {
       title: '关于我们 - ONLYSTYLE',
       description: 'ONLYSTYLE 上海唯风信息技术有限公司，专注数字化转型领域，以创新、诚信、协作、卓越为核心价值观。',
+      // 设计稿页（about-embed.html）自带导航：只藏 SiteNav；
+      // 页脚用全站 SiteFooter（与整站一致），渲染在 iframe 下方
+      hideNav: true,
     },
   },
   {

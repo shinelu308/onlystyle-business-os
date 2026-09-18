@@ -1,0 +1,1119 @@
+<!DOCTYPE html><html lang="zh-CN" data-lvt-canonical="1"><!--
+Canvas: 响应式单页长滚动，主内容宽 1200px，最小适配 1280px 桌面，向下适配平板/手机
+Design given: ONLYSTYLE 深空探索舰队叙事 — 公司是旗舰舰群、团队是虚拟全息舰员、技术是星舰子系统、资质是航行许可证；深空背景 + 品牌蓝/电光青发光体系
+Asset map:
+  [@video:#1] 1280×720/12s Hero 舰队动画 → .hero-bg 内 <video> 绝对定位 inset:0，object-fit:cover，object-position center 70%（沿用原背景焦点），autoplay+muted+loop+playsinline，上叠 rgba(7,18,41,.35) 暗化层（不压引擎光效），z-index 层级 0(视频)<1(遮罩)<2(内容) 与原背景图一致
+  [@image:#1] 2048×1152 Hero 星云静帧 → video poster + 内嵌 <img> fallback（降级方案）；左侧 #071229→40% 透明双层渐变遮罩(.hero-mask)原样保留保证文字可读
+  [@image:#2] Logo 图 → 未使用：导航 Logo 用文字 ONLYSTYLE + SVG 轨道图形（与现有产品页/首页导航一致，brief 允许"如使用 SVG 绘制则无需图片"）
+  [@image:earth] /about-design/jKylyvo8b41D9sMm.png 2048×1152 equirectangular 地球纹理 → Three.js SphereGeometry(1,64,64) 表面贴图（TextureLoader + crossOrigin），渲染于公司简介 .pv-stage 内 <canvas id="pvCanvas">，WebGLRenderer alpha 透明背景与深空蓝融合
+  [@image:ref] /about-design/fiYvwuL8J2JRWIq0.png 用户参考图 → 仅视觉参考（发光蓝色地球），本轮 brief 已改为"无轨道环、无大气包裹圈"的纯净地球
+Palette:
+  #071229 → --bg 深空背景 (given)
+  #1F5BFF → --blue 品牌蓝 (given)
+  #3BE0FF → --cyan 电光青 (given)
+  #F7F9FC → --light-bg 浅色底 (given, 资质区)
+  #FFFFFF → --fg (given)
+  rgba(255,255,255,0.72) → --fg-muted (given)
+  rgba(255,255,255,0.06) → --card-bg (given)
+  rgba(255,255,255,0.10) → --hairline 描边 (given)
+  #16A34A → --green 资质点缀 (given)
+  深蓝暗调 rgba(10,26,62) → --surface (chosen, 卡片加深底, 与产品页一致)
+Typography:
+  中文 -apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif (given, 系统栈无外链)
+  英文 Inter,sans-serif (given, 系统回退)
+  数字等宽 SF Mono,Menlo,monospace (given, 用于编号/年份/数据)
+  层级: Hero 标题 clamp(48-56px)/600，副标题 20px/400，模块小标题 12px/600 电光青大写英文，模块中文标题 36px/600，正文 16px/1.75，数据数字 48px/700
+Content map:
+  导航「首页 产品介绍 解决方案 案例星球 关于我们 联系我们」→ nav-links，"关于我们"高亮 --cyan
+  面包屑「首页 / 关于我们」→ .breadcrumb；大标题「关于我们」→ h1；副标题「数字化转型的引领者 · 探索产业未来的星际舰队」→ .hero-sub；CTA「联系我们」→ .hero-cta
+  公司简介正文（上海唯风信息技术有限公司…数字时代取得成功。）→ #profile .profile-text p 逐字
+  核心数据 23+/1000万/3项/4省 → .stat-num[data-target] counting-up
+  时间线 2003/2010/2018/2023(GR202331007290)/2026(B1-20262247) → .tl-item
+  6 舰员（战略领航员/技术架构师/产品指挥官/数据占星师/安全守卫者/交付推进员 + 英文名 + 职责）→ .crew-card，全息 SVG 头像代码生成
+  6 星舰系统能力卡 → .tech-card，SVG 星球/系统图标代码生成
+  3 证书卡（营业执照/高新/增值电信）全部法定编号、日期、机关、法定代表人卢时扬、住所 → #credentials，编号用等宽字体，「查看证书」按钮，发证机关小字
+  CTA「准备启航？/与 ONLYSTYLE 一起探索数字星域/联系我们」→ #cta
+  页脚版权「© 2026 上海唯风信息技术有限公司 · 沪ICP备」+ 底部导航 + 备案占位 → footer
+Assumptions:
+  导航高度 64px、内容宽 1200px、卡片圆角 16px（与既有官网页一致，brief silent）
+  公司简介右侧 3D 品牌符号（Three.js 真 3D 地球，本轮按 brief 移除轨道环与大气层包裹圈）：
+    球体 SphereGeometry(1,64,64) + MeshStandardMaterial(roughness .6, metalness .1)，指定纹理 URL；
+    自转轴倾斜 -23.5°(黄赤交角, 组绕 X)，自西向东(+Y 正向)自转 36s/圈；
+    本轮移除（brief 指定）：轨道环×2(TorusGeometry)、环上光点卫星、大气层 Fresnel ShaderMaterial 蓝色包裹圈；
+    星空粒子 ~160 点白/青微弱；AmbientLight(0x404040,.4) + DirectionalLight(0xffffff,1.2)@(5,3,5)；
+    PerspectiveCamera(45) z=3.5（原 4.2，移除环/光晕后地球放大约 20%，容器内居中），鼠标 ±0.55 单位视差跟随；
+    边缘光为 brief 可选项，本轮不加（避免再现"蓝色包裹圈"观感）
+  全息头像：几何头盔/面罩 + 扫描线 + 发光线条，6 个不同几何造型区分角色，无真实人脸
+  「查看证书」按钮 href="#"（无证书详情页 URL，brief silent）
+  沪ICP备 后接占位号「沪ICP备03XXXXXX号」（法定备案号未提供，按 brief"备案信息占位"处理）
+  数据 counting-up：23+/1000/3/4 从 0 滚动到目标值，后缀(年/万/项/省)静态
+  Hero 视频暗化层 rgba(7,18,41,.35)（brief 给定值），置于视频之上、遮罩之下
+QA risks:
+  资质浅色区文字需切换为深色（#071229 系），对比度验证
+  时间线长证书号在 1280px 下不换行溢出 → 等宽字体 + 验证
+  Hero 左侧遮罩下文字可读性 → 截图验证（视频暗化层 + 双层遮罩处理）
+  视频 1280×720 在 100vh Hero（最高 960px）下 cover 裁切 → object-fit:cover + object-position 验证；移动端同样 cover
+  移动端 4 数据卡 2×2、6 卡单列 → 媒体查询验证
+  Three.js/WebGL 不可用时 .pv-stage 保留 radial-gradient 深空微光兜底；纹理为 16:9（非严格 2:1 equirectangular），球面 UV 有轻微纵向拉伸，按 brief 指定原样使用；截图验证 canvas 渲染出地球、无轨道环/蓝色大气圈残留、地球居中且放大后不裁切
+--><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关于我们 · ONLYSTYLE</title>
+<!-- Embedded about page, generated from Lovart design "design (6).html"; assets localized to /about-design/ -->
+<meta name="description" content="上海唯风信息技术有限公司 — 数字化转型的引领者，探索产业未来的星际舰队。23 年行业深耕，高新技术企业，跨地区增值电信业务许可。">
+<style>
+/* ===== VARIABLES ===== */
+:root{
+  --bg:#071229;
+  --blue:#1F5BFF;
+  --cyan:#3BE0FF;
+  --light-bg:#F7F9FC;
+  --fg:#FFFFFF;
+  --fg-muted:rgba(255,255,255,0.72);
+  --fg-dim:rgba(255,255,255,0.42);
+  --card-bg:rgba(255,255,255,0.06);
+  --hairline:rgba(255,255,255,0.10);
+  --green:#16A34A;
+  --surface:#0A1A3E;
+  --nav-h:64px;
+  --max-w:1200px;
+  --r:16px;
+  --cn:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --en:"Inter",-apple-system,"PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,monospace;
+  --ink:#0B1B3A;          /* 浅色区深色文字 */
+  --ink-muted:#41506B;    /* 浅色区次级文字 */
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:var(--cn);line-height:1.6;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+ul{list-style:none}
+img{display:block;max-width:100%}
+.container{max-width:var(--max-w);margin:0 auto;padding:0 24px}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--blue);border-radius:2px}
+
+/* ===== REVEAL ===== */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-d1{transition-delay:.08s}.reveal-d2{transition-delay:.16s}.reveal-d3{transition-delay:.24s}
+.reveal-d4{transition-delay:.32s}.reveal-d5{transition-delay:.40s}.reveal-d6{transition-delay:.48s}
+
+/* ===== SECTION HEADS ===== */
+.sec{padding:110px 0;position:relative}
+.sec-head{margin-bottom:56px}
+.sec-eyebrow{
+  font-family:var(--en);font-size:12px;font-weight:600;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--cyan);display:flex;align-items:center;gap:12px;margin-bottom:14px;
+}
+.sec-eyebrow::before{content:"";width:28px;height:1px;background:linear-gradient(90deg,var(--cyan),transparent)}
+.sec-title{font-size:clamp(30px,3.4vw,40px);font-weight:600;letter-spacing:.01em;line-height:1.25}
+.sec-title em{font-style:normal;background:linear-gradient(90deg,#fff 40%,var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sec-sub{margin-top:14px;font-size:16px;color:var(--fg-muted);max-width:640px;line-height:1.75}
+
+/* ===== NAV ===== */
+.nav{
+  position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:1000;
+  background:rgba(7,18,41,0.35);
+  border-bottom:1px solid transparent;
+  transition:background .3s,border-color .3s,backdrop-filter .3s;
+}
+.nav.scrolled{
+  background:rgba(7,18,41,0.88);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom-color:rgba(31,91,255,.18);
+}
+.nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 24px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.nav-logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.nav-logo-icon{width:34px;height:34px}
+.nav-logo-text{
+  font-family:var(--en);font-size:18px;font-weight:700;letter-spacing:.10em;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.nav-links{display:flex;align-items:center;gap:2px}
+.nav-links a{padding:6px 13px;font-size:14px;color:var(--fg-muted);border-radius:8px;transition:color .2s,background .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--fg);background:rgba(255,255,255,.06)}
+.nav-links a.active{color:var(--cyan)}
+.nav-cta{
+  padding:8px 20px;font-size:14px;font-weight:600;border-radius:24px;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));color:#fff;white-space:nowrap;
+  transition:opacity .2s,transform .2s;flex-shrink:0;
+}
+.nav-cta:hover{opacity:.85;transform:translateY(-1px)}
+.nav-mobile-toggle{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;background:none;border:0}
+.nav-mobile-toggle span{display:block;width:22px;height:2px;background:var(--fg);border-radius:2px}
+.nav-mobile{
+  display:none;position:fixed;top:var(--nav-h);left:0;right:0;z-index:999;
+  background:rgba(7,18,41,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--hairline);padding:14px 24px 20px;
+}
+.nav-mobile.open{display:flex;flex-direction:column;gap:4px}
+.nav-mobile a{padding:11px 8px;font-size:15px;color:var(--fg-muted);border-radius:8px}
+.nav-mobile a.active{color:var(--cyan)}
+
+/* ===== HERO ===== */
+.hero{
+  position:relative;min-height:700px;height:100vh;max-height:960px;
+  display:flex;align-items:center;overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;z-index:0;background:var(--bg);overflow:hidden;
+}
+.hero-video{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 70%;display:block;
+}
+.hero-video-dim{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:rgba(7,18,41,0.35);
+}
+.hero-mask{
+  position:absolute;inset:0;z-index:1;
+  background:linear-gradient(90deg,#071229 0%,rgba(7,18,41,.82) 34%,rgba(7,18,41,.40) 62%,rgba(7,18,41,.40) 100%);
+}
+.hero-mask::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(7,18,41,.55) 0%,transparent 22%,transparent 72%,#071229 100%);
+}
+.hero-content{position:relative;z-index:2;width:100%;padding-top:var(--nav-h)}
+.hero-inner{max-width:640px}
+.breadcrumb{font-size:13px;color:var(--fg-dim);letter-spacing:.06em;margin-bottom:26px;display:flex;align-items:center;gap:8px}
+.breadcrumb .sep{opacity:.5}
+.breadcrumb .cur{color:var(--cyan)}
+.hero-title{
+  font-size:clamp(48px,5.4vw,56px);font-weight:600;line-height:1.15;letter-spacing:.02em;margin-bottom:22px;
+}
+.hero-title .grad{
+  background:linear-gradient(120deg,#fff 30%,var(--cyan) 110%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-sub{font-size:clamp(17px,1.6vw,20px);font-weight:400;color:var(--fg-muted);letter-spacing:.04em;margin-bottom:40px}
+.hero-sub b{font-weight:400;color:#fff}
+.hero-cta-row{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:14px 34px;border-radius:30px;font-size:16px;font-weight:600;color:#fff;
+  background:linear-gradient(90deg,var(--blue),#2E7BFF);
+  box-shadow:0 8px 32px rgba(31,91,255,.45),inset 0 1px 0 rgba(255,255,255,.25);
+  transition:transform .25s,box-shadow .25s;position:relative;overflow:hidden;
+}
+.btn-primary::after{
+  content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;
+  background:linear-gradient(90deg,transparent,rgba(59,224,255,.4),transparent);
+  transition:left .6s;
+}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(31,91,255,.6),0 0 24px rgba(59,224,255,.3)}
+.btn-primary:hover::after{left:120%}
+.hero-hint{font-family:var(--mono);font-size:12px;color:var(--fg-dim);letter-spacing:.12em}
+.hero-scroll{
+  position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:2;
+  display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--fg-dim);font-size:11px;letter-spacing:.2em;font-family:var(--en);
+}
+.hero-scroll .line{width:1px;height:36px;background:linear-gradient(180deg,var(--cyan),transparent);animation:scrollPulse 1.8s ease-in-out infinite}
+@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+
+/* ===== PROFILE ===== */
+.profile-grid{display:grid;grid-template-columns:55% 45%;gap:48px;align-items:center}
+.profile-text p{font-size:16px;line-height:1.9;color:var(--fg-muted);margin-bottom:18px;text-align:justify}
+.profile-text p strong{color:#fff;font-weight:600}
+.profile-tags{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.profile-tag{
+  padding:7px 16px;border-radius:20px;font-size:13px;color:var(--cyan);
+  border:1px solid rgba(59,224,255,.3);background:rgba(59,224,255,.06);letter-spacing:.04em;
+}
+.profile-visual{position:relative;display:flex;align-items:center;justify-content:center;min-height:420px}
+/* 3D 品牌符号：Three.js 真 3D 地球（canvas 渲染，无轨道环/无大气圈） */
+.pv-stage{
+  position:relative;width:380px;height:380px;
+  background:radial-gradient(circle at 50% 48%,rgba(31,91,255,.14) 0%,rgba(59,224,255,.06) 38%,transparent 66%);
+}
+#pvCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pv-caption{
+  position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--fg-dim);white-space:nowrap;
+}
+
+/* ===== STATS ===== */
+.stats-band{
+  background:linear-gradient(180deg,transparent,rgba(31,91,255,.06) 30%,rgba(31,91,255,.06) 70%,transparent);
+  border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);
+  padding:72px 0;
+}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.stat-card{
+  position:relative;padding:36px 24px;border-radius:var(--r);text-align:center;
+  background:var(--card-bg);border:1px solid var(--hairline);
+  transition:transform .3s,border-color .3s,box-shadow .3s;overflow:hidden;
+}
+.stat-card::before{
+  content:"";position:absolute;top:0;left:20%;right:20%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(59,224,255,.6),transparent);
+}
+.stat-card:hover{transform:translateY(-6px);border-color:rgba(59,224,255,.4);box-shadow:0 18px 44px rgba(3,10,26,.55),0 0 22px rgba(59,224,255,.14)}
+.stat-icon{width:44px;height:44px;margin:0 auto 18px;opacity:.95}
+.stat-num-row{display:flex;align-items:baseline;justify-content:center;gap:4px}
+.stat-num{font-family:var(--mono);font-size:48px;font-weight:700;line-height:1;letter-spacing:-.02em;background:linear-gradient(180deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat-unit{font-size:20px;font-weight:600;color:var(--cyan)}
+.stat-label{margin-top:12px;font-size:14px;color:var(--fg-muted);letter-spacing:.08em}
+.stat-note{margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--fg-dim);letter-spacing:.06em}
+
+/* ===== TIMELINE ===== */
+.tl-wrap{position:relative;padding-left:8px}
+.tl-line{
+  position:absolute;left:104px;top:14px;bottom:14px;width:2px;
+  background:linear-gradient(180deg,transparent,rgba(59,224,255,.55) 8%,rgba(31,91,255,.55) 92%,transparent);
+  box-shadow:0 0 12px rgba(59,224,255,.4);
+}
+.tl-item{position:relative;display:grid;grid-template-columns:88px 1fr;gap:48px;padding:22px 0}
+.tl-year{
+  font-family:var(--mono);font-size:30px;font-weight:700;color:#fff;text-align:right;line-height:1.1;
+  letter-spacing:-.01em;
+}
+.tl-year small{display:block;font-size:11px;font-weight:400;color:var(--fg-dim);letter-spacing:.18em;margin-top:4px}
+.tl-dot{
+  position:absolute;left:99px;top:34px;width:12px;height:12px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--cyan);
+  box-shadow:0 0 12px rgba(59,224,255,.8);z-index:1;
+}
+.tl-item.now .tl-dot{background:var(--cyan);animation:dotPulse 2s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 8px rgba(59,224,255,.7)}50%{box-shadow:0 0 22px rgba(59,224,255,1),0 0 44px rgba(59,224,255,.4)}}
+.tl-card{
+  background:var(--card-bg);border:1px solid var(--hairline);border-radius:var(--r);
+  padding:22px 26px;transition:transform .3s,border-color .3s,box-shadow .3s;
+}
+.tl-card:hover{transform:translateX(6px);border-color:rgba(59,224,255,.35);box-shadow:0 12px 32px rgba(3,10,26,.5)}
+.tl-card h3{font-size:18px;font-weight:600;margin-bottom:6px}
+.tl-card p{font-size:14.5px;color:var(--fg-muted);line-height:1.7}
+.tl-code{
+  display:inline-block;margin-top:10px;padding:4px 12px;border-radius:6px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--cyan);
+  background:rgba(59,224,255,.08);border:1px solid rgba(59,224,255,.25);
+}
+.tl-badge{
+  display:inline-flex;align-items:center;gap:6px;margin-top:10px;margin-right:8px;
+  padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:#4ADE80;
+  background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.4);
+}
+
+/* ===== CREW ===== */
+.crew-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.crew-card{
+  position:relative;border-radius:var(--r);padding:34px 26px 28px;text-align:center;
+  background:var(--card-bg);border:1px solid var(--hairline);overflow:hidden;
+  transition:transform .3s,border-color .3s,box-shadow .3s;
+}
+.crew-card::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(59,224,255,.028) 3px 4px);
+}
+.crew-card::after{
+  content:"";position:absolute;top:-40%;left:-40%;width:60%;height:180%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(59,224,255,.07),transparent);
+  transform:rotate(8deg);transition:left .6s;
+}
+.crew-card:hover{transform:translateY(-6px);border-color:rgba(59,224,255,.45);box-shadow:0 20px 48px rgba(3,10,26,.6),0 0 26px rgba(59,224,255,.16)}
+.crew-card:hover::after{left:120%}
+.crew-avatar{width:118px;height:118px;margin:0 auto 20px;position:relative}
+.crew-avatar svg{width:100%;height:100%;filter:drop-shadow(0 0 12px rgba(59,224,255,.35))}
+.crew-role{font-size:19px;font-weight:600;margin-bottom:4px}
+.crew-en{font-family:var(--en);font-size:11px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--cyan);margin-bottom:14px}
+.crew-desc{font-size:14px;color:var(--fg-muted);line-height:1.7}
+.crew-id{
+  position:absolute;top:14px;right:16px;font-family:var(--mono);font-size:10px;color:var(--fg-dim);letter-spacing:.1em;
+}
+
+/* ===== TECH ===== */
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.tech-card{
+  position:relative;border-radius:var(--r);padding:30px 26px;
+  background:var(--card-bg);border:1px solid var(--hairline);overflow:hidden;
+  transition:transform .3s,border-color .3s,box-shadow .3s;
+}
+.tech-card:hover{transform:translateY(-6px);border-color:rgba(59,224,255,.4);box-shadow:0 18px 44px rgba(3,10,26,.55),0 0 22px rgba(59,224,255,.13)}
+.tech-card::before{
+  content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,rgba(31,91,255,.16),transparent 70%);pointer-events:none;
+}
+.tech-icon{width:56px;height:56px;margin-bottom:20px}
+.tech-icon svg{width:100%;height:100%}
+.tech-card h3{font-size:18px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.tech-card h3 .idx{font-family:var(--mono);font-size:11px;color:var(--cyan);opacity:.75;letter-spacing:.08em}
+.tech-card p{font-size:14px;color:var(--fg-muted);line-height:1.75}
+
+/* ===== CREDENTIALS (light) ===== */
+.sec-light{background:var(--light-bg);color:var(--ink);position:relative}
+.sec-light::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.7}
+.sec-light .sec-title{color:var(--ink)}
+.sec-light .sec-title em{background:linear-gradient(90deg,var(--ink) 30%,var(--blue));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sec-light .sec-eyebrow{color:var(--blue)}
+.sec-light .sec-eyebrow::before{background:linear-gradient(90deg,var(--blue),transparent)}
+.sec-light .sec-sub{color:var(--ink-muted)}
+.cert-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.cert-card{
+  position:relative;background:#fff;border:1px solid #E3E9F4;border-radius:var(--r);
+  padding:30px 28px 26px;display:flex;flex-direction:column;
+  box-shadow:0 10px 30px rgba(11,27,58,.07);
+  transition:transform .3s,box-shadow .3s,border-color .3s;
+}
+.cert-card:hover{transform:translateY(-6px);box-shadow:0 20px 48px rgba(11,27,58,.13);border-color:rgba(31,91,255,.4)}
+.cert-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+.cert-name{font-size:19px;font-weight:700;color:var(--ink);line-height:1.4}
+.cert-seal{
+  flex-shrink:0;width:52px;height:52px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(22,163,74,.08);border:1.5px solid rgba(22,163,74,.45);
+}
+.cert-rows{display:flex;flex-direction:column;gap:0;margin-bottom:20px;flex:1}
+.cert-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed #E3E9F4;font-size:13.5px;line-height:1.6}
+.cert-row:last-child{border-bottom:0}
+.cert-row dt{flex-shrink:0;width:74px;color:var(--ink-muted)}
+.cert-row dd{color:var(--ink);font-weight:500;word-break:break-all}
+.cert-row dd.mono{font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;color:var(--blue)}
+.cert-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 0;border-radius:10px;font-size:14px;font-weight:600;color:#fff;
+  background:linear-gradient(90deg,var(--blue),#2E7BFF);
+  transition:opacity .2s,transform .2s,box-shadow .2s;margin-bottom:16px;
+}
+.cert-btn:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 10px 24px rgba(31,91,255,.3)}
+.cert-issuer{font-size:12px;color:var(--ink-muted);line-height:1.6;display:flex;gap:6px}
+.cert-issuer b{font-weight:600;color:var(--ink);flex-shrink:0}
+
+/* ===== CTA ===== */
+.cta-sec{position:relative;text-align:center;padding:140px 0;overflow:hidden}
+.cta-glow1{position:absolute;left:12%;top:20%;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(31,91,255,.22),transparent 70%);pointer-events:none}
+.cta-glow2{position:absolute;right:10%;bottom:8%;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(59,224,255,.14),transparent 70%);pointer-events:none}
+.cta-title{font-size:clamp(36px,4.6vw,52px);font-weight:600;line-height:1.2;margin-bottom:18px;position:relative;z-index:1}
+.cta-title .grad{background:linear-gradient(110deg,#fff 20%,var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cta-sub{font-size:18px;color:var(--fg-muted);margin-bottom:44px;position:relative;z-index:1;letter-spacing:.04em}
+.cta-sec .btn-primary{position:relative;z-index:1;padding:16px 46px;font-size:17px}
+
+/* ===== FOOTER ===== */
+.footer{border-top:1px solid var(--hairline);background:#050D20;padding:56px 0 36px}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.footer-brand .nav-logo{margin-bottom:16px}
+.footer-brand p{font-size:13.5px;color:var(--fg-muted);line-height:1.8;max-width:340px}
+.footer h4{font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--cyan);margin-bottom:16px;font-family:var(--en);text-transform:uppercase}
+.footer-links{display:flex;flex-direction:column;gap:10px}
+.footer-links a{font-size:13.5px;color:var(--fg-muted);transition:color .2s}
+.footer-links a:hover{color:var(--cyan)}
+.footer-info{display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--fg-muted);line-height:1.7}
+.footer-info .mono{font-family:var(--mono);font-size:12px;color:var(--fg-dim)}
+.footer-bottom{
+  border-top:1px solid var(--hairline);padding-top:26px;
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--fg-dim);
+}
+.footer-bottom .mono{font-family:var(--mono);font-size:11.5px}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:1080px){
+  .nav-links{display:none}
+  .nav-mobile-toggle{display:flex}
+  .profile-grid{grid-template-columns:1fr;gap:24px}
+  .profile-visual{min-height:380px;order:2}
+  .crew-grid,.tech-grid,.cert-grid{grid-template-columns:repeat(2,1fr)}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .footer-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:680px){
+  .sec{padding:72px 0}
+  .hero{min-height:600px}
+  .crew-grid,.tech-grid,.cert-grid{grid-template-columns:1fr}
+  .tl-line{left:64px}
+  .tl-item{grid-template-columns:56px 1fr;gap:32px}
+  .tl-year{font-size:20px}
+  .tl-dot{left:59px}
+  .pv-stage{width:300px;height:300px}
+  .stat-num{font-size:40px}
+  .footer-grid{grid-template-columns:1fr}
+  .hero-cta-row{gap:14px}
+  .cta-sec{padding:96px 0}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav class="nav" id="nav" role="navigation" aria-label="主导航" data-lvt-eid="727e3bd999">
+  <div class="nav-inner" data-lvt-eid="333cb39c91">
+    <a href="/" target="_top" class="nav-logo" aria-label="ONLYSTYLE 首页" data-lvt-eid="2cd0a901aa">
+      <span id="brandLogoSlot" style="width:34px;height:34px;display:block;flex:none"></span>
+      <span class="nav-logo-text" data-lvt-eid="7404b60f8f"><span id="brandName1">ONLY</span><span id="brandName2">STYLE</span></span>
+    </a>
+    <ul class="nav-links" data-lvt-eid="003d77fd18">
+      <li data-lvt-eid="720bf66560"><a href="/" target="_top" data-lvt-eid="bf41433c1e">首页</a></li>
+      <li data-lvt-eid="40e754a02a"><a href="/products" target="_top" data-lvt-eid="8cd662fe86">产品介绍</a></li>
+      <li data-lvt-eid="e4442a648f"></li>
+      <li data-lvt-eid="2eb3f59827"><a href="/cases" target="_top" data-lvt-eid="7c44dfd603">案例星球</a></li>
+      <li data-lvt-eid="29a303c3df"><a href="/about" target="_top" class="active" data-lvt-eid="b624396907">关于我们</a></li>
+      <li data-lvt-eid="91bb07883b"></li>
+    </ul>
+    <a href="#cta" class="nav-cta" data-lvt-eid="8bd681c25d">联系我们</a>
+    <button class="nav-mobile-toggle" id="mobileToggle" aria-label="菜单" aria-expanded="false" data-lvt-eid="6da771e69c">
+      <span data-lvt-eid="aa90be05ec"></span><span data-lvt-eid="4b1f6ab145"></span><span data-lvt-eid="55f56220b6"></span>
+    </button>
+  </div>
+</nav>
+<div class="nav-mobile" id="mobileNav" data-lvt-eid="cc2e79c02b">
+  <a href="/" data-lvt-eid="295ead98d5">首页</a>
+  <a href="/products" data-lvt-eid="03f023644b">产品介绍</a>
+  <a href="/services" data-lvt-eid="85097fed45">解决方案</a>
+  <a href="/cases" data-lvt-eid="6c52f72e47">案例星球</a>
+  <a href="/about" class="active" data-lvt-eid="3d48e65753">关于我们</a>
+  <a href="#cta" data-lvt-eid="13a3ecaf50">联系我们</a>
+</div>
+
+<!-- ===== HERO ===== -->
+<section class="hero" id="hero" aria-label="关于我们 Hero" data-lvt-eid="4e96003af7">
+  <div class="hero-bg" aria-hidden="true" data-lvt-eid="5b628493d9">
+    <video class="hero-video" id="heroVideo" autoplay="" muted="" loop="" playsinline="" preload="auto" poster="/about-design/pN4jNOrR3KKDHRpS.png" data-lvt-eid="bccda84b17">
+      <source src="/about-design/fqOYJfY6Xy83GzAP.mp4" type="video/mp4" data-lvt-eid="3f04445954">
+      <img src="/about-design/pN4jNOrR3KKDHRpS.png" alt="深空星际舰队背景" data-lvt-eid="c4c78ad3dd">
+    </video>
+    <span class="hero-video-dim" data-lvt-eid="b9dfaa2647"></span>
+  </div>
+  <div class="hero-mask" aria-hidden="true" data-lvt-eid="72aff5bc77"></div>
+  <div class="hero-content" data-lvt-eid="c46b0e8bf5">
+    <div class="container" data-lvt-eid="a1390779b4">
+      <div class="hero-inner" data-lvt-eid="c7259a3228">
+        <p class="breadcrumb reveal" data-lvt-eid="f57db530bc">首页 <span class="sep" data-lvt-eid="53bfa95264">/</span> <span class="cur" data-lvt-eid="2d9fd8b7e0">关于我们</span></p>
+        <h1 class="hero-title reveal reveal-d1" data-lvt-eid="8affae6101"><span class="grad" data-lvt-eid="d365e0973c">关于我们</span></h1>
+        <p class="hero-sub reveal reveal-d2" data-lvt-eid="ed6d044044"><b data-lvt-eid="553dd675e3">数字化转型的引领者</b> · 探索产业未来的星际舰队</p>
+        <div class="hero-cta-row reveal reveal-d3" data-lvt-eid="e6ad686be2">
+          <a href="#cta" class="btn-primary" data-lvt-eid="0c1eb814ff">联系我们
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" data-lvt-eid="7383edb918"><path d="M3 9h12M10 4l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="69619f7aac"></path></svg>
+          </a>
+          <span class="hero-hint" data-lvt-eid="28e96e403a">EST. 2003 · SHANGHAI</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true" data-lvt-eid="009d02604f"><span data-lvt-eid="b4992a4002">SCROLL</span><span class="line" data-lvt-eid="5964b7be0d"></span></div>
+</section>
+
+<!-- ===== COMPANY PROFILE ===== -->
+<section class="sec" id="profile" aria-label="公司简介" data-lvt-eid="95c847eb20">
+  <div class="container" data-lvt-eid="330a883dbf">
+    <div class="profile-grid" data-lvt-eid="843b344757">
+      <div class="profile-text" data-lvt-eid="b8cd4dc0be">
+        <div class="sec-head reveal" style="margin-bottom:32px" data-lvt-eid="6389d5960b">
+          <p class="sec-eyebrow" data-lvt-eid="04b561f497">COMPANY PROFILE / 公司简介</p>
+          <h2 class="sec-title" data-lvt-eid="3a6aeb1d02">星尘起源 · <em data-lvt-eid="71b2697382">数字化星域的探索旗舰</em></h2>
+        </div>
+        <p class="reveal reveal-d1" data-lvt-eid="ac8a620619"><strong data-lvt-eid="9af95cf66d">上海唯风信息技术有限公司</strong>是一家在数字化领域拥有广泛经验的领先企业。我们专注于为不同行业的企业和机构提供全面的数字化解决方案，以满足他们的不同需求和挑战。</p>
+        <p class="reveal reveal-d2" data-lvt-eid="35ddc0f6b8">我们深知数字化转型对于企业的重要性，因此我们的使命是为客户提供卓越的服务，帮助他们在数字时代取得成功。</p>
+        <div class="profile-tags reveal reveal-d3" data-lvt-eid="42e5b7f395">
+          <span class="profile-tag" data-lvt-eid="9287fcbcb8">全链路数字化</span>
+          <span class="profile-tag" data-lvt-eid="1ac8b3ae7f">行业智能化</span>
+          <span class="profile-tag" data-lvt-eid="525d2a366f">AI 交付</span>
+          <span class="profile-tag" data-lvt-eid="84d7a4e026">高新技术企业</span>
+        </div>
+      </div>
+      <div class="profile-visual reveal reveal-d2" aria-hidden="true" data-lvt-eid="562de89e4b">
+        <div class="pv-stage" data-lvt-eid="6f62f5cdd6">
+          <canvas id="pvCanvas" data-lvt-eid="fea1a79927"></canvas>
+          <span class="pv-caption" data-lvt-eid="73f8beabe5">ONLYSTYLE · CORE SYSTEM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FLEET DATA ===== -->
+<section class="stats-band" id="stats" aria-label="核心数据" data-lvt-eid="76e2976b6b">
+  <div class="container" data-lvt-eid="950ea56f7e">
+    <div class="stats-grid" data-lvt-eid="d05d70b581">
+      <div class="stat-card reveal" data-lvt-eid="c8365e76b1">
+        <svg class="stat-icon" viewBox="0 0 44 44" fill="none" aria-hidden="true" data-lvt-eid="18cb9c76a3">
+          <circle cx="22" cy="22" r="16" stroke="#3BE0FF" stroke-width="1.4" opacity=".55" data-lvt-eid="e7268d4409"></circle>
+          <path d="M22 10v2M22 32v2M10 22h2M32 22h2" stroke="#3BE0FF" stroke-width="1.6" stroke-linecap="round" data-lvt-eid="fba3e54ea0"></path>
+          <path d="M22 22l7-9" stroke="#1F5BFF" stroke-width="2.2" stroke-linecap="round" data-lvt-eid="aa5f231439"></path>
+          <circle cx="22" cy="22" r="2.6" fill="#3BE0FF" data-lvt-eid="07131c3d55"></circle>
+        </svg>
+        <div class="stat-num-row" data-lvt-eid="74f355ffa0"><span class="stat-num" data-target="23" data-lvt-eid="3d50e431b3">0</span><span class="stat-unit" data-lvt-eid="06527dd024">+</span><span class="stat-unit" data-lvt-eid="d442b762cc">年</span></div>
+        <p class="stat-label" data-lvt-eid="2a5ec53e8a">行业深耕</p>
+        <p class="stat-note" data-lvt-eid="abd63d9bdb">SINCE 2003</p>
+      </div>
+      <div class="stat-card reveal reveal-d1" data-lvt-eid="1c2b3e5f30">
+        <svg class="stat-icon" viewBox="0 0 44 44" fill="none" aria-hidden="true" data-lvt-eid="466f920380">
+          <path d="M22 6l4.6 9.4 10.4 1.5-7.5 7.3 1.8 10.3L22 29.7l-9.3 4.8 1.8-10.3L7 16.9l10.4-1.5L22 6z" stroke="#3BE0FF" stroke-width="1.4" stroke-linejoin="round" fill="rgba(31,91,255,.18)" data-lvt-eid="84bdac83e4"></path>
+        </svg>
+        <div class="stat-num-row" data-lvt-eid="6f70ee171f"><span class="stat-num" data-target="1000" data-lvt-eid="ff7172655a">0</span><span class="stat-unit" data-lvt-eid="abe2e051b6">万</span></div>
+        <p class="stat-label" data-lvt-eid="7352a7d779">注册资本</p>
+        <p class="stat-note" data-lvt-eid="ecdeec2e59">CNY 10,000,000</p>
+      </div>
+      <div class="stat-card reveal reveal-d2" data-lvt-eid="b1b39eab98">
+        <svg class="stat-icon" viewBox="0 0 44 44" fill="none" aria-hidden="true" data-lvt-eid="0f69c8b991">
+          <path d="M14 6h16a2 2 0 012 2v28l-10-6-10 6V8a2 2 0 012-2z" stroke="#3BE0FF" stroke-width="1.4" stroke-linejoin="round" fill="rgba(31,91,255,.14)" data-lvt-eid="e7bd52c1ed"></path>
+          <path d="M18 14h8M18 19h8" stroke="#1F5BFF" stroke-width="1.8" stroke-linecap="round" data-lvt-eid="3674ee5d2e"></path>
+        </svg>
+        <div class="stat-num-row" data-lvt-eid="50cbb2a2e2"><span class="stat-num" data-target="3" data-lvt-eid="0a645ce827">0</span><span class="stat-unit" data-lvt-eid="8cbddea53f">项</span></div>
+        <p class="stat-label" data-lvt-eid="df7f98ee69">核心资质</p>
+        <p class="stat-note" data-lvt-eid="25327399f0">LICENSED &amp; CERTIFIED</p>
+      </div>
+      <div class="stat-card reveal reveal-d3" data-lvt-eid="f41576a770">
+        <svg class="stat-icon" viewBox="0 0 44 44" fill="none" aria-hidden="true" data-lvt-eid="f927c02171">
+          <circle cx="22" cy="22" r="15" stroke="#3BE0FF" stroke-width="1.4" opacity=".55" data-lvt-eid="80fc718301"></circle>
+          <ellipse cx="22" cy="22" rx="15" ry="6" stroke="#1F5BFF" stroke-width="1.2" opacity=".8" data-lvt-eid="481da911e7"></ellipse>
+          <ellipse cx="22" cy="22" rx="6" ry="15" stroke="#1F5BFF" stroke-width="1.2" opacity=".8" data-lvt-eid="ba91bc3eb3"></ellipse>
+          <circle cx="30" cy="14" r="2.6" fill="#3BE0FF" data-lvt-eid="60ae0fceae"></circle>
+        </svg>
+        <div class="stat-num-row" data-lvt-eid="4577cd7192"><span class="stat-num" data-target="4" data-lvt-eid="57e6046be7">0</span><span class="stat-unit" data-lvt-eid="ef547107cf">省</span></div>
+        <p class="stat-label" data-lvt-eid="b8cd4d0a3e">业务覆盖范围</p>
+        <p class="stat-note" data-lvt-eid="8adbf5bd3d">沪 · 苏 · 浙 · 川</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== VOYAGE TIMELINE ===== -->
+<section class="sec" id="timeline" aria-label="品牌时间线" data-lvt-eid="bd7a48ce6a">
+  <div class="container" data-lvt-eid="54e61c6214">
+    <div class="sec-head reveal" data-lvt-eid="14aba1eda9">
+      <p class="sec-eyebrow" data-lvt-eid="c4ff9f1313">VOYAGE TIMELINE / 品牌时间线</p>
+      <h2 class="sec-title" data-lvt-eid="8d1ebb1bcd">航迹 · <em data-lvt-eid="b1e4af5c24">二十余年的星际征途</em></h2>
+    </div>
+    <div class="tl-wrap" data-lvt-eid="3d2863341a">
+      <div class="tl-line" aria-hidden="true" data-lvt-eid="776ad902a2"></div>
+
+      <div class="tl-item reveal" data-lvt-eid="4b1c97fbbb">
+        <div class="tl-year" data-lvt-eid="0d5bc5a988">2003<small data-lvt-eid="a5a55c76e8">LAUNCH</small></div>
+        <span class="tl-dot" aria-hidden="true" data-lvt-eid="71916ee4a8"></span>
+        <div class="tl-card" data-lvt-eid="3fbe09dd92">
+          <h3 data-lvt-eid="c7e6a678a5">公司成立，开启数字化征途</h3>
+          <p data-lvt-eid="d68e781c82">上海唯风信息技术有限公司于上海注册成立，自此起航，驶入数字化星域。</p>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" data-lvt-eid="7cd6f1e500">
+        <div class="tl-year" data-lvt-eid="c257a79995">2010<small data-lvt-eid="7ad140305e">EXPAND</small></div>
+        <span class="tl-dot" aria-hidden="true" data-lvt-eid="7e03fa9b0c"></span>
+        <div class="tl-card" data-lvt-eid="3efc976433">
+          <h3 data-lvt-eid="1be59fd64d">拓展企业信息化服务</h3>
+          <p data-lvt-eid="32a66eda43">舰队扩容，为不同行业的企业和机构提供全面的信息化解决方案。</p>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" data-lvt-eid="fe3a0e86ff">
+        <div class="tl-year" data-lvt-eid="60a6a66566">2018<small data-lvt-eid="4d22427c19">ORBIT</small></div>
+        <span class="tl-dot" aria-hidden="true" data-lvt-eid="998f394994"></span>
+        <div class="tl-card" data-lvt-eid="da750512c0">
+          <h3 data-lvt-eid="3178103f48">布局云计算与大数据</h3>
+          <p data-lvt-eid="62e799c40a">进入云与数据的新轨道，构建弹性架构与实时洞察能力。</p>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" data-lvt-eid="ba1b743c29">
+        <div class="tl-year" data-lvt-eid="dc0bff0d93">2023<small data-lvt-eid="08142eb984">CERTIFY</small></div>
+        <span class="tl-dot" aria-hidden="true" data-lvt-eid="4c2955048a"></span>
+        <div class="tl-card" data-lvt-eid="98c23d3e1d">
+          <h3 data-lvt-eid="903a4eb238">获评高新技术企业</h3>
+          <p data-lvt-eid="8151294f42">技术实力获官方认证，正式取得「高新技术企业」航行许可。</p>
+          <span class="tl-badge" data-lvt-eid="e8d9d19b11">✓ 官方认证</span>
+          <span class="tl-code" data-lvt-eid="705e7c6d9b">证书号 GR202331007290</span>
+        </div>
+      </div>
+
+      <div class="tl-item now reveal" data-lvt-eid="4b7c900001">
+        <div class="tl-year" data-lvt-eid="b2c769b121">2026<small data-lvt-eid="4a2d023e26">NOW</small></div>
+        <span class="tl-dot" aria-hidden="true" data-lvt-eid="2460b5515f"></span>
+        <div class="tl-card" data-lvt-eid="e069f8cb74">
+          <h3 data-lvt-eid="e03a7d412f">获跨地区增值电信业务经营许可证</h3>
+          <p data-lvt-eid="53619d6073">取得互联网接入服务业务许可，航线覆盖上海、江苏、浙江、四川四省市。</p>
+          <span class="tl-badge" data-lvt-eid="75c6406ef7">✓ 现行有效</span>
+          <span class="tl-code" data-lvt-eid="df295b39d2">编号 B1-20262247</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CREW ===== -->
+<section class="sec" id="crew" aria-label="舰队成员" data-lvt-eid="cb48cf1984">
+  <div class="container" data-lvt-eid="5f28fcba56">
+    <div class="sec-head reveal" data-lvt-eid="bb74aee529">
+      <p class="sec-eyebrow" data-lvt-eid="a5ca4a6aa1">FLEET CREW / 舰队成员</p>
+      <h2 class="sec-title" data-lvt-eid="a9ecec7469">舰员 · <em data-lvt-eid="d6cc996011">各司其职的星际乘组</em></h2>
+      <p class="sec-sub" data-lvt-eid="71ba55e7ba">每一位舰员都是舰队不可或缺的一环 —— 从领航到交付，专业分工，协同推进每一次星际任务。</p>
+    </div>
+    <div class="crew-grid" id="crewGrid" data-lvt-eid="2e2abfcf46">
+      <!-- 舰员卡片由 JS 注入（统一全息头像生成器） -->
+    </div>
+  </div>
+</section>
+
+<!-- ===== TECH STACK ===== -->
+<section class="sec" id="tech" aria-label="星舰系统" data-lvt-eid="801bd88350">
+  <div class="container" data-lvt-eid="85fb1ab692">
+    <div class="sec-head reveal" data-lvt-eid="1c59f89f88">
+      <p class="sec-eyebrow" data-lvt-eid="b604a55b48">STARSHIP SYSTEMS / 星舰系统</p>
+      <h2 class="sec-title" data-lvt-eid="8d91515410">系统 · <em data-lvt-eid="925f992f97">驱动舰队前进的六大子系统</em></h2>
+    </div>
+    <div class="tech-grid" data-lvt-eid="fc462d93f5">
+
+      <div class="tech-card reveal" data-lvt-eid="ae52430d40">
+        <div class="tech-icon" data-lvt-eid="a19187a707">
+          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true" data-lvt-eid="6f66f23be7">
+            <circle cx="28" cy="28" r="13" stroke="#3BE0FF" stroke-width="1.6" fill="rgba(31,91,255,.12)" data-lvt-eid="dc652895b8"></circle>
+            <ellipse cx="28" cy="28" rx="22" ry="8" stroke="#1F5BFF" stroke-width="1.3" transform="rotate(-18 28 28)" opacity=".85" data-lvt-eid="b3a62588e6"></ellipse>
+            <circle cx="46" cy="20" r="3" fill="#3BE0FF" data-lvt-eid="16652fd3dc"></circle>
+          </svg>
+        </div>
+        <h3 data-lvt-eid="9e4bb99c8f"><span class="idx" data-lvt-eid="c078e0b0cc">SYS.01</span>全链路数字化方案</h3>
+        <p data-lvt-eid="d1629b9e73">咨询 → 平台开发 → 部署 → 运维，一条完整航线贯穿数字化转型全程。</p>
+      </div>
+
+      <div class="tech-card reveal reveal-d1" data-lvt-eid="228182bae2">
+        <div class="tech-icon" data-lvt-eid="6e6d3f2fb5">
+          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true" data-lvt-eid="85dec9cd9b">
+            <circle cx="28" cy="28" r="14" fill="rgba(31,91,255,.16)" stroke="#3BE0FF" stroke-width="1.5" data-lvt-eid="a9826d1a93"></circle>
+            <path d="M20 30l5-8 5 6 6-10" stroke="#3BE0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="b96b26843e"></path>
+            <circle cx="28" cy="28" r="20" stroke="#1F5BFF" stroke-width="1" stroke-dasharray="3 5" opacity=".7" data-lvt-eid="ac1e48e5e6"></circle>
+          </svg>
+        </div>
+        <h3 data-lvt-eid="c5e81c792d"><span class="idx" data-lvt-eid="8e17a46605">SYS.02</span>行业智能化升级</h3>
+        <p data-lvt-eid="6b39707f05">AI 算法 + 行业 Know-how，为传统业态装上智能引擎。</p>
+      </div>
+
+      <div class="tech-card reveal reveal-d2" data-lvt-eid="785765b7de">
+        <div class="tech-icon" data-lvt-eid="76b3d1faee">
+          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true" data-lvt-eid="b91c64691e">
+            <rect x="14" y="16" width="28" height="22" rx="4" stroke="#3BE0FF" stroke-width="1.5" fill="rgba(31,91,255,.12)" data-lvt-eid="dc6c2797cf"></rect>
+            <path d="M22 27l4 4 8-9" stroke="#3BE0FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="8062871893"></path>
+            <path d="M20 44h16" stroke="#1F5BFF" stroke-width="2" stroke-linecap="round" data-lvt-eid="ef1764f976"></path>
+            <circle cx="42" cy="14" r="3" fill="#3BE0FF" opacity=".9" data-lvt-eid="f27ef8cb54"></circle>
+          </svg>
+        </div>
+        <h3 data-lvt-eid="572454fc45"><span class="idx" data-lvt-eid="a0ff924d05">SYS.03</span>AI 交付服务</h3>
+        <p data-lvt-eid="b5c965a0dd">智能生成，专业交付 —— 让 AI 产能落地为可用的业务成果。</p>
+      </div>
+
+      <div class="tech-card reveal" data-lvt-eid="c8924e8f4f">
+        <div class="tech-icon" data-lvt-eid="7f0e7e5a04">
+          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true" data-lvt-eid="a8fca3d79b">
+            <path d="M18 34a8 8 0 011-16 11 11 0 0121 3 7 7 0 01-2 13H18z" stroke="#3BE0FF" stroke-width="1.5" fill="rgba(31,91,255,.14)" stroke-linejoin="round" data-lvt-eid="39c9bca99d"></path>
+            <path d="M24 40v6M32 40v6" stroke="#1F5BFF" stroke-width="1.6" stroke-linecap="round" data-lvt-eid="9173418530"></path>
+            <circle cx="24" cy="48" r="1.8" fill="#3BE0FF" data-lvt-eid="679c0c35e1"></circle><circle cx="32" cy="48" r="1.8" fill="#3BE0FF" data-lvt-eid="30136f8019"></circle>
+          </svg>
+        </div>
+        <h3 data-lvt-eid="0e7653f40b"><span class="idx" data-lvt-eid="cceea9fb11">SYS.04</span>云计算与大数据</h3>
+        <p data-lvt-eid="00fee969d5">弹性架构，实时洞察，为舰队提供源源不断的算力燃料。</p>
+      </div>
+
+      <div class="tech-card reveal reveal-d1" data-lvt-eid="4762454615">
+        <div class="tech-icon" data-lvt-eid="4ba331b379">
+          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true" data-lvt-eid="89645090fa">
+            <path d="M28 10l14 5v12c0 9-6 15-14 19-8-4-14-10-14-19V15l14-5z" stroke="#3BE0FF" stroke-width="1.5" fill="rgba(31,91,255,.14)" stroke-linejoin="round" data-lvt-eid="70bacb4d90"></path>
+            <path d="M22 28l4.5 4.5L35 23" stroke="#3BE0FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="69e6323d37"></path>
+          </svg>
+        </div>
+        <h3 data-lvt-eid="762fd5f38a"><span class="idx" data-lvt-eid="70b098ecb0">SYS.05</span>网络与信息安全</h3>
+        <p data-lvt-eid="a79d682daf">等保合规，全链路防护 —— 舰队的能量屏障，坚不可摧。</p>
+      </div>
+
+      <div class="tech-card reveal reveal-d2" data-lvt-eid="298b0b75a6">
+        <div class="tech-icon" data-lvt-eid="6b020bfb18">
+          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true" data-lvt-eid="1bc45f6b42">
+            <circle cx="28" cy="28" r="16" stroke="#3BE0FF" stroke-width="1.5" fill="rgba(31,91,255,.12)" data-lvt-eid="d6d8a9e734"></circle>
+            <ellipse cx="28" cy="28" rx="16" ry="6" stroke="#1F5BFF" stroke-width="1.2" data-lvt-eid="4cd27c5896"></ellipse>
+            <path d="M12 28h32M28 12c5 8 5 24 0 32M28 12c-5 8-5 24 0 32" stroke="#1F5BFF" stroke-width="1" opacity=".7" data-lvt-eid="ca36f4e3a6"></path>
+            <circle cx="40" cy="18" r="3" fill="#3BE0FF" data-lvt-eid="dbf34b0cc8"></circle>
+          </svg>
+        </div>
+        <h3 data-lvt-eid="4cbb5d33a6"><span class="idx" data-lvt-eid="219bc95deb">SYS.06</span>互联网接入服务</h3>
+        <p data-lvt-eid="06ef13b28e">跨地区 ISP 许可，四省覆盖 —— 官方授牌的星际航道通行权。</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===== CREDENTIALS ===== -->
+<section class="sec sec-light" id="credentials" aria-label="航行资质" data-lvt-eid="400cb1f764">
+  <div class="container" data-lvt-eid="94535cc72d">
+    <div class="sec-head reveal" data-lvt-eid="500b06bb59">
+      <p class="sec-eyebrow" data-lvt-eid="e596d78676">CREDENTIALS / 航行资质</p>
+      <h2 class="sec-title" data-lvt-eid="28eb0f34a0">资质与荣誉 · <em data-lvt-eid="731e617693">官方颁发的航行许可证</em></h2>
+      <p class="sec-sub" data-lvt-eid="d82b1a9220">每一份证照，都是舰队合法远航的凭证 —— 经政府主管部门核准，真实可查。</p>
+    </div>
+    <div class="cert-grid" data-lvt-eid="0a9807e474">
+
+      <div class="cert-card reveal" data-lvt-eid="a5240d6472">
+        <div class="cert-top" data-lvt-eid="9c235dc84a">
+          <h3 class="cert-name" data-lvt-eid="cc0dccf32a">营业执照</h3>
+          <span class="cert-seal" aria-hidden="true" data-lvt-eid="77f8f1fc53">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" data-lvt-eid="5ff2a324d1"><path d="M13 3l2.6 5.4 5.9.8-4.3 4.2 1 5.9L13 16.5 7.8 19.3l1-5.9L4.5 9.2l5.9-.8L13 3z" fill="rgba(22,163,74,.18)" stroke="#16A34A" stroke-width="1.4" stroke-linejoin="round" data-lvt-eid="1b7918e699"></path></svg>
+          </span>
+        </div>
+        <dl class="cert-rows" data-lvt-eid="2e0d284cc0">
+          <div class="cert-row" data-lvt-eid="12466b88da"><dt data-lvt-eid="97f1fd5367">统一信用代码</dt><dd class="mono" data-lvt-eid="17ade06e53">913101147472893241</dd></div>
+          <div class="cert-row" data-lvt-eid="b52ad2da44"><dt data-lvt-eid="0c49c9db2b">法定代表人</dt><dd data-lvt-eid="2de2e4de73">卢时扬</dd></div>
+          <div class="cert-row" data-lvt-eid="ffd7eae6b6"><dt data-lvt-eid="cf94175842">注册资本</dt><dd data-lvt-eid="8be96e9faa">人民币 1000.0000 万元整</dd></div>
+          <div class="cert-row" data-lvt-eid="05f4749c2a"><dt data-lvt-eid="254a740ecb">成立日期</dt><dd class="mono" data-lvt-eid="57a195f5f6">2003-02-18</dd></div>
+          <div class="cert-row" data-lvt-eid="39a3f428bc"><dt data-lvt-eid="b353b85f30">营业期限</dt><dd class="mono" data-lvt-eid="967b6baaa4">2003-02-18 至 2033-02-17</dd></div>
+          <div class="cert-row" data-lvt-eid="eb47698169"><dt data-lvt-eid="dd5534c08b">住所</dt><dd data-lvt-eid="2ace6ad21c">上海市闵行区莲花南路 1500 弄 8-9 号 306 室</dd></div>
+        </dl>
+        <a class="cert-btn" href="#" aria-label="查看营业执照" data-lvt-eid="8f2cefb9ba">查看证书
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" data-lvt-eid="5111fe9b92"><path d="M2 7h10M8 3l4 4-4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="622a16806c"></path></svg>
+        </a>
+        <p class="cert-issuer" data-lvt-eid="dc9f2ff669"><b data-lvt-eid="bab96e9faa">发证机关</b>上海市闵行区市场监督管理局</p>
+      </div>
+
+      <div class="cert-card reveal reveal-d1" data-lvt-eid="124cacabc7">
+        <div class="cert-top" data-lvt-eid="8984eda262">
+          <h3 class="cert-name" data-lvt-eid="45e7490263">高新技术企业证书</h3>
+          <span class="cert-seal" aria-hidden="true" data-lvt-eid="3b005954c5">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" data-lvt-eid="3ca1cc6206"><path d="M13 3l2.6 5.4 5.9.8-4.3 4.2 1 5.9L13 16.5 7.8 19.3l1-5.9L4.5 9.2l5.9-.8L13 3z" fill="rgba(22,163,74,.18)" stroke="#16A34A" stroke-width="1.4" stroke-linejoin="round" data-lvt-eid="5f7ae357d7"></path></svg>
+          </span>
+        </div>
+        <dl class="cert-rows" data-lvt-eid="44ef1e0311">
+          <div class="cert-row" data-lvt-eid="a536c6ed63"><dt data-lvt-eid="425a17e230">证书编号</dt><dd class="mono" data-lvt-eid="fc77cab452">GR202331007290</dd></div>
+          <div class="cert-row" data-lvt-eid="50d68ea34d"><dt data-lvt-eid="121060bf40">发证时间</dt><dd class="mono" data-lvt-eid="efb53c2e0d">2023-12-12</dd></div>
+          <div class="cert-row" data-lvt-eid="4b9fb0ba85"><dt data-lvt-eid="f8785fde6e">有效期</dt><dd data-lvt-eid="3a3f489044">三年</dd></div>
+          <div class="cert-row" data-lvt-eid="60e09c6111"><dt data-lvt-eid="d0e09c6111">企业名称</dt><dd data-lvt-eid="662898d36c">上海唯风信息技术有限公司</dd></div>
+        </dl>
+        <a class="cert-btn" href="#" aria-label="查看高新技术企业证书" data-lvt-eid="f21f019046">查看证书
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" data-lvt-eid="1185e72e0d"><path d="M2 7h10M8 3l4 4-4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="9715553149"></path></svg>
+        </a>
+        <p class="cert-issuer" data-lvt-eid="96402e0c36"><b data-lvt-eid="f2470cd9cf">发证机关</b>上海市科学技术委员会 · 上海市财政局 · 国家税务总局上海市税务局</p>
+      </div>
+
+      <div class="cert-card reveal reveal-d2" data-lvt-eid="851d82d253">
+        <div class="cert-top" data-lvt-eid="ffc11d8640">
+          <h3 class="cert-name" data-lvt-eid="dce12d27ff">增值电信业务经营许可证</h3>
+          <span class="cert-seal" aria-hidden="true" data-lvt-eid="eec1aac2ae">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" data-lvt-eid="b89d503a77"><path d="M13 3l2.6 5.4 5.9.8-4.3 4.2 1 5.9L13 16.5 7.8 19.3l1-5.9L4.5 9.2l5.9-.8L13 3z" fill="rgba(22,163,74,.18)" stroke="#16A34A" stroke-width="1.4" stroke-linejoin="round" data-lvt-eid="e43f28337f"></path></svg>
+          </span>
+        </div>
+        <dl class="cert-rows" data-lvt-eid="befebf1fee">
+          <div class="cert-row" data-lvt-eid="0b46882b3a"><dt data-lvt-eid="6fa41e6f3b">许可证编号</dt><dd class="mono" data-lvt-eid="d3d26dbbce">B1-20262247</dd></div>
+          <div class="cert-row" data-lvt-eid="b601a97d70"><dt data-lvt-eid="feec741806">业务种类</dt><dd data-lvt-eid="7ce55654bd">互联网接入服务业务</dd></div>
+          <div class="cert-row" data-lvt-eid="aace99df75"><dt data-lvt-eid="bd2c1946ef">覆盖范围</dt><dd data-lvt-eid="a287803cf3">上海、江苏、浙江、四川</dd></div>
+          <div class="cert-row" data-lvt-eid="297b51d748"><dt data-lvt-eid="e6f48c9cac">发证日期</dt><dd class="mono" data-lvt-eid="d562803079">2026-06-26</dd></div>
+          <div class="cert-row" data-lvt-eid="4ca1165297"><dt data-lvt-eid="574cc0e242">有效期至</dt><dd class="mono" data-lvt-eid="a5ffc79e5f">2031-06-26</dd></div>
+        </dl>
+        <a class="cert-btn" href="#" aria-label="查看增值电信业务经营许可证" data-lvt-eid="a7ae544e41">查看证书
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" data-lvt-eid="e9475a538b"><path d="M2 7h10M8 3l4 4-4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="68b4cb9301"></path></svg>
+        </a>
+        <p class="cert-issuer" data-lvt-eid="a8c93db7d2"><b data-lvt-eid="373f8f6d2c">发证机关</b>中华人民共和国工业和信息化部</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="cta-sec" id="cta" aria-label="联系我们" data-lvt-eid="a317380acf">
+  <span class="cta-glow1" aria-hidden="true" data-lvt-eid="25a705d77e"></span>
+  <span class="cta-glow2" aria-hidden="true" data-lvt-eid="976765a7f1"></span>
+  <div class="container" data-lvt-eid="670dce71da">
+    <h2 class="cta-title reveal" data-lvt-eid="2b391c6867"><span class="grad" data-lvt-eid="01aa47d446">准备启航？</span></h2>
+    <p class="cta-sub reveal reveal-d1" data-lvt-eid="abdcd79ea0">与 ONLYSTYLE 一起探索数字星域</p>
+    <a href="/contact" target="_top" class="btn-primary reveal reveal-d2" data-lvt-eid="b86f5f41ac">联系我们
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" data-lvt-eid="60807aaf87"><path d="M3 9h12M10 4l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="9901561e69"></path></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<!-- footer removed: 全站 SiteFooter 渲染在 iframe 下方（见 About.vue / App.vue） -->
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===== 舰员数据 + 全息头像生成器 ===== */
+  var crew = [
+    {id:"CRW-01", role:"战略领航员", en:"Navigator", desc:"制定航线，把握产业数字化方向", hue:0,  visor:"band",   crest:"antenna"},
+    {id:"CRW-02", role:"技术架构师", en:"Architect", desc:"搭建星舰引擎，驱动核心系统",     hue:1,  visor:"grid",   crest:"fin"},
+    {id:"CRW-03", role:"产品指挥官", en:"Product",   desc:"设计作战方案，连接业务与技术",   hue:2,  visor:"split",  crest:"crown"},
+    {id:"CRW-04", role:"数据占星师", en:"Data",      desc:"解析星图数据，洞察增长轨迹",     hue:3,  visor:"lens",   crest:"orb"},
+    {id:"CRW-05", role:"安全守卫者", en:"Security",  desc:"守护舰队屏障，确保合规稳健",     hue:4,  visor:"shield", crest:"horn"},
+    {id:"CRW-06", role:"交付推进员", en:"Delivery",  desc:"落地每一项星际任务",             hue:5,  visor:"scan",   crest:"jet"}
+  ];
+
+  function avatarSVG(c){
+    var uid = "hv" + c.hue;
+    // 面罩形态
+    var visor = {
+      band:   '<rect x="30" y="52" width="60" height="16" rx="8" fill="url(#'+uid+'v)" opacity=".92"/><rect x="36" y="57" width="14" height="6" rx="3" fill="#071229" opacity=".55"/><rect x="70" y="57" width="14" height="6" rx="3" fill="#071229" opacity=".55"/>',
+      grid:   '<path d="M32 50h56v18a8 8 0 01-8 8H40a8 8 0 01-8-8V50z" fill="url(#'+uid+'v)" opacity=".9"/><path d="M42 50v26M52 50v26M62 50v26M72 50v26M32 59h56M32 68h56" stroke="#071229" stroke-width="1.4" opacity=".5"/>',
+      split:  '<path d="M60 46l26 10-26 22-26-22 26-10z" fill="url(#'+uid+'v)" opacity=".92"/><path d="M60 46v32" stroke="#071229" stroke-width="1.6" opacity=".55"/>',
+      lens:   '<circle cx="60" cy="60" r="17" fill="url(#'+uid+'v)" opacity=".92"/><circle cx="60" cy="60" r="9" fill="none" stroke="#071229" stroke-width="1.6" opacity=".6"/><circle cx="60" cy="60" r="3" fill="#071229" opacity=".7"/>',
+      shield: '<path d="M60 44l22 7v11c0 11-9 18-22 23-13-5-22-12-22-23V51l22-7z" fill="url(#'+uid+'v)" opacity=".9"/><path d="M52 62l6 6 12-13" stroke="#071229" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/>',
+      scan:   '<rect x="32" y="52" width="56" height="17" rx="8.5" fill="url(#'+uid+'v)" opacity=".92"/><rect x="40" y="58" width="40" height="2" rx="1" fill="#071229" opacity=".6"/><circle cx="46" cy="60.5" r="3" fill="#071229" opacity=".7"/><circle cx="74" cy="60.5" r="3" fill="#071229" opacity=".7"/>'
+    }[c.visor];
+    // 头盔顶饰
+    var crest = {
+      antenna:'<path d="M60 18v-8" stroke="#3BE0FF" stroke-width="2" stroke-linecap="round"/><circle cx="60" cy="7" r="3.4" fill="#3BE0FF"><animate attributeName="opacity" values="1;.25;1" dur="2.2s" repeatCount="indefinite"/></circle>',
+      fin:    '<path d="M60 14l10 12H50l10-12z" fill="none" stroke="#3BE0FF" stroke-width="2" stroke-linejoin="round"/>',
+      crown:  '<path d="M46 16l7-8 7 8 7-8 7 8" fill="none" stroke="#3BE0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      orb:    '<circle cx="60" cy="9" r="4.6" fill="none" stroke="#3BE0FF" stroke-width="1.8"/><circle cx="60" cy="9" r="1.8" fill="#3BE0FF"><animate attributeName="opacity" values=".3;1;.3" dur="2.8s" repeatCount="indefinite"/></circle>',
+      horn:   '<path d="M42 20L34 8M78 20l8-12" stroke="#3BE0FF" stroke-width="2.2" stroke-linecap="round"/>',
+      jet:    '<path d="M52 12h16M56 6h8" stroke="#3BE0FF" stroke-width="2.2" stroke-linecap="round"/><path d="M60 16v-4" stroke="#3BE0FF" stroke-width="2"/>'
+    }[c.crest];
+
+    return '<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+c.role+'全息头像">'+
+      '<defs>'+
+        '<linearGradient id="'+uid+'g" x1="20" y1="10" x2="100" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#3BE0FF"/><stop offset="1" stop-color="#1F5BFF"/></linearGradient>'+
+        '<linearGradient id="'+uid+'v" x1="32" y1="46" x2="88" y2="80" gradientUnits="userSpaceOnUse"><stop stop-color="#3BE0FF" stop-opacity=".95"/><stop offset="1" stop-color="#1F5BFF" stop-opacity=".8"/></linearGradient>'+
+        '<radialGradient id="'+uid+'bg" cx="50%" cy="42%" r="58%"><stop stop-color="rgba(31,91,255,.28)"/><stop offset="1" stop-color="rgba(31,91,255,0)"/></radialGradient>'+
+      '</defs>'+
+      '<circle cx="60" cy="58" r="52" fill="url(#'+uid+'bg)"/>'+
+      '<circle cx="60" cy="58" r="52" stroke="rgba(59,224,255,.35)" stroke-width="1" stroke-dasharray="2 6"/>'+
+      /* 肩甲 */
+      '<path d="M22 112c4-18 18-28 38-28s34 10 38 28" stroke="url(#'+uid+'g)" stroke-width="2.4" fill="rgba(31,91,255,.14)" stroke-linejoin="round"/>'+
+      '<path d="M34 104l8 6M86 104l-8 6" stroke="#3BE0FF" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>'+
+      /* 头盔 */
+      '<path d="M60 20c19 0 32 14 32 33v14c0 15-13 26-32 26S28 82 28 67V53c0-19 13-33 32-33z" fill="rgba(10,26,62,.85)" stroke="url(#'+uid+'g)" stroke-width="2.2"/>'+
+      /* 头盔高光弧 */
+      '<path d="M38 40c5-7 13-11 22-11" stroke="#3BE0FF" stroke-width="1.6" stroke-linecap="round" opacity=".55"/>'+
+      /* 侧耳装置 */
+      '<rect x="22" y="56" width="7" height="16" rx="3.5" fill="rgba(59,224,255,.5)"/><rect x="91" y="56" width="7" height="16" rx="3.5" fill="rgba(59,224,255,.5)"/>'+
+      visor + crest +
+      /* 扫描线动画 */
+      '<rect x="28" y="30" width="64" height="2" fill="#3BE0FF" opacity=".28"><animate attributeName="y" values="28;96;28" dur="4.5s" repeatCount="indefinite"/></rect>'+
+    '</svg>';
+  }
+
+  var crewGrid = document.getElementById("crewGrid");
+  if(crewGrid){
+    var html = "";
+    for(var i=0;i<crew.length;i++){
+      var c = crew[i];
+      var dcls = i%3===1 ? " reveal-d1" : (i%3===2 ? " reveal-d2" : "");
+      html += '<div class="crew-card reveal'+dcls+'">'+
+        '<span class="crew-id">'+c.id+'</span>'+
+        '<div class="crew-avatar">'+avatarSVG(c)+'</div>'+
+        '<h3 class="crew-role">'+c.role+'</h3>'+
+        '<p class="crew-en">'+c.en+'</p>'+
+        '<p class="crew-desc">'+c.desc+'</p>'+
+      '</div>';
+    }
+    crewGrid.innerHTML = html;
+  }
+
+  /* ===== HERO 视频：兜底确保自动播放（muted+playsinline 已满足浏览器策略） ===== */
+  var heroVideo = document.getElementById("heroVideo");
+  if(heroVideo){
+    var vp = heroVideo.play();
+    if(vp && vp.catch){ vp.catch(function(){ heroVideo.play(); }); }
+  }
+
+  /* ===== NAV 滚动加深 ===== */
+  var nav = document.getElementById("nav");
+  function onScrollNav(){
+    if(window.scrollY > 24){ nav.classList.add("scrolled"); }
+    else{ nav.classList.remove("scrolled"); }
+  }
+  window.addEventListener("scroll", onScrollNav, {passive:true});
+  onScrollNav();
+
+  /* ===== 移动端菜单 ===== */
+  var toggle = document.getElementById("mobileToggle");
+  var mobileNav = document.getElementById("mobileNav");
+  if(toggle && mobileNav){
+    toggle.addEventListener("click", function(){
+      var open = mobileNav.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    mobileNav.addEventListener("click", function(e){
+      if(e.target.tagName === "A"){ mobileNav.classList.remove("open"); toggle.setAttribute("aria-expanded","false"); }
+    });
+  }
+
+  /* ===== 入场揭示 IntersectionObserver ===== */
+  var revealEls = document.querySelectorAll(".reveal");
+  if("IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add("visible"); io.unobserve(en.target); }
+      });
+    },{threshold:.14, rootMargin:"0px 0px -40px 0px"});
+    revealEls.forEach(function(el){ io.observe(el); });
+  } else {
+    revealEls.forEach(function(el){ el.classList.add("visible"); });
+  }
+
+  /* ===== 数据 counting-up ===== */
+  var nums = document.querySelectorAll(".stat-num");
+  function countUp(el){
+    var target = parseInt(el.getAttribute("data-target"),10) || 0;
+    var dur = 1600, t0 = null;
+    function ease(x){ return 1 - Math.pow(1 - x, 3); }
+    function step(ts){
+      if(!t0) t0 = ts;
+      var p = Math.min((ts - t0)/dur, 1);
+      el.textContent = Math.round(target * ease(p));
+      if(p < 1) requestAnimationFrame(step);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(step);
+  }
+  if("IntersectionObserver" in window){
+    var io2 = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ countUp(en.target); io2.unobserve(en.target); }
+      });
+    },{threshold:.5});
+    nums.forEach(function(el){ io2.observe(el); });
+  } else {
+    nums.forEach(function(el){ el.textContent = el.getAttribute("data-target"); });
+  }
+})();
+</script>
+
+<!-- ===== Three.js（r128 CDN）· 公司简介 3D 地球（无轨道环 / 无大气圈） ===== -->
+<script src="/about-design/three.min.js" defer=""></script>
+<script defer="">
+(function(){
+  "use strict";
+  function init(){
+    if(typeof THREE === "undefined") return; /* CDN 失败 → .pv-stage 渐变兜底 */
+    var stage  = document.querySelector(".pv-stage");
+    var canvas = document.getElementById("pvCanvas");
+    if(!stage || !canvas) return;
+
+    var renderer;
+    try{
+      renderer = new THREE.WebGLRenderer({canvas:canvas, alpha:true, antialias:true});
+    }catch(err){ return; } /* WebGL 不可用 → 渐变兜底 */
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0);
+
+    var scene  = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 0, 3.5);   /* 原 4.2；移除轨道环/大气圈后拉近约 20%，地球更饱满 */
+
+    /* ----- 光照：环境光 + 侧上方太阳光（产生真实明暗交界） ----- */
+    scene.add(new THREE.AmbientLight(0x404040, 0.4));
+    var sun = new THREE.DirectionalLight(0xffffff, 1.2);
+    sun.position.set(5, 3, 5);
+    scene.add(sun);
+
+    /* ----- 地球本体：自转轴倾斜 -23.5°（黄赤交角），自西向东（+Y）自转 ----- */
+    var tiltGroup = new THREE.Group();
+    tiltGroup.rotation.x = -23.5 * Math.PI / 180;
+    scene.add(tiltGroup);
+
+    var loader = new THREE.TextureLoader();
+    loader.setCrossOrigin("anonymous");
+    var earthTex = loader.load("/about-design/jKylyvo8b41D9sMm.png");
+    earthTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    var earth = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 64, 64),
+      new THREE.MeshStandardMaterial({map:earthTex, roughness:0.6, metalness:0.1})
+    );
+    tiltGroup.add(earth);
+
+    /* ----- 轨道环 / 大气层包裹圈已按 brief 移除，仅保留地球本体 ----- */
+
+    /* ----- 星空粒子：微弱白/青星点 ----- */
+    (function(){
+      var N = 160, pos = new Float32Array(N*3), col = new Float32Array(N*3);
+      var cWhite = new THREE.Color(0xFFFFFF), cCyan = new THREE.Color(0x9FE8FF), tmp = new THREE.Color();
+      for(var i=0;i<N;i++){
+        var r = 3.6 + Math.random()*2.6;
+        var th = Math.random()*Math.PI*2, ph = Math.acos(2*Math.random()-1);
+        pos[i*3]   = r*Math.sin(ph)*Math.cos(th);
+        pos[i*3+1] = r*Math.cos(ph);
+        pos[i*3+2] = r*Math.sin(ph)*Math.sin(th);
+        tmp.copy(cWhite).lerp(cCyan, Math.random());
+        var dim = 0.35 + Math.random()*0.65;
+        col[i*3]=tmp.r*dim; col[i*3+1]=tmp.g*dim; col[i*3+2]=tmp.b*dim;
+      }
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos,3));
+      geo.setAttribute("color",    new THREE.BufferAttribute(col,3));
+      scene.add(new THREE.Points(geo, new THREE.PointsMaterial({
+        size:0.03, vertexColors:true, transparent:true, opacity:0.85,
+        sizeAttenuation:true, depthWrite:false
+      })));
+    })();
+
+    /* ----- 鼠标视差：相机轻微跟随（±0.55 单位 ≈ 最大 ±8°） ----- */
+    var tX = 0, tY = 0, camX = 0, camY = 0;
+    stage.addEventListener("pointermove", function(e){
+      var r = stage.getBoundingClientRect();
+      tX =  ((e.clientX - r.left) / r.width  - 0.5) * 1.1;
+      tY = -((e.clientY - r.top)  / r.height - 0.5) * 1.1;
+    }, {passive:true});
+    stage.addEventListener("pointerleave", function(){ tX = 0; tY = 0; });
+
+    /* ----- 尺寸响应 ----- */
+    function resize(){
+      var w = stage.clientWidth, h = stage.clientHeight;
+      if(!w || !h) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }
+    resize();
+    if(window.ResizeObserver){ new ResizeObserver(resize).observe(stage); }
+    else{ window.addEventListener("resize", resize); }
+
+    /* ----- 仅在可视区内渲染（性能：离屏暂停） ----- */
+    var inView = true;
+    if("IntersectionObserver" in window){
+      new IntersectionObserver(function(en){
+        inView = en[0].isIntersecting;
+      }, {threshold:0}).observe(stage);
+    }
+
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var SPIN = Math.PI*2/36;   /* 自转 36s/圈 */
+
+    var clock = new THREE.Clock();
+    function tick(){
+      requestAnimationFrame(tick);
+      if(!inView) return;
+      var dt = Math.min(clock.getDelta(), 0.05);
+      if(!reduceMotion){
+        earth.rotation.y += SPIN * dt;               /* 自西向东：+Y 正向 */
+      }
+      camX += (tX - camX) * 0.06;
+      camY += (tY - camY) * 0.06;
+      camera.position.x = camX;
+      camera.position.y = camY;
+      camera.lookAt(0, 0, 0);
+      renderer.render(scene, camera);
+    }
+    tick();
+  }
+  if(document.readyState === "complete"){ init(); }
+  else{ window.addEventListener("load", init); }
+})();
+
+/* ---- Brand sync (bos-brand-v1) ---- */
+window.addEventListener('message', function (e) {
+  var d = e && e.data;
+  if (!d || d.type !== 'bos-brand') return;
+  var slot = document.getElementById('brandLogoSlot');
+  if (slot) {
+    if (d.logo) {
+      slot.innerHTML = '<img src="' + d.logo + '" width="34" height="34" alt="" style="display:block;object-fit:contain;flex:none">';
+    } else {
+      slot.innerHTML = '<svg width="34" height="34" viewBox="0 0 36 36" fill="none" aria-hidden="true"><circle cx="18" cy="18" r="15" stroke="url(#ab-ng1e)" stroke-width="1.5" opacity="0.7"/><ellipse cx="18" cy="18" rx="15" ry="6" stroke="url(#ab-ng2e)" stroke-width="1" opacity="0.5" transform="rotate(-20 18 18)"/><circle cx="18" cy="18" r="5" fill="url(#ab-ng3e)"/><path d="M22 14 L28 14 L28 20" stroke="url(#ab-ng1e)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 18 L27 13" stroke="url(#ab-ng1e)" stroke-width="1.5" stroke-linecap="round"/><defs><linearGradient id="ab-ng1e" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#1F5BFF"/><stop offset="1" stop-color="#3BE0FF"/></linearGradient><linearGradient id="ab-ng2e" x1="0" y1="0" x2="36" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#3BE0FF"/><stop offset="1" stop-color="#1F5BFF"/></linearGradient><radialGradient id="ab-ng3e" cx="40%" cy="40%" r="60%"><stop stop-color="#7BA8FF"/><stop offset="1" stop-color="#1F5BFF"/></radialGradient></defs></svg>';
+    }
+  }
+  if (d.nameParts && d.nameParts.length >= 2) {
+    var n1 = document.getElementById('brandName1');
+    var n2 = document.getElementById('brandName2');
+    if (n1) n1.textContent = d.nameParts[0];
+    if (n2) n2.textContent = d.nameParts[1];
+  }
+});
+</script>
