@@ -1896,7 +1896,7 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
    ================================================================ */
 @media (max-width: 1100px) {
   .tb-search { display: none; }
-  .status-chip { display: none; }
+  .tb-logout { display: none; }
 }
 @media (max-width: 768px) {
   .sb-line-switch, .nav-group-h { display: none; }
@@ -1918,13 +1918,12 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 .logo-mark img {width:26px;height:26px;object-fit:contain;display:block;}
 .login-logo img {width:34px;height:34px;object-fit:contain;display:block;}
 
-.status-chip {display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;
+.tb-logout {display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;cursor:pointer;
   border:1px solid var(--border);border-radius:var(--r-full);background:var(--gray-50);
-  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--gray-500);white-space:nowrap;
+  font-size:12px;color:var(--gray-500);white-space:nowrap;transition:border-color .15s, background .15s, color .15s;
 }
-
-.status-chip .status-dot {width:6px;height:6px;flex-shrink:0;
-}
+.tb-logout:hover {border-color:#fecaca;background:#FFF5F5;color:var(--danger);}
+.tb-logout svg {flex-shrink:0;}
 
 .sb-ls-name span {white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
