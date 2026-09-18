@@ -255,31 +255,17 @@ window.cmPreviewRefresh = function () {
   if (f) f.src = cmPreviewUrl(_contentCurrentTab);
 };
 
-/* ---- 工具条 ---- */
+/* ---- 工具条 ----
+   2026-09-18 简化：撤掉「内容版本号 / 刷新版本号 / 立即发布」。
+   版本号机制在后端照常工作（每次写操作自动 bump，官网 60 秒缓存据此失效），
+   只是运营不需要看到 —— 缓存规则一句话说清即可。 */
 function cmToolbar() {
   return '<div class="cm-toolbar">' +
-    '<span class="cm-ver">内容版本 <b id="cmVersion">—</b></span>' +
-    '<span class="cm-dim">前台有 60 秒缓存；右侧预览不受缓存限制，保存即见</span>' +
-    '<span class="cm-toolbar-sp"></span>' +
-    '<button type="button" class="btn btn-sm btn-outline" onclick="cmLoadVersion()">刷新版本号</button>' +
-    // 设计稿纪律：一个视图只出现一个渐变主按钮，留给当前 tab 的「保存」。
-    // 「立即发布」是次要动作，用 secondary（.btn-ghost）而不是再来一个渐变。
-    '<button type="button" class="btn btn-sm btn-ghost" onclick="cmPublish()">立即发布</button>' +
+    '<span class="cm-dim">官网前台最多 60 秒内自动更新；右侧预览保存即见</span>' +
     '</div>';
 }
 
-function cmLoadVersion() {
-  API.content.get(CM_API + '/version').then(function (d) {
-    var el = $('cmVersion');
-    if (el) el.textContent = 'v' + (d && d.version != null ? d.version : '?');
-  }).catch(function () { /* 版本号读不到不影响使用 */ });
-}
-
-function cmPublish() {
-  cmRun(API.content.post(CM_API + '/publish', {}), null, function (d) {
-    showAlert('已发布，内容版本 v' + d.version + '。<br>前台最多 60 秒内自动更新。', '发布成功');
-  });
-}
+function cmLoadVersion() { /* 版本号 UI 已撤；保留空函数兼容既有调用点 */ }
 
 /* ================================================================
    Repeater（可增删的多行编辑器）
