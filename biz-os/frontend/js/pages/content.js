@@ -715,7 +715,7 @@ function renderContentSite(pane) {
         '<div class="card-header"><h3>' + cmTxt(def.title) + '</h3>' +
           '<span class="cm-hint">' + cmTxt(def.desc) + '</span></div>' +
         '<div class="card-body">' + body +
-          '<div class="form-actions"><button type="button" class="btn btn-ghost" ' +
+          '<div class="form-actions"><button type="button" class="btn btn-primary" ' +
             'onclick="cmSaveSettings(\'' + def.grp + '\')">保存「' + cmTxt(def.title) + '」</button></div>' +
         '</div></div>';
     }
@@ -1209,7 +1209,7 @@ function renderContentProducts(pane) {
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="form-actions"><button type="button" class="btn" onclick="cmSaveProducts()">保存产品介绍页</button></div>' +
+      '<div class="form-actions"><button type="button" class="btn btn-primary" onclick="cmSaveProducts()">保存产品介绍页</button></div>' +
       '<p class="cm-note">功能矩阵、机器人、流水线等条目为内置内容，条目级编辑将在后续版本开放。</p>';
 
     _cmProductsId = row ? row.id : null;
@@ -1269,7 +1269,7 @@ function renderContentAbout(pane) {
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="form-actions"><button type="button" class="btn" onclick="cmSaveAbout()">保存关于我们页</button></div>' +
+      '<div class="form-actions"><button type="button" class="btn btn-primary" onclick="cmSaveAbout()">保存关于我们页</button></div>' +
       '<p class="cm-note">核心价值观四宫格等区块将在后续版本开放编辑。</p>';
 
     _cmAboutId = row ? row.id : null;
