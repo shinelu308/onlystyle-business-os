@@ -1,0 +1,2246 @@
+<!DOCTYPE html><html lang="zh-CN" data-lvt-canonical="1"><!--
+Canvas: 100% 响应式宽度，最大内容宽 1200px，单页长滚动
+Design given: 双恒星系统概念，深色宇宙风，楼达人（蓝）+ 唯风营销（青），能量轨道相连
+Asset map:
+  [louda_video] 960×960 → 楼达人 3D 恒星视频（蓝），Hero 左星 160×160 圆形裁剪，产品章节 380×380 圆形裁剪
+  [weifeng_video] 960×960 → 唯风 3D 恒星视频（青），Hero 右星 160×160 圆形裁剪，产品章节 380×380 圆形裁剪
+  [louda_poster] fallback 封面图 → video poster 属性
+  [weifeng_poster] fallback 封面图 → video poster 属性
+3D 手段: perspective:1000px + rotateY/rotateX 倾斜 + 倾斜椭圆轨道环 + 鼠标视差 + 底部投影阴影
+Palette:
+  #071229 → --bg (深空底)
+  #1F5BFF → --blue (楼达人品牌蓝)
+  #3BE0FF → --cyan (唯风电光青)
+  #0A1A3E → --surface (卡片/章节底)
+  #0D2060 → --blue-dim (蓝色暗调)
+  #0A3040 → --cyan-dim (青色暗调)
+  #FFFFFF → --fg
+  rgba(31,91,255,0.15) → --blue-glow (chosen)
+  rgba(59,224,255,0.15) → --cyan-glow (chosen)
+Typography: 系统字体栈，无外部字体引入
+Content map:
+  面包屑 → .breadcrumb
+  Hero 标题 → .hero-title
+  Hero 副标题 → .hero-subtitle
+  导航链接 → nav .nav-links
+  楼达人全部文案 → #louda section
+  唯风全部文案 → #weifeng section
+  协同区文案 → #synergy section
+  业态文案 → #sectors section
+  底部 CTA → #cta section
+  版权 → footer
+Assumptions:
+  导航高度 64px (brief silent)
+  章节间距 120px (chosen)
+  卡片圆角 16px (chosen)
+  光带 SVG 路径为二次贝塞尔曲线 (chosen)
+QA risks:
+  Hero 双星布局在移动端需竖排 → 媒体查询验证
+  Canvas 闭环图在低端设备需 requestAnimationFrame 节流 → 已实现
+--><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品介绍 · ONLYSTYLE</title>
+<!-- Embedded products page, generated from Lovart design "design (4).html"; assets localized to /products-design/ -->
+<style>
+/* ===== CSS VARIABLES ===== */
+:root {
+  --bg: #071229;
+  --blue: #1F5BFF;
+  --cyan: #3BE0FF;
+  --surface: #0A1A3E;
+  --surface2: #060E22;
+  --blue-dim: #0D2060;
+  --cyan-dim: #0A3040;
+  --fg: #FFFFFF;
+  --fg-muted: rgba(255,255,255,0.6);
+  --fg-dim: rgba(255,255,255,0.35);
+  --blue-glow: rgba(31,91,255,0.18);
+  --cyan-glow: rgba(59,224,255,0.18);
+  --blue-glow-strong: rgba(31,91,255,0.35);
+  --cyan-glow-strong: rgba(59,224,255,0.35);
+  --nav-h: 64px;
+  --max-w: 1200px;
+  --r: 16px;
+}
+
+/* ===== RESET ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+img { display: block; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 2px; }
+
+/* ===== UTILITY ===== */
+.container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* ===== FADE-IN ANIMATION (IntersectionObserver) ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px) translateX(-12px) rotate(-1deg);
+  transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0) translateX(0) rotate(0deg);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+
+/* ===== NAV ===== */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  z-index: 1000;
+  background: rgba(7,18,41,0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(31,91,255,0.15);
+}
+.nav-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.nav-logo-icon {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+}
+.nav-logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+}
+.nav-links a {
+  padding: 6px 14px;
+  font-size: 14px;
+  color: var(--fg-muted);
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+  white-space: nowrap;
+}
+.nav-links a:hover { color: var(--fg); background: rgba(255,255,255,0.06); }
+.nav-links a.active { color: var(--cyan); }
+.nav-cta {
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 24px;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  color: #fff;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.2s;
+  flex-shrink: 0;
+}
+.nav-cta:hover { opacity: 0.85; transform: translateY(-1px); }
+.nav-mobile-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 4px;
+}
+.nav-mobile-toggle span {
+  display: block;
+  width: 22px; height: 2px;
+  background: var(--fg);
+  border-radius: 2px;
+  transition: transform 0.3s;
+}
+
+/* ===== HERO ===== */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  padding-top: var(--nav-h);
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 50%, rgba(31,91,255,0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80% 50%, rgba(59,224,255,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(31,91,255,0.1) 0%, transparent 60%),
+    var(--bg);
+  z-index: 0;
+}
+/* Stars field */
+.hero-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0 24px;
+  width: 100%;
+  max-width: var(--max-w);
+}
+.breadcrumb {
+  font-size: 13px;
+  color: var(--fg-dim);
+  margin-bottom: 20px;
+  letter-spacing: 0.04em;
+}
+.breadcrumb span { color: var(--cyan); }
+.hero-title {
+  font-size: clamp(40px, 6vw, 80px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #fff 30%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 20px;
+}
+.hero-subtitle {
+  font-size: clamp(14px, 1.6vw, 18px);
+  color: var(--fg-muted);
+  max-width: 680px;
+  margin: 0 auto 60px;
+  line-height: 1.8;
+}
+
+/* Hero dual stars */
+.hero-dual-stars {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto 40px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  overflow: visible;
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+.hero-star-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  z-index: 2;
+  overflow: visible;
+}
+/* 轨道环定位到球体中心 (hero-star-3d 是 200px, 中心在 top:100px) */
+.hero-orbit-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(31,91,255,0.85);
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(31,91,255,0.5);
+  z-index: 1;
+}
+.hero-orbit-ring.cyan-orbit {
+  border-color: rgba(59,224,255,0.85);
+  box-shadow: 0 0 10px rgba(59,224,255,0.5);
+}
+.hero-orbit-ring-1 {
+  width: 200px; height: 70px;
+  /* 居中于球体中心 */
+  top: 100px; left: 50%;
+  margin-left: -100px; margin-top: -35px;
+  transform: perspective(400px) rotateX(65deg);
+  animation: heroOrbitSpin1 6s linear infinite;
+}
+.hero-orbit-ring-2 {
+  width: 220px; height: 80px;
+  top: 100px; left: 50%;
+  margin-left: -110px; margin-top: -40px;
+  transform: perspective(400px) rotateX(75deg) rotateZ(30deg);
+  animation: heroOrbitSpin2 9s linear infinite reverse;
+  border-style: dashed;
+  opacity: 0.7;
+}
+.hero-star-3d {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  transform: rotateY(-18deg) rotateX(8deg);
+  transition: transform 0.15s ease-out;
+  animation: starFloat3d 4s ease-in-out infinite;
+  z-index: 2;
+}
+.hero-star-3d.cyan-3d {
+  transform: rotateY(18deg) rotateX(8deg);
+  animation: starFloat3dCyan 4.5s ease-in-out infinite;
+}
+/* 视频球体 */
+.hero-star-video-wrap {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  box-shadow:
+    0 0 40px rgba(31,91,255,0.7),
+    0 0 80px rgba(31,91,255,0.3);
+}
+.hero-star-video-wrap.cyan-wrap {
+  box-shadow:
+    0 0 40px rgba(59,224,255,0.7),
+    0 0 80px rgba(59,224,255,0.3);
+}
+.hero-star-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+/* 轨道光点 */
+.hero-orbit-dot {
+  position: absolute;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 8px var(--blue);
+  top: -2.5px; left: 50%;
+  transform: translateX(-50%);
+}
+.hero-orbit-dot.cyan-dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+/* 底部投影阴影 */
+.hero-star-shadow {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 20px;
+  background: radial-gradient(ellipse, rgba(31,91,255,0.5) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: shadowBreathe 4s ease-in-out infinite;
+  z-index: 1;
+}
+.hero-star-shadow.cyan-shadow {
+  background: radial-gradient(ellipse, rgba(59,224,255,0.5) 0%, transparent 70%);
+  animation-duration: 4.5s;
+  animation-direction: reverse;
+}
+@keyframes heroOrbitSpin1 {
+  from { transform: perspective(400px) rotateX(65deg) rotateZ(0deg); }
+  to { transform: perspective(400px) rotateX(65deg) rotateZ(360deg); }
+}
+@keyframes heroOrbitSpin2 {
+  from { transform: perspective(400px) rotateX(75deg) rotateZ(30deg); }
+  to { transform: perspective(400px) rotateX(75deg) rotateZ(390deg); }
+}
+@keyframes shadowBreathe {
+  0%, 100% { opacity: 0.6; transform: translateX(-50%) scaleX(1); }
+  50% { opacity: 1; transform: translateX(-50%) scaleX(1.2); }
+}
+.hero-star-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  position: relative;
+  z-index: 3;
+}
+.hero-star-label.blue { color: var(--blue); }
+.hero-star-label.cyan { color: var(--cyan); }
+
+/* SVG arc connector */
+.hero-arc-svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes starFloat3d {
+  0%, 100% { transform: rotateY(-18deg) rotateX(8deg) translateY(0); }
+  50% { transform: rotateY(-18deg) rotateX(8deg) translateY(-14px); }
+}
+@keyframes starFloat3dCyan {
+  0%, 100% { transform: rotateY(18deg) rotateX(8deg) translateY(0); }
+  50% { transform: rotateY(18deg) rotateX(8deg) translateY(-14px); }
+}
+@keyframes starFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+@keyframes starBreathe {
+  0%, 100% { filter: drop-shadow(0 0 24px rgba(31,91,255,0.5)); }
+  50% { filter: drop-shadow(0 0 48px rgba(31,91,255,0.9)); }
+}
+/* 3D 视频球 - 产品章节 */
+.star-video-3d-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+  min-height: 460px;
+  overflow: visible;
+}
+.star-3d-body {
+  position: relative;
+  width: 420px;
+  height: 420px;
+  transform-style: preserve-3d;
+  transform: rotateY(-20deg) rotateX(10deg);
+  transition: transform 0.2s ease-out;
+  z-index: 2;
+  flex-shrink: 0;
+}
+.star-3d-body.cyan-body {
+  transform: rotateY(20deg) rotateX(10deg);
+}
+.star-video-sphere {
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  box-shadow:
+    0 0 60px rgba(31,91,255,0.6),
+    0 0 120px rgba(31,91,255,0.25);
+  /* 确保圆形裁剪在 3D 上下文中有效 */
+  -webkit-mask-image: radial-gradient(circle 170px at center, black 100%, transparent 100%);
+  mask-image: radial-gradient(circle 170px at center, black 100%, transparent 100%);
+}
+.star-video-sphere.cyan-sphere {
+  box-shadow:
+    0 0 60px rgba(59,224,255,0.6),
+    0 0 120px rgba(59,224,255,0.25);
+  -webkit-mask-image: radial-gradient(circle 170px at center, black 100%, transparent 100%);
+  mask-image: radial-gradient(circle 170px at center, black 100%, transparent 100%);
+}
+.star-video-sphere video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+/* 产品章节倾斜轨道环 */
+.prod-orbit-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  border-radius: 50%;
+  border: 1px solid rgba(31,91,255,0.4);
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+.prod-orbit-ring.cyan-prod-ring { border-color: rgba(59,224,255,0.4); }
+.prod-orbit-ring-1 {
+  width: 420px; height: 140px;
+  margin-left: -210px; margin-top: -70px;
+  transform: perspective(600px) rotateX(65deg);
+  animation: prodOrbitSpin1 8s linear infinite;
+}
+.prod-orbit-ring-2 {
+  width: 460px; height: 155px;
+  margin-left: -230px; margin-top: -77px;
+  transform: perspective(600px) rotateX(72deg) rotateZ(40deg);
+  animation: prodOrbitSpin2 12s linear infinite reverse;
+  border-style: dashed;
+  opacity: 0.5;
+}
+.prod-orbit-dot {
+  position: absolute;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 10px var(--blue);
+  top: -3.5px; left: 50%;
+  transform: translateX(-50%);
+}
+.prod-orbit-dot.cyan-dot { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+.star-3d-shadow {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 35px;
+  background: radial-gradient(ellipse, rgba(31,91,255,0.45) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: shadowBreathe 4s ease-in-out infinite;
+  z-index: 1;
+}
+.star-3d-shadow.cyan-shadow {
+  background: radial-gradient(ellipse, rgba(59,224,255,0.45) 0%, transparent 70%);
+  animation-duration: 4.5s;
+  animation-direction: reverse;
+}
+@keyframes prodOrbitSpin1 {
+  from { transform: perspective(600px) rotateX(65deg) rotateZ(0deg); }
+  to { transform: perspective(600px) rotateX(65deg) rotateZ(360deg); }
+}
+@keyframes prodOrbitSpin2 {
+  from { transform: perspective(600px) rotateX(72deg) rotateZ(40deg); }
+  to { transform: perspective(600px) rotateX(72deg) rotateZ(400deg); }
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-dim);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  z-index: 2;
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+.scroll-indicator svg { opacity: 0.5; }
+@keyframes scrollBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(6px); }
+}
+
+/* ===== SECTION NAV ===== */
+.section-nav {
+  position: sticky;
+  top: var(--nav-h);
+  z-index: 900;
+  background: rgba(7,18,41,0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.section-nav-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.section-nav-inner::-webkit-scrollbar { display: none; }
+.section-nav-link {
+  padding: 14px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-dim);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+.section-nav-link:hover { color: var(--fg); }
+.section-nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+/* Product sections - allow 3D overflow for star visuals */
+.product-section {
+  position: relative;
+  padding: 120px 0;
+  overflow: visible;
+}
+.product-section-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  overflow: visible;
+}
+.product-section-inner.reverse { direction: rtl; }
+.product-section-inner.reverse > * { direction: ltr; }
+
+/* Section ambient light */
+.section-glow-blue {
+  position: absolute;
+  left: -200px; top: 50%;
+  transform: translateY(-50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(31,91,255,0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+.section-glow-cyan {
+  position: absolute;
+  right: -200px; top: 50%;
+  transform: translateY(-50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(59,224,255,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Star visual */
+.star-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.star-orbit-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(31,91,255,0.25);
+  animation: orbitSpin 12s linear infinite;
+}
+.star-orbit-ring.cyan-ring { border-color: rgba(59,224,255,0.25); animation-duration: 16s; }
+.star-orbit-ring:nth-child(2) { animation-direction: reverse; animation-duration: 18s; }
+@keyframes orbitSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.star-orbit-dot {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 8px var(--blue);
+  top: -3px; left: 50%;
+  transform: translateX(-50%);
+}
+.star-orbit-dot.cyan { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+.star-main-img {
+  width: 380px;
+  height: 380px;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+  animation: starBreathe 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 40px rgba(31,91,255,0.5));
+}
+.star-main-img.cyan-img {
+  filter: drop-shadow(0 0 40px rgba(59,224,255,0.5));
+  animation: cyanBreathe 4.5s ease-in-out infinite;
+}
+@keyframes cyanBreathe {
+  0%, 100% { filter: drop-shadow(0 0 30px rgba(59,224,255,0.4)); }
+  50% { filter: drop-shadow(0 0 60px rgba(59,224,255,0.8)); }
+}
+
+/* Product content */
+.product-content { display: flex; flex-direction: column; gap: 24px; }
+.product-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.product-tag {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.product-tag.blue {
+  background: rgba(31,91,255,0.15);
+  border: 1px solid rgba(31,91,255,0.4);
+  color: #7BA8FF;
+}
+.product-tag.cyan {
+  background: rgba(59,224,255,0.12);
+  border: 1px solid rgba(59,224,255,0.35);
+  color: var(--cyan);
+}
+.product-title {
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.product-title.blue-title {
+  background: linear-gradient(135deg, #fff 40%, var(--blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.product-title.cyan-title {
+  background: linear-gradient(135deg, #fff 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.product-desc {
+  font-size: 15px;
+  color: var(--fg-muted);
+  line-height: 1.8;
+}
+
+/* Feature matrix */
+.feature-matrix-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.feature-nodes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.feature-node {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: default;
+}
+.feature-node.blue-node {
+  background: rgba(31,91,255,0.1);
+  border: 1px solid rgba(31,91,255,0.25);
+  color: #9DBEFF;
+}
+.feature-node.blue-node:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(31,91,255,0.3);
+  background: rgba(31,91,255,0.18);
+}
+.feature-node.cyan-node {
+  background: rgba(59,224,255,0.08);
+  border: 1px solid rgba(59,224,255,0.22);
+  color: #7EEEFF;
+}
+.feature-node.cyan-node:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(59,224,255,0.25);
+  background: rgba(59,224,255,0.15);
+}
+
+/* Timeline / 跃迁航线 */
+.timeline-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.timeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.timeline-node {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.timeline-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 8px var(--blue);
+  flex-shrink: 0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.timeline-dot.cyan { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+.timeline-label {
+  font-size: 13px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.timeline-node:hover .timeline-dot { transform: scale(1.5); box-shadow: 0 0 16px var(--blue); }
+.timeline-node:hover .timeline-label { color: var(--fg); }
+.timeline-arrow {
+  color: var(--fg-dim);
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+/* CTA button */
+.product-cta-wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 28px;
+  border-radius: 28px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary.blue-btn {
+  background: linear-gradient(90deg, var(--blue), #4A7FFF);
+  color: #fff;
+  box-shadow: 0 4px 24px rgba(31,91,255,0.4);
+}
+.btn-primary.blue-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(31,91,255,0.6);
+}
+.btn-primary.cyan-btn {
+  background: linear-gradient(90deg, #0A9EBF, var(--cyan));
+  color: #071229;
+  box-shadow: 0 4px 24px rgba(59,224,255,0.35);
+}
+.btn-primary.cyan-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(59,224,255,0.55);
+}
+.product-url {
+  font-size: 12px;
+  color: var(--fg-dim);
+  letter-spacing: 0.04em;
+}
+
+/* ===== SYNERGY SECTION ===== */
+.synergy-section {
+  padding: 120px 0;
+  position: relative;
+  overflow: hidden;
+}
+.synergy-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(31,91,255,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 30% 80%, rgba(59,224,255,0.08) 0%, transparent 50%);
+}
+.synergy-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+.synergy-title {
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 14px;
+}
+.synergy-subtitle {
+  font-size: 16px;
+  color: var(--fg-muted);
+}
+.synergy-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#synergyCanvas {
+  max-width: 100%;
+  border-radius: 50%;
+}
+
+/* ===== SECTORS SECTION ===== */
+.sectors-section {
+  padding: 120px 0;
+  position: relative;
+}
+.sectors-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+/* ===== SECTORS (适用场景) ===== */
+.sectors-section {
+  padding: 100px 0 120px;
+}
+.sectors-header {
+  text-align: center;
+  margin-bottom: 72px;
+}
+.sectors-subtitle {
+  font-size: 15px;
+  color: var(--fg-muted);
+  margin-top: 12px;
+  line-height: 1.7;
+}
+
+/* 产品分组 */
+.scene-group {
+  margin-bottom: 64px;
+}
+.scene-group:last-child { margin-bottom: 0; }
+.scene-group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.scene-group-bar {
+  width: 3px;
+  height: 22px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.scene-group-bar.blue {
+  background: var(--blue);
+  box-shadow: 0 0 10px rgba(31,91,255,0.8), 0 0 20px rgba(31,91,255,0.4);
+}
+.scene-group-bar.cyan {
+  background: var(--cyan);
+  box-shadow: 0 0 10px rgba(59,224,255,0.8), 0 0 20px rgba(59,224,255,0.4);
+}
+.scene-group-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--fg);
+}
+.scene-group-title.blue { color: #7BA8FF; }
+.scene-group-title.cyan { color: #7EF0FF; }
+
+/* 卡片网格 */
+.sectors-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+/* 单张卡片 */
+.sector-card {
+  padding: 28px 20px 24px;
+  border-radius: var(--r);
+  background: rgba(10,26,62,0.55);
+  border: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s, border-color 0.35s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+.sector-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r);
+  opacity: 0;
+  transition: opacity 0.35s;
+  pointer-events: none;
+}
+.sector-card.blue-card::before {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(31,91,255,0.12) 0%, transparent 70%);
+}
+.sector-card.cyan-card::before {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,224,255,0.12) 0%, transparent 70%);
+}
+.sector-card:hover {
+  transform: translateY(-7px);
+}
+.sector-card.blue-card:hover {
+  box-shadow: 0 16px 48px rgba(31,91,255,0.22);
+  border-color: rgba(31,91,255,0.45);
+}
+.sector-card.cyan-card:hover {
+  box-shadow: 0 16px 48px rgba(59,224,255,0.18);
+  border-color: rgba(59,224,255,0.4);
+}
+.sector-card:hover::before { opacity: 1; }
+
+/* SVG 插画区域 */
+.sector-illus {
+  width: 96px;
+  height: 72px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sector-illus svg {
+  width: 96px;
+  height: 72px;
+  overflow: visible;
+  transition: filter 0.35s;
+}
+.sector-card:hover .sector-illus svg {
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* 文字 */
+.sector-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+}
+.sector-name .slash { opacity: 0.4; margin: 0 4px; }
+.sector-desc {
+  font-size: 12px;
+  color: var(--fg-muted);
+  line-height: 1.65;
+}
+
+/* 流光动画 */
+@keyframes flowDash {
+  from { stroke-dashoffset: 200; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes breatheOpacity {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 1; }
+}
+@keyframes dotPulse {
+  0%, 100% { r: 2; opacity: 0.8; }
+  50%       { r: 3.5; opacity: 1; }
+}
+.flow-line {
+  stroke-dasharray: 8 6;
+  stroke-dashoffset: 200;
+  animation: flowDash 3s linear infinite;
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+.sector-card:hover .flow-line { opacity: 1; }
+.glow-dot {
+  animation: breatheOpacity 2.8s ease-in-out infinite;
+}
+
+/* ===== BOTTOM CTA ===== */
+.bottom-cta {
+  padding: 120px 0;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+.bottom-cta-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(31,91,255,0.2) 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, #050D1E 100%);
+}
+.bottom-cta-content { position: relative; z-index: 1; }
+.bottom-cta-title {
+  font-size: clamp(32px, 5vw, 60px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+.bottom-cta-subtitle {
+  font-size: 17px;
+  color: var(--fg-muted);
+  margin-bottom: 40px;
+}
+.btn-cta-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 40px;
+  border-radius: 32px;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  color: #fff;
+  box-shadow: 0 8px 40px rgba(31,91,255,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  border: none;
+}
+.btn-cta-large:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 50px rgba(31,91,255,0.6);
+}
+
+/* ===== FOOTER ===== */
+footer {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--fg-dim);
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .product-section-inner {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .product-section-inner.reverse { direction: ltr; }
+  .star-3d-body { width: 280px; height: 280px; }
+  .star-video-sphere { width: 220px; height: 220px; }
+  .star-video-3d-wrap { min-height: 280px; }
+  .prod-orbit-ring-1 { width: 280px; height: 95px; margin-left: -140px; margin-top: -47px; }
+  .prod-orbit-ring-2 { width: 310px; height: 105px; margin-left: -155px; margin-top: -52px; }
+  .star-3d-shadow { width: 140px; bottom: 10px; }
+  .star-visual { order: -1; }
+  .sectors-grid { grid-template-columns: repeat(2, 1fr); }
+  .scene-group { margin-bottom: 48px; }
+  .hero-dual-stars { max-width: 480px; height: 240px; }
+  .hero-star-3d { width: 160px; height: 160px; }
+  .hero-star-video-wrap { width: 120px; height: 120px; }
+  .hero-orbit-ring-1 { width: 160px; height: 55px; margin-left: -80px; margin-top: -27px; }
+  .hero-orbit-ring-2 { width: 175px; height: 62px; margin-left: -87px; margin-top: -31px; }
+}
+@media (max-width: 600px) {
+  .nav-links, .nav-cta { display: none; }
+  .nav-mobile-toggle { display: flex; }
+  .nav-links.open {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: var(--nav-h);
+    left: 0; right: 0;
+    background: rgba(7,18,41,0.97);
+    padding: 16px 24px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    z-index: 999;
+  }
+  .nav-links.open + .nav-cta { display: block; }
+  .sectors-grid { grid-template-columns: 1fr; }
+  .scene-group { margin-bottom: 40px; }
+  .hero-dual-stars { max-width: 340px; height: 180px; }
+  .hero-star-3d { width: 90px; height: 90px; }
+  .hero-star-video-wrap { width: 90px; height: 90px; }
+  .hero-orbit-ring-1 { width: 120px; height: 42px; margin-left: -60px; margin-top: -21px; }
+  .hero-orbit-ring-2 { width: 132px; height: 46px; margin-left: -66px; margin-top: -23px; }
+  .feature-nodes { grid-template-columns: repeat(2, 1fr); }
+  /* 移动端关闭鼠标视差 */
+  .hero-star-3d, .star-3d-body { transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav class="nav" role="navigation" aria-label="主导航" data-lvt-eid="b4bc4fe895">
+  <div class="nav-inner" data-lvt-eid="126dbfd19e">
+    <a href="/" target="_top" class="nav-logo" aria-label="ONLYSTYLE 首页" data-lvt-eid="806b31ee69">
+      <!-- SVG Logo: 轨道环+箭头 -->
+      <svg class="nav-logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" data-lvt-eid="2586931596">
+        <circle cx="18" cy="18" r="15" stroke="url(#ng1)" stroke-width="1.5" fill="none" opacity="0.7" data-lvt-eid="723ff313ff"></circle>
+        <ellipse cx="18" cy="18" rx="15" ry="6" stroke="url(#ng2)" stroke-width="1" fill="none" opacity="0.5" transform="rotate(-20 18 18)" data-lvt-eid="e3fdb9634d"></ellipse>
+        <circle cx="18" cy="18" r="5" fill="url(#ng3)" data-lvt-eid="9c81890836"></circle>
+        <path d="M22 14 L28 14 L28 20" stroke="url(#ng1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="b7d3b88387"></path>
+        <path d="M18 18 L27 13" stroke="url(#ng1)" stroke-width="1.5" stroke-linecap="round" data-lvt-eid="4b967c3b4e"></path>
+        <defs data-lvt-eid="0e93fb8722">
+          <linearGradient id="ng1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse" data-lvt-eid="06ebb42d49">
+            <stop offset="0%" stop-color="#1F5BFF" data-lvt-eid="203e900589"></stop>
+            <stop offset="100%" stop-color="#3BE0FF" data-lvt-eid="21415f341f"></stop>
+          </linearGradient>
+          <linearGradient id="ng2" x1="0" y1="0" x2="36" y2="0" gradientUnits="userSpaceOnUse" data-lvt-eid="0a8d4692db">
+            <stop offset="0%" stop-color="#3BE0FF" data-lvt-eid="e32cf9d19a"></stop>
+            <stop offset="100%" stop-color="#1F5BFF" data-lvt-eid="1a8ed6d3d3"></stop>
+          </linearGradient>
+          <radialGradient id="ng3" cx="40%" cy="40%" r="60%" data-lvt-eid="2ae0d422cc">
+            <stop offset="0%" stop-color="#7BA8FF" data-lvt-eid="a76c172d3a"></stop>
+            <stop offset="100%" stop-color="#1F5BFF" data-lvt-eid="e581e9ec90"></stop>
+          </radialGradient>
+        </defs>
+      </svg>
+      <span class="nav-logo-text" data-lvt-eid="6440ac0f26">ONLYSTYLE</span>
+    </a>
+    <ul class="nav-links" id="navLinks" data-lvt-eid="290f457e6f">
+      <li data-lvt-eid="292d6b110e"><a href="/" target="_top" data-lvt-eid="32aeb5094c">首页</a></li>
+      <li data-lvt-eid="8485aaecd9"><a href="/products" target="_top" class="active" data-lvt-eid="e8f1c3460a">产品介绍</a></li>
+      <li data-lvt-eid="2e175c0dbe"><a href="/services" target="_top" data-lvt-eid="76b3ea77db">解决方案</a></li>
+      <li data-lvt-eid="c9f250b6a5"><a href="/cases" target="_top" data-lvt-eid="864c83c1c3">案例星球</a></li>
+      <li data-lvt-eid="2fd32cd33d"><a href="/about" target="_top" data-lvt-eid="59fee33e5a">关于我们</a></li>
+    </ul>
+    <a href="#cta" class="nav-cta" data-lvt-eid="730ad10f7c">联系我们</a>
+    <button class="nav-mobile-toggle" id="mobileToggle" aria-label="菜单" aria-expanded="false" data-lvt-eid="704bf07abc">
+      <span data-lvt-eid="9bccec3b1f"></span><span data-lvt-eid="c461f107dc"></span><span data-lvt-eid="120c19888f"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero" id="hero" aria-label="产品介绍 Hero" data-lvt-eid="6f263e0786">
+  <div class="hero-bg" aria-hidden="true" data-lvt-eid="1c5420e0b2"></div>
+  <canvas class="hero-stars" id="starsCanvas" aria-hidden="true" data-lvt-eid="3619f6b02a"></canvas>
+
+  <div class="hero-content" data-lvt-eid="654243f6db">
+    <p class="breadcrumb reveal" data-lvt-eid="78f7ed3e79">首页 / <span data-lvt-eid="0eddde3e25">产品介绍</span></p>
+
+    <!-- Dual Stars -->
+    <div class="hero-dual-stars reveal reveal-delay-1" aria-hidden="true" data-lvt-eid="faa267d322">
+      <!-- Left: 楼达人 3D -->
+      <div class="hero-star-wrap" data-lvt-eid="29db347923">
+        <!-- 倾斜轨道环（在 wrap 层级，独立于球体） -->
+        <div class="hero-orbit-ring hero-orbit-ring-1" aria-hidden="true"></div>
+        <div class="hero-orbit-ring hero-orbit-ring-2" aria-hidden="true">
+          <div class="hero-orbit-dot"></div>
+        </div>
+        <!-- 3D 球体 -->
+        <div class="hero-star-3d" id="heroStarBlue">
+          <!-- 视频球体 -->
+          <div class="hero-star-video-wrap">
+            <video class="hero-star-video" autoplay loop muted playsinline
+              poster="/products-design/CVmkhXJwvUCDcVjy.jpg"
+              data-video-observe>
+              <source src="/products-design/yeIaGTZzrc6ukXRx.mp4" type="video/mp4">
+              <img src="/products-design/cIZSIOyM9m3rrrnl.png" alt="楼达人恒星">
+            </video>
+          </div>
+        </div>
+        <!-- 底部投影 -->
+        <div class="hero-star-shadow"></div>
+        <span class="hero-star-label blue" data-lvt-eid="4a6b82445d">楼达人</span>
+      </div>
+
+      <!-- Arc SVG connector -->
+      <svg class="hero-arc-svg" viewBox="0 0 700 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" data-lvt-eid="f000a4748c">
+        <defs data-lvt-eid="0973931ffa">
+          <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%" data-lvt-eid="29b367427a">
+            <stop offset="0%" stop-color="#1F5BFF" stop-opacity="0.8" data-lvt-eid="ee4c671c77"></stop>
+            <stop offset="50%" stop-color="#3BE0FF" stop-opacity="1" data-lvt-eid="1b58dabb59"></stop>
+            <stop offset="100%" stop-color="#3BE0FF" stop-opacity="0.8" data-lvt-eid="c57fedde2a"></stop>
+          </linearGradient>
+          <filter id="arcGlow" data-lvt-eid="9c1097e9b6">
+            <feGaussianBlur stdDeviation="3" result="blur" data-lvt-eid="4f2e3b9c01"></feGaussianBlur>
+            <feMerge data-lvt-eid="8d19e40c0f"><feMergeNode in="blur" data-lvt-eid="8f69e23962"></feMergeNode><feMergeNode in="SourceGraphic" data-lvt-eid="4eadcbbaca"></feMergeNode></feMerge>
+          </filter>
+        </defs>
+        <!-- Main arc -->
+        <path id="arcPath" d="M 100 130 Q 350 60 600 130" fill="none" stroke="url(#arcGrad)" stroke-width="2" stroke-dasharray="6 4" filter="url(#arcGlow)" opacity="0.8" data-lvt-eid="42d2266c13">
+          <animate attributeName="stroke-dashoffset" from="0" to="-200" dur="3s" repeatCount="indefinite" data-lvt-eid="9cce1f92d5"></animate>
+        </path>
+        <!-- Glow arc -->
+        <path d="M 100 130 Q 350 60 600 130" fill="none" stroke="url(#arcGrad)" stroke-width="6" opacity="0.15" data-lvt-eid="68bcad5fac"></path>
+        <!-- Particles along arc -->
+        <circle r="3" fill="#3BE0FF" opacity="0.9" filter="url(#arcGlow)" data-lvt-eid="db6d7c82c3">
+          <animateMotion dur="2.5s" repeatCount="indefinite" path="M 100 130 Q 350 60 600 130" data-lvt-eid="7c327dc329"></animateMotion>
+        </circle>
+        <circle r="2" fill="#1F5BFF" opacity="0.8" data-lvt-eid="dac2e2b59a">
+          <animateMotion dur="2.5s" begin="0.8s" repeatCount="indefinite" path="M 100 130 Q 350 60 600 130" data-lvt-eid="1009f9e24f"></animateMotion>
+        </circle>
+        <circle r="2.5" fill="#7BA8FF" opacity="0.7" data-lvt-eid="71b8bca8bd">
+          <animateMotion dur="2.5s" begin="1.6s" repeatCount="indefinite" path="M 100 130 Q 350 60 600 130" data-lvt-eid="f78d0e6db1"></animateMotion>
+        </circle>
+      </svg>
+
+      <!-- Right: 唯风 3D -->
+      <div class="hero-star-wrap" data-lvt-eid="b720692cc4">
+        <!-- 倾斜轨道环 -->
+        <div class="hero-orbit-ring hero-orbit-ring-1 cyan-orbit" aria-hidden="true"></div>
+        <div class="hero-orbit-ring hero-orbit-ring-2 cyan-orbit" aria-hidden="true">
+          <div class="hero-orbit-dot cyan-dot"></div>
+        </div>
+        <!-- 3D 球体 -->
+        <div class="hero-star-3d cyan-3d" id="heroStarCyan">
+          <!-- 视频球体 -->
+          <div class="hero-star-video-wrap cyan-wrap">
+            <video class="hero-star-video" autoplay loop muted playsinline
+              poster="/products-design/21NE0cFIPmLT6neV.jpg"
+              data-video-observe>
+              <source src="/products-design/7NqhKw8uvqGTtDYw.mp4" type="video/mp4">
+              <img src="/products-design/rJWWX2yx9iCIfVMN.png" alt="唯风恒星">
+            </video>
+          </div>
+        </div>
+        <!-- 底部投影 -->
+        <div class="hero-star-shadow cyan-shadow"></div>
+        <span class="hero-star-label cyan" data-lvt-eid="3ac4360779">唯风营销</span>
+      </div>
+    </div>
+
+    <h1 class="hero-title reveal reveal-delay-2" data-lvt-eid="120375ee79">产品介绍</h1>
+    <p class="hero-subtitle reveal reveal-delay-3" data-lvt-eid="74d17e52c7">以自研「楼达人资产管理平台」与「唯风数字营销自动化平台」为核心，为园区与楼宇资方提供资产管理数字化的一站式方案，为企业提供营销内容生产与分发的全流程自动化。</p>
+  </div>
+
+  <div class="scroll-indicator" aria-hidden="true" data-lvt-eid="704d079ff6">
+    <span data-lvt-eid="f56d8a3ac9">向下探索</span>
+    <svg width="16" height="20" viewBox="0 0 16 20" fill="none" data-lvt-eid="71e3696b47">
+      <path d="M8 2 L8 16 M2 11 L8 17 L14 11" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="78f5d2e48f"></path>
+    </svg>
+  </div>
+</section>
+
+<!-- ===== SECTION NAV ===== -->
+<nav class="section-nav" aria-label="章节导航" data-lvt-eid="d315cf5bcb">
+  <div class="section-nav-inner" data-lvt-eid="f5c7417b60">
+    <a class="section-nav-link active" href="#louda" onclick="setActiveNav(this)" data-lvt-eid="936d04cefb">楼达人</a>
+    <a class="section-nav-link" href="#weifeng" onclick="setActiveNav(this)" data-lvt-eid="7e945a885f">唯风营销</a>
+    <a class="section-nav-link" href="#synergy" onclick="setActiveNav(this)" data-lvt-eid="0a558fed6a">双星协同</a>
+    <a class="section-nav-link" href="#sectors" onclick="setActiveNav(this)" data-lvt-eid="3bf85709ec">适用场景</a>
+  </div>
+</nav>
+
+<!-- ===== PRODUCT SECTION 1: 楼达人 ===== -->
+<section class="product-section" id="louda" aria-label="楼达人资产管理平台" data-lvt-eid="ba68eb125f">
+  <div class="section-glow-blue" aria-hidden="true" data-lvt-eid="9fe2209c0b"></div>
+  <div class="product-section-inner" data-lvt-eid="5acdfd02cc">
+    <!-- Left: Star visual 3D -->
+    <div class="star-visual star-video-3d-wrap reveal" data-lvt-eid="02eeb0b5b0">
+      <div class="star-3d-body" id="prodStarBlue">
+        <!-- 倾斜轨道环 -->
+        <div class="prod-orbit-ring prod-orbit-ring-1">
+          <div class="prod-orbit-dot"></div>
+        </div>
+        <div class="prod-orbit-ring prod-orbit-ring-2">
+          <div class="prod-orbit-dot"></div>
+        </div>
+        <!-- 视频球体 -->
+        <div class="star-video-sphere">
+          <video autoplay loop muted playsinline
+            poster="/products-design/CVmkhXJwvUCDcVjy.jpg"
+            data-video-observe>
+            <source src="/products-design/yeIaGTZzrc6ukXRx.mp4" type="video/mp4">
+            <img src="/products-design/cIZSIOyM9m3rrrnl.png" alt="楼达人恒星" style="width:100%;height:100%;object-fit:cover;">
+          </video>
+        </div>
+        <!-- 底部投影 -->
+        <div class="star-3d-shadow"></div>
+      </div>
+    </div>
+
+    <!-- Right: Content -->
+    <div class="product-content" data-lvt-eid="97d3bdb4b3">
+      <div class="product-tags reveal reveal-delay-1" data-lvt-eid="5454e31f48">
+        <span class="product-tag blue" data-lvt-eid="4a923c1c5f">主打产品</span>
+        <span class="product-tag blue" data-lvt-eid="7544fd311e">SAAS 模式</span>
+        <span class="product-tag blue" data-lvt-eid="3215a3a47b">开箱即用</span>
+        <span class="product-tag blue" data-lvt-eid="30c396cfbe">多业态资产运营</span>
+      </div>
+      <h2 class="product-title blue-title reveal reveal-delay-2" data-lvt-eid="8c1e3a87e8">楼达人资产管理平台</h2>
+      <p class="product-desc reveal reveal-delay-2" data-lvt-eid="66007d8ddb">面向写字楼、园区、商业、公寓等多业态资产，提供覆盖「资产数字化台账 — 招商租赁 — 业财一体 — 运营增值」全流程的一站式运营系统，让每一平米资产可视、可控、可增值。</p>
+
+      <div class="reveal reveal-delay-3" data-lvt-eid="ae8b9212bb">
+        <p class="feature-matrix-title" data-lvt-eid="70cd9701e7">核心功能矩阵</p>
+        <div class="feature-nodes" data-lvt-eid="ac7e3e95ec">
+          <div class="feature-node blue-node" data-lvt-eid="090329fdbc">资产数字化台账</div>
+          <div class="feature-node blue-node" data-lvt-eid="4c3a7866d1">招商租赁管理</div>
+          <div class="feature-node blue-node" data-lvt-eid="ece5789df0">业财一体化</div>
+          <div class="feature-node blue-node" data-lvt-eid="deec1a02c3">运营增值服务</div>
+          <div class="feature-node blue-node" data-lvt-eid="a271190a07">多业态适配</div>
+          <div class="feature-node blue-node" data-lvt-eid="552570724a">数据驾驶舱</div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-delay-4" data-lvt-eid="d801f1a387">
+        <p class="timeline-title" data-lvt-eid="8faf3f42f7">跃迁航线</p>
+        <div class="timeline" data-lvt-eid="02702d43e6">
+          <div class="timeline-node" data-lvt-eid="dae59274f4">
+            <div class="timeline-dot" data-lvt-eid="ea89e1c61d"></div>
+            <span class="timeline-label" data-lvt-eid="78f4414e53">资产数字化台账</span>
+          </div>
+          <span class="timeline-arrow" data-lvt-eid="956159eb06">→</span>
+          <div class="timeline-node" data-lvt-eid="f9fb1d463c">
+            <div class="timeline-dot" data-lvt-eid="159344c531"></div>
+            <span class="timeline-label" data-lvt-eid="5615e9cfe2">招商租赁</span>
+          </div>
+          <span class="timeline-arrow" data-lvt-eid="1fd6a65f6f">→</span>
+          <div class="timeline-node" data-lvt-eid="f36eaf5309">
+            <div class="timeline-dot" data-lvt-eid="e8e8ded69c"></div>
+            <span class="timeline-label" data-lvt-eid="ac22323868">业财一体</span>
+          </div>
+          <span class="timeline-arrow" data-lvt-eid="28abbd23db">→</span>
+          <div class="timeline-node" data-lvt-eid="6b5c8ca1cf">
+            <div class="timeline-dot" data-lvt-eid="935760ccbf"></div>
+            <span class="timeline-label" data-lvt-eid="7d217d5e9f">运营增值</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-cta-wrap reveal reveal-delay-5" data-lvt-eid="5aa430d45b">
+        <a href="https://biz.loudaren.com" target="_blank" rel="noopener" class="btn-primary blue-btn" data-lvt-eid="55c7b5a63c">进入平台 ↗</a>
+        <span class="product-url" data-lvt-eid="1bc21d4de7">biz.loudaren.com</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PRODUCT SECTION 2: 唯风 ===== -->
+<section class="product-section" id="weifeng" aria-label="唯风数字营销自动化平台" style="background: linear-gradient(180deg, transparent 0%, rgba(59,224,255,0.03) 50%, transparent 100%);" data-lvt-eid="158546f5a3">
+  <div class="section-glow-cyan" aria-hidden="true" data-lvt-eid="ce94bdaace"></div>
+  <div class="product-section-inner reverse" data-lvt-eid="958af57ea1">
+    <!-- Right: Star visual 3D (reversed to right) -->
+    <div class="star-visual star-video-3d-wrap reveal" data-lvt-eid="484fe808e6">
+      <div class="star-3d-body cyan-body" id="prodStarCyan">
+        <!-- 倾斜轨道环 -->
+        <div class="prod-orbit-ring prod-orbit-ring-1 cyan-prod-ring">
+          <div class="prod-orbit-dot cyan-dot"></div>
+        </div>
+        <div class="prod-orbit-ring prod-orbit-ring-2 cyan-prod-ring">
+          <div class="prod-orbit-dot cyan-dot"></div>
+        </div>
+        <!-- 视频球体 -->
+        <div class="star-video-sphere cyan-sphere">
+          <video autoplay loop muted playsinline
+            poster="/products-design/21NE0cFIPmLT6neV.jpg"
+            data-video-observe>
+            <source src="/products-design/7NqhKw8uvqGTtDYw.mp4" type="video/mp4">
+            <img src="/products-design/rJWWX2yx9iCIfVMN.png" alt="唯风恒星" style="width:100%;height:100%;object-fit:cover;">
+          </video>
+        </div>
+        <!-- 底部投影 -->
+        <div class="star-3d-shadow cyan-shadow"></div>
+      </div>
+    </div>
+
+    <!-- Left: Content -->
+    <div class="product-content" data-lvt-eid="b9afbe5502">
+      <div class="product-tags reveal reveal-delay-1" data-lvt-eid="15a6b02408">
+        <span class="product-tag cyan" data-lvt-eid="5b0ba87617">营销自动化</span>
+        <span class="product-tag cyan" data-lvt-eid="62e4259898">内容生产</span>
+        <span class="product-tag cyan" data-lvt-eid="4854ca6e36">全渠道分发</span>
+      </div>
+      <h2 class="product-title cyan-title reveal reveal-delay-2" data-lvt-eid="38a1343b0b">唯风数字营销自动化平台</h2>
+      <p class="product-desc reveal reveal-delay-2" data-lvt-eid="c899755bad">为企业提供营销内容生产与分发的全流程自动化，从素材管理、智能内容生成到多渠道一键分发与数据回流，让营销更高效、增长可度量。</p>
+
+      <div class="reveal reveal-delay-3" data-lvt-eid="047060b370">
+        <p class="feature-matrix-title" data-lvt-eid="0a5503ef9b">核心功能矩阵</p>
+        <div class="feature-nodes" data-lvt-eid="98faa98867">
+          <div class="feature-node cyan-node" data-lvt-eid="33d4fb3136">素材资产管理</div>
+          <div class="feature-node cyan-node" data-lvt-eid="e1a8aca20f">智能内容生产</div>
+          <div class="feature-node cyan-node" data-lvt-eid="1f442552f6">全渠道分发</div>
+          <div class="feature-node cyan-node" data-lvt-eid="6f9800f4ee">营销数据回流</div>
+          <div class="feature-node cyan-node" data-lvt-eid="f7ddf38fc5">客户线索管理</div>
+          <div class="feature-node cyan-node" data-lvt-eid="9b618365a8">效果分析看板</div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-delay-4" data-lvt-eid="ffef86f1bf">
+        <p class="timeline-title" data-lvt-eid="9d03e10938">跃迁航线</p>
+        <div class="timeline" data-lvt-eid="7d170cac3d">
+          <div class="timeline-node" data-lvt-eid="f31796133d">
+            <div class="timeline-dot cyan" data-lvt-eid="e4d1d25f4c"></div>
+            <span class="timeline-label" data-lvt-eid="29a54a6a33">素材资产</span>
+          </div>
+          <span class="timeline-arrow" data-lvt-eid="6b74ca8e32">→</span>
+          <div class="timeline-node" data-lvt-eid="6900edc667">
+            <div class="timeline-dot cyan" data-lvt-eid="00189f5390"></div>
+            <span class="timeline-label" data-lvt-eid="2a1f852e98">内容生产</span>
+          </div>
+          <span class="timeline-arrow" data-lvt-eid="4bee988384">→</span>
+          <div class="timeline-node" data-lvt-eid="817d398fec">
+            <div class="timeline-dot cyan" data-lvt-eid="1d28992ca3"></div>
+            <span class="timeline-label" data-lvt-eid="cd41e016e9">全渠道分发</span>
+          </div>
+          <span class="timeline-arrow" data-lvt-eid="63d05a9b89">→</span>
+          <div class="timeline-node" data-lvt-eid="f62c94908a">
+            <div class="timeline-dot cyan" data-lvt-eid="9a35d7e490"></div>
+            <span class="timeline-label" data-lvt-eid="05f2561768">线索回流</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-cta-wrap reveal reveal-delay-5" data-lvt-eid="74a5423a70">
+        <button class="btn-primary cyan-btn" data-lvt-eid="c484c46290">进入平台 ↗</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SYNERGY SECTION ===== -->
+<section class="synergy-section" id="synergy" aria-label="双星协同数据闭环" data-lvt-eid="b297dc1f48">
+  <div class="synergy-bg" aria-hidden="true" data-lvt-eid="fdb391cb64"></div>
+  <div class="container" data-lvt-eid="15d44c5467">
+    <div class="synergy-header" data-lvt-eid="e739aa245d">
+      <h2 class="synergy-title reveal" data-lvt-eid="7b553bf051">双星协同 · 数据闭环</h2>
+      <p class="synergy-subtitle reveal reveal-delay-1" data-lvt-eid="216f0f256c">资产数据驱动营销内容，营销线索反哺资产增值</p>
+    </div>
+    <div class="synergy-canvas-wrap reveal reveal-delay-2" data-lvt-eid="fc521f6a9c">
+      <canvas id="synergyCanvas" width="520" height="520" aria-label="双星协同闭环图" data-lvt-eid="81b3c96bfd"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTORS SECTION ===== -->
+<section class="sectors-section" id="sectors" aria-label="适用场景">
+  <div class="container">
+    <div class="sectors-header">
+      <p class="section-label reveal">SCENARIOS</p>
+      <h2 class="section-title reveal reveal-delay-1">适用场景</h2>
+      <p class="sectors-subtitle reveal reveal-delay-2">两大平台覆盖资产运营与营销增长的多元业务场景</p>
+    </div>
+
+    <!-- 分组一：楼达人 -->
+    <div class="scene-group reveal reveal-delay-1">
+      <div class="scene-group-header">
+        <div class="scene-group-bar blue"></div>
+        <span class="scene-group-title blue">楼达人 · 资产运营场景</span>
+      </div>
+      <div class="sectors-grid">
+
+        <!-- 写字楼 -->
+        <div class="sector-card blue-card reveal reveal-delay-1">
+          <div class="sector-illus">
+            <svg viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-b1" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <rect x="34" y="8" width="28" height="58" stroke="#4E87FF" stroke-width="1.3" fill="none" filter="url(#glow-b1)"/>
+              <line x1="34" y1="16" x2="62" y2="16" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="34" y1="24" x2="62" y2="24" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="34" y1="32" x2="62" y2="32" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="34" y1="40" x2="62" y2="40" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="34" y1="48" x2="62" y2="48" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="34" y1="56" x2="62" y2="56" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="48" y1="8" x2="48" y2="66" stroke="#4E87FF" stroke-width="0.7" opacity="0.35"/>
+              <rect x="20" y="28" width="14" height="38" stroke="#3BE0FF" stroke-width="1" fill="none" opacity="0.6"/>
+              <line x1="20" y1="36" x2="34" y2="36" stroke="#3BE0FF" stroke-width="0.6" opacity="0.4"/>
+              <line x1="20" y1="44" x2="34" y2="44" stroke="#3BE0FF" stroke-width="0.6" opacity="0.4"/>
+              <line x1="20" y1="52" x2="34" y2="52" stroke="#3BE0FF" stroke-width="0.6" opacity="0.4"/>
+              <rect x="62" y="22" width="14" height="44" stroke="#3BE0FF" stroke-width="1" fill="none" opacity="0.6"/>
+              <line x1="62" y1="30" x2="76" y2="30" stroke="#3BE0FF" stroke-width="0.6" opacity="0.4"/>
+              <line x1="62" y1="38" x2="76" y2="38" stroke="#3BE0FF" stroke-width="0.6" opacity="0.4"/>
+              <line x1="62" y1="46" x2="76" y2="46" stroke="#3BE0FF" stroke-width="0.6" opacity="0.4"/>
+              <line x1="48" y1="8" x2="48" y2="2" stroke="#4E87FF" stroke-width="1.2"/>
+              <circle cx="48" cy="2" r="2" fill="#7EF0FF" class="glow-dot" filter="url(#glow-b1)"/>
+              <line x1="14" y1="66" x2="82" y2="66" stroke="#4E87FF" stroke-width="0.8" opacity="0.4"/>
+              <line x1="34" y1="16" x2="62" y2="16" stroke="#7EF0FF" stroke-width="1.2" class="flow-line" style="animation-delay:0s"/>
+              <line x1="34" y1="40" x2="62" y2="40" stroke="#7EF0FF" stroke-width="1.2" class="flow-line" style="animation-delay:0.6s"/>
+            </svg>
+          </div>
+          <h3 class="sector-name">写字楼<span class="slash">/</span></h3>
+          <p class="sector-desc">高端楼宇资产精细化运营</p>
+        </div>
+
+        <!-- 产业园区 -->
+        <div class="sector-card blue-card reveal reveal-delay-2">
+          <div class="sector-illus">
+            <svg viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-b2" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <rect x="6" y="30" width="26" height="32" stroke="#4E87FF" stroke-width="1.2" fill="none"/>
+              <polyline points="6,30 19,20 32,30" stroke="#4E87FF" stroke-width="1.2" fill="none"/>
+              <rect x="11" y="38" width="7" height="7" stroke="#3BE0FF" stroke-width="0.8" fill="none" opacity="0.7"/>
+              <rect x="24" y="38" width="7" height="7" stroke="#3BE0FF" stroke-width="0.8" fill="none" opacity="0.7"/>
+              <rect x="36" y="24" width="24" height="38" stroke="#4E87FF" stroke-width="1.3" fill="none" filter="url(#glow-b2)"/>
+              <line x1="36" y1="34" x2="60" y2="34" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="36" y1="44" x2="60" y2="44" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="36" y1="54" x2="60" y2="54" stroke="#4E87FF" stroke-width="0.7" opacity="0.5"/>
+              <rect x="64" y="34" width="22" height="28" stroke="#3BE0FF" stroke-width="1" fill="none" opacity="0.7"/>
+              <line x1="64" y1="42" x2="86" y2="42" stroke="#3BE0FF" stroke-width="0.6" opacity="0.4"/>
+              <line x1="64" y1="50" x2="86" y2="50" stroke="#3BE0FF" stroke-width="0.6" opacity="0.4"/>
+              <line x1="32" y1="46" x2="36" y2="46" stroke="#7EF0FF" stroke-width="1" opacity="0.6"/>
+              <line x1="60" y1="46" x2="64" y2="46" stroke="#7EF0FF" stroke-width="1" opacity="0.6"/>
+              <circle cx="19" cy="46" r="2.5" fill="#4E87FF" class="glow-dot" filter="url(#glow-b2)" style="animation-delay:0.3s"/>
+              <circle cx="48" cy="24" r="2.5" fill="#7EF0FF" class="glow-dot" filter="url(#glow-b2)" style="animation-delay:0.9s"/>
+              <circle cx="75" cy="34" r="2.5" fill="#3BE0FF" class="glow-dot" filter="url(#glow-b2)" style="animation-delay:1.5s"/>
+              <line x1="4" y1="62" x2="92" y2="62" stroke="#4E87FF" stroke-width="0.7" opacity="0.35"/>
+              <line x1="32" y1="46" x2="64" y2="46" stroke="#7EF0FF" stroke-width="1.2" class="flow-line" style="animation-delay:0.2s"/>
+            </svg>
+          </div>
+          <h3 class="sector-name">产业园区<span class="slash">/</span></h3>
+          <p class="sector-desc">园区资产与企业服务一体化</p>
+        </div>
+
+        <!-- 商业综合体 -->
+        <div class="sector-card blue-card reveal reveal-delay-3">
+          <div class="sector-illus">
+            <svg viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-b3" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <rect x="10" y="32" width="76" height="30" stroke="#4E87FF" stroke-width="1.3" fill="none" filter="url(#glow-b3)"/>
+              <path d="M10,32 Q48,6 86,32" stroke="#4E87FF" stroke-width="1.3" fill="none" filter="url(#glow-b3)"/>
+              <path d="M20,32 Q48,14 76,32" stroke="#3BE0FF" stroke-width="0.8" fill="none" opacity="0.5"/>
+              <line x1="10" y1="44" x2="86" y2="44" stroke="#4E87FF" stroke-width="0.7" opacity="0.45"/>
+              <line x1="10" y1="54" x2="86" y2="54" stroke="#4E87FF" stroke-width="0.7" opacity="0.45"/>
+              <line x1="30" y1="32" x2="30" y2="62" stroke="#4E87FF" stroke-width="0.6" opacity="0.3"/>
+              <line x1="48" y1="32" x2="48" y2="62" stroke="#4E87FF" stroke-width="0.6" opacity="0.3"/>
+              <line x1="66" y1="32" x2="66" y2="62" stroke="#4E87FF" stroke-width="0.6" opacity="0.3"/>
+              <rect x="40" y="50" width="16" height="12" stroke="#3BE0FF" stroke-width="1" fill="none" opacity="0.8"/>
+              <circle cx="36" cy="64" r="2" fill="#7EF0FF" class="glow-dot" filter="url(#glow-b3)" style="animation-delay:0s"/>
+              <circle cx="48" cy="65" r="1.5" fill="#4E87FF" class="glow-dot" filter="url(#glow-b3)" style="animation-delay:0.5s"/>
+              <circle cx="60" cy="64" r="2" fill="#7EF0FF" class="glow-dot" filter="url(#glow-b3)" style="animation-delay:1s"/>
+              <circle cx="24" cy="64" r="1.5" fill="#3BE0FF" class="glow-dot" filter="url(#glow-b3)" style="animation-delay:1.5s"/>
+              <circle cx="72" cy="64" r="1.5" fill="#3BE0FF" class="glow-dot" filter="url(#glow-b3)" style="animation-delay:0.8s"/>
+              <circle cx="48" cy="8" r="2.5" fill="#7EF0FF" class="glow-dot" filter="url(#glow-b3)" style="animation-delay:0.4s"/>
+              <path d="M10,44 Q48,44 86,44" stroke="#7EF0FF" stroke-width="1.2" class="flow-line" style="animation-delay:0.1s"/>
+            </svg>
+          </div>
+          <h3 class="sector-name">商业综合体<span class="slash">/</span></h3>
+          <p class="sector-desc">招商运营与客流营销联动</p>
+        </div>
+
+        <!-- 长租公寓 -->
+        <div class="sector-card blue-card reveal reveal-delay-4">
+          <div class="sector-illus">
+            <svg viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-b4" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <rect x="22" y="10" width="52" height="54" stroke="#4E87FF" stroke-width="1.3" fill="none" filter="url(#glow-b4)"/>
+              <line x1="22" y1="20" x2="74" y2="20" stroke="#4E87FF" stroke-width="0.7" opacity="0.45"/>
+              <line x1="22" y1="30" x2="74" y2="30" stroke="#4E87FF" stroke-width="0.7" opacity="0.45"/>
+              <line x1="22" y1="40" x2="74" y2="40" stroke="#4E87FF" stroke-width="0.7" opacity="0.45"/>
+              <line x1="22" y1="50" x2="74" y2="50" stroke="#4E87FF" stroke-width="0.7" opacity="0.45"/>
+              <line x1="35" y1="10" x2="35" y2="64" stroke="#4E87FF" stroke-width="0.6" opacity="0.3"/>
+              <line x1="48" y1="10" x2="48" y2="64" stroke="#4E87FF" stroke-width="0.6" opacity="0.3"/>
+              <line x1="61" y1="10" x2="61" y2="64" stroke="#4E87FF" stroke-width="0.6" opacity="0.3"/>
+              <rect x="25" y="12" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="25" y="22" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="25" y="32" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="25" y="42" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="38" y="12" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="38" y="22" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="38" y="32" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="38" y="42" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="51" y="12" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="51" y="22" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="51" y="32" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="51" y="42" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="64" y="12" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="64" y="22" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="64" y="32" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <rect x="64" y="42" width="8" height="6" stroke="#3BE0FF" stroke-width="0.8" fill="rgba(59,224,255,0.06)" opacity="0.8"/>
+              <line x1="14" y1="64" x2="82" y2="64" stroke="#4E87FF" stroke-width="0.8" opacity="0.4"/>
+              <rect x="38" y="22" width="8" height="6" fill="rgba(126,240,255,0.18)" stroke="#7EF0FF" stroke-width="0.8"/>
+              <rect x="51" y="32" width="8" height="6" fill="rgba(126,240,255,0.18)" stroke="#7EF0FF" stroke-width="0.8"/>
+              <line x1="22" y1="30" x2="74" y2="30" stroke="#7EF0FF" stroke-width="1.2" class="flow-line" style="animation-delay:0.4s"/>
+            </svg>
+          </div>
+          <h3 class="sector-name">长租公寓<span class="slash">/</span></h3>
+          <p class="sector-desc">公寓资产租赁与续租全周期</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 分组二：唯风营销 -->
+    <div class="scene-group reveal reveal-delay-2">
+      <div class="scene-group-header">
+        <div class="scene-group-bar cyan"></div>
+        <span class="scene-group-title cyan">唯风营销 · 营销增长场景</span>
+      </div>
+      <div class="sectors-grid">
+
+        <!-- 社媒内容运营 -->
+        <div class="sector-card cyan-card reveal reveal-delay-1">
+          <div class="sector-illus">
+            <svg viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-c1" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <rect x="30" y="6" width="36" height="60" rx="5" stroke="#3BE0FF" stroke-width="1.3" fill="none" filter="url(#glow-c1)"/>
+              <rect x="34" y="12" width="28" height="46" rx="2" stroke="#3BE0FF" stroke-width="0.7" fill="none" opacity="0.5"/>
+              <circle cx="48" cy="9" r="1.5" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <rect x="36" y="15" width="24" height="12" rx="1.5" stroke="#7EF0FF" stroke-width="0.9" fill="rgba(59,224,255,0.08)"/>
+              <line x1="39" y1="19" x2="57" y2="19" stroke="#7EF0FF" stroke-width="0.7" opacity="0.6"/>
+              <line x1="39" y1="22" x2="52" y2="22" stroke="#7EF0FF" stroke-width="0.7" opacity="0.4"/>
+              <rect x="36" y="30" width="24" height="12" rx="1.5" stroke="#3BE0FF" stroke-width="0.9" fill="rgba(59,224,255,0.05)" opacity="0.8"/>
+              <line x1="39" y1="34" x2="57" y2="34" stroke="#3BE0FF" stroke-width="0.7" opacity="0.5"/>
+              <line x1="39" y1="37" x2="50" y2="37" stroke="#3BE0FF" stroke-width="0.7" opacity="0.35"/>
+              <rect x="36" y="45" width="24" height="10" rx="1.5" stroke="#3BE0FF" stroke-width="0.7" fill="none" opacity="0.5"/>
+              <circle cx="72" cy="20" r="3" fill="#7EF0FF" class="glow-dot" filter="url(#glow-c1)" style="animation-delay:0s"/>
+              <circle cx="80" cy="36" r="2.5" fill="#3BE0FF" class="glow-dot" filter="url(#glow-c1)" style="animation-delay:0.7s"/>
+              <circle cx="74" cy="50" r="2" fill="#7EF0FF" class="glow-dot" filter="url(#glow-c1)" style="animation-delay:1.4s"/>
+              <line x1="66" y1="21" x2="72" y2="20" stroke="#7EF0FF" stroke-width="0.8" opacity="0.5" class="flow-line" style="animation-delay:0s"/>
+              <line x1="66" y1="36" x2="80" y2="36" stroke="#3BE0FF" stroke-width="0.8" opacity="0.5" class="flow-line" style="animation-delay:0.5s"/>
+              <line x1="66" y1="50" x2="74" y2="50" stroke="#7EF0FF" stroke-width="0.8" opacity="0.5" class="flow-line" style="animation-delay:1s"/>
+            </svg>
+          </div>
+          <h3 class="sector-name">社媒内容运营<span class="slash">/</span></h3>
+          <p class="sector-desc">多平台内容智能生产与一键分发</p>
+        </div>
+
+        <!-- 品牌增长营销 -->
+        <div class="sector-card cyan-card reveal reveal-delay-2">
+          <div class="sector-illus">
+            <svg viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-c2" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <line x1="14" y1="60" x2="82" y2="60" stroke="#3BE0FF" stroke-width="1" opacity="0.5"/>
+              <line x1="14" y1="60" x2="14" y2="10" stroke="#3BE0FF" stroke-width="1" opacity="0.5"/>
+              <line x1="14" y1="45" x2="82" y2="45" stroke="#3BE0FF" stroke-width="0.5" opacity="0.2" stroke-dasharray="3 3"/>
+              <line x1="14" y1="30" x2="82" y2="30" stroke="#3BE0FF" stroke-width="0.5" opacity="0.2" stroke-dasharray="3 3"/>
+              <line x1="14" y1="15" x2="82" y2="15" stroke="#3BE0FF" stroke-width="0.5" opacity="0.2" stroke-dasharray="3 3"/>
+              <polyline points="14,58 28,52 42,44 56,32 70,20 82,10" stroke="#3BE0FF" stroke-width="1.5" fill="none" filter="url(#glow-c2)"/>
+              <polygon points="14,58 28,52 42,44 56,32 70,20 82,10 82,60 14,60" fill="rgba(59,224,255,0.07)"/>
+              <circle cx="28" cy="52" r="2.5" fill="#3BE0FF" opacity="0.8"/>
+              <circle cx="42" cy="44" r="2.5" fill="#3BE0FF" opacity="0.8"/>
+              <circle cx="56" cy="32" r="2.5" fill="#3BE0FF" opacity="0.8"/>
+              <circle cx="70" cy="20" r="2.5" fill="#3BE0FF" opacity="0.8"/>
+              <polyline points="78,6 82,10 78,14" stroke="#7EF0FF" stroke-width="1.3" fill="none" filter="url(#glow-c2)"/>
+              <circle cx="82" cy="10" r="8" stroke="#7EF0FF" stroke-width="0.8" fill="none" opacity="0.4"/>
+              <circle cx="82" cy="10" r="4" stroke="#7EF0FF" stroke-width="0.8" fill="none" opacity="0.6"/>
+              <circle cx="82" cy="10" r="2" fill="#7EF0FF" class="glow-dot" filter="url(#glow-c2)"/>
+              <path d="M48,8 L49.5,12 L54,12 L50.5,14.5 L52,18.5 L48,16 L44,18.5 L45.5,14.5 L42,12 L46.5,12 Z" stroke="#7EF0FF" stroke-width="0.8" fill="rgba(126,240,255,0.2)" opacity="0.7"/>
+              <polyline points="14,58 28,52 42,44 56,32 70,20 82,10" stroke="#7EF0FF" stroke-width="1.5" class="flow-line" style="animation-delay:0.3s" stroke-dasharray="6 4"/>
+            </svg>
+          </div>
+          <h3 class="sector-name">品牌增长营销<span class="slash">/</span></h3>
+          <p class="sector-desc">品牌声量放大与获客转化提效</p>
+        </div>
+
+        <!-- 私域客户运营 -->
+        <div class="sector-card cyan-card reveal reveal-delay-3">
+          <div class="sector-illus">
+            <svg viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-c3" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <circle cx="48" cy="36" r="10" stroke="#3BE0FF" stroke-width="1.4" fill="rgba(59,224,255,0.1)" filter="url(#glow-c3)"/>
+              <circle cx="48" cy="33" r="3.5" stroke="#7EF0FF" stroke-width="1" fill="none"/>
+              <path d="M41,42 Q48,38 55,42" stroke="#7EF0FF" stroke-width="1" fill="none"/>
+              <circle cx="48" cy="36" r="26" stroke="#3BE0FF" stroke-width="0.7" fill="none" opacity="0.25" stroke-dasharray="4 4"/>
+              <circle cx="48" cy="8" r="6" stroke="#7EF0FF" stroke-width="1" fill="rgba(126,240,255,0.08)"/>
+              <circle cx="48" cy="6" r="2" stroke="#7EF0FF" stroke-width="0.8" fill="none"/>
+              <path d="M44,11 Q48,9 52,11" stroke="#7EF0FF" stroke-width="0.8" fill="none"/>
+              <circle cx="71" cy="18" r="6" stroke="#3BE0FF" stroke-width="1" fill="rgba(59,224,255,0.08)"/>
+              <circle cx="71" cy="16" r="2" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <path d="M67,21 Q71,19 75,21" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <circle cx="74" cy="52" r="6" stroke="#3BE0FF" stroke-width="1" fill="rgba(59,224,255,0.08)"/>
+              <circle cx="74" cy="50" r="2" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <path d="M70,55 Q74,53 78,55" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <circle cx="48" cy="64" r="6" stroke="#7EF0FF" stroke-width="1" fill="rgba(126,240,255,0.08)"/>
+              <circle cx="48" cy="62" r="2" stroke="#7EF0FF" stroke-width="0.8" fill="none"/>
+              <path d="M44,67 Q48,65 52,67" stroke="#7EF0FF" stroke-width="0.8" fill="none"/>
+              <circle cx="22" cy="52" r="6" stroke="#3BE0FF" stroke-width="1" fill="rgba(59,224,255,0.08)"/>
+              <circle cx="22" cy="50" r="2" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <path d="M18,55 Q22,53 26,55" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <circle cx="25" cy="18" r="6" stroke="#3BE0FF" stroke-width="1" fill="rgba(59,224,255,0.08)"/>
+              <circle cx="25" cy="16" r="2" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <path d="M21,21 Q25,19 29,21" stroke="#3BE0FF" stroke-width="0.8" fill="none"/>
+              <line x1="48" y1="14" x2="48" y2="26" stroke="#7EF0FF" stroke-width="0.9" opacity="0.5"/>
+              <line x1="65" y1="22" x2="57" y2="29" stroke="#3BE0FF" stroke-width="0.9" opacity="0.5"/>
+              <line x1="68" y1="48" x2="58" y2="42" stroke="#3BE0FF" stroke-width="0.9" opacity="0.5"/>
+              <line x1="48" y1="58" x2="48" y2="46" stroke="#7EF0FF" stroke-width="0.9" opacity="0.5"/>
+              <line x1="28" y1="48" x2="38" y2="42" stroke="#3BE0FF" stroke-width="0.9" opacity="0.5"/>
+              <line x1="31" y1="22" x2="39" y2="29" stroke="#3BE0FF" stroke-width="0.9" opacity="0.5"/>
+              <line x1="48" y1="14" x2="48" y2="26" stroke="#7EF0FF" stroke-width="1.2" class="flow-line" style="animation-delay:0s"/>
+              <line x1="65" y1="22" x2="57" y2="29" stroke="#7EF0FF" stroke-width="1.2" class="flow-line" style="animation-delay:0.5s"/>
+            </svg>
+          </div>
+          <h3 class="sector-name">私域客户运营<span class="slash">/</span></h3>
+          <p class="sector-desc">客户分层触达与线索持续培育</p>
+        </div>
+
+        <!-- 全渠道电商分发 -->
+        <div class="sector-card cyan-card reveal reveal-delay-4">
+          <div class="sector-illus">
+            <svg viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-c4" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <rect x="36" y="26" width="24" height="20" rx="3" stroke="#3BE0FF" stroke-width="1.4" fill="rgba(59,224,255,0.1)" filter="url(#glow-c4)"/>
+              <line x1="42" y1="33" x2="54" y2="33" stroke="#7EF0FF" stroke-width="1" opacity="0.7"/>
+              <line x1="42" y1="38" x2="50" y2="38" stroke="#7EF0FF" stroke-width="1" opacity="0.5"/>
+              <rect x="38" y="6" width="20" height="14" rx="3" stroke="#7EF0FF" stroke-width="1" fill="rgba(126,240,255,0.08)"/>
+              <line x1="44" y1="11" x2="56" y2="11" stroke="#7EF0FF" stroke-width="0.8" opacity="0.6"/>
+              <line x1="44" y1="14" x2="52" y2="14" stroke="#7EF0FF" stroke-width="0.8" opacity="0.4"/>
+              <rect x="70" y="29" width="20" height="14" rx="3" stroke="#3BE0FF" stroke-width="1" fill="rgba(59,224,255,0.08)"/>
+              <line x1="76" y1="34" x2="84" y2="34" stroke="#3BE0FF" stroke-width="0.8" opacity="0.6"/>
+              <line x1="76" y1="37" x2="82" y2="37" stroke="#3BE0FF" stroke-width="0.8" opacity="0.4"/>
+              <rect x="38" y="52" width="20" height="14" rx="3" stroke="#7EF0FF" stroke-width="1" fill="rgba(126,240,255,0.08)"/>
+              <line x1="44" y1="57" x2="56" y2="57" stroke="#7EF0FF" stroke-width="0.8" opacity="0.6"/>
+              <line x1="44" y1="60" x2="52" y2="60" stroke="#7EF0FF" stroke-width="0.8" opacity="0.4"/>
+              <rect x="6" y="29" width="20" height="14" rx="3" stroke="#3BE0FF" stroke-width="1" fill="rgba(59,224,255,0.08)"/>
+              <line x1="12" y1="34" x2="20" y2="34" stroke="#3BE0FF" stroke-width="0.8" opacity="0.6"/>
+              <line x1="12" y1="37" x2="18" y2="37" stroke="#3BE0FF" stroke-width="0.8" opacity="0.4"/>
+              <line x1="48" y1="26" x2="48" y2="20" stroke="#7EF0FF" stroke-width="1" opacity="0.6"/>
+              <line x1="60" y1="36" x2="70" y2="36" stroke="#3BE0FF" stroke-width="1" opacity="0.6"/>
+              <line x1="48" y1="46" x2="48" y2="52" stroke="#7EF0FF" stroke-width="1" opacity="0.6"/>
+              <line x1="36" y1="36" x2="26" y2="36" stroke="#3BE0FF" stroke-width="1" opacity="0.6"/>
+              <line x1="48" y1="26" x2="48" y2="20" stroke="#7EF0FF" stroke-width="1.5" class="flow-line" style="animation-delay:0s"/>
+              <line x1="60" y1="36" x2="70" y2="36" stroke="#7EF0FF" stroke-width="1.5" class="flow-line" style="animation-delay:0.4s"/>
+              <line x1="48" y1="46" x2="48" y2="52" stroke="#7EF0FF" stroke-width="1.5" class="flow-line" style="animation-delay:0.8s"/>
+              <line x1="36" y1="36" x2="26" y2="36" stroke="#7EF0FF" stroke-width="1.5" class="flow-line" style="animation-delay:1.2s"/>
+              <circle cx="48" cy="20" r="2.5" fill="#7EF0FF" class="glow-dot" filter="url(#glow-c4)" style="animation-delay:0.2s"/>
+              <circle cx="70" cy="36" r="2.5" fill="#3BE0FF" class="glow-dot" filter="url(#glow-c4)" style="animation-delay:0.6s"/>
+              <circle cx="48" cy="52" r="2.5" fill="#7EF0FF" class="glow-dot" filter="url(#glow-c4)" style="animation-delay:1s"/>
+              <circle cx="26" cy="36" r="2.5" fill="#3BE0FF" class="glow-dot" filter="url(#glow-c4)" style="animation-delay:1.4s"/>
+            </svg>
+          </div>
+          <h3 class="sector-name">全渠道电商分发<span class="slash">/</span></h3>
+          <p class="sector-desc">多渠道商品与营销活动统一管理</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== BOTTOM CTA ===== -->
+<section class="bottom-cta" id="cta" aria-label="联系我们" data-lvt-eid="57b83b9295">
+  <div class="bottom-cta-bg" aria-hidden="true" data-lvt-eid="6538846c50"></div>
+  <div class="container bottom-cta-content" data-lvt-eid="a475482019">
+    <h2 class="bottom-cta-title reveal" data-lvt-eid="d15c045c7b">开启数字化转型</h2>
+    <p class="bottom-cta-subtitle reveal reveal-delay-1" data-lvt-eid="75ed7d7596">与唯风一起，用智能技术驱动资产增值</p>
+    <button class="btn-cta-large reveal reveal-delay-2" data-lvt-eid="2578ed9642" onclick="window.top.location.href='/contact'">联系我们</button>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer data-lvt-eid="fed2a399fd">
+  <p data-lvt-eid="43838b8699">© 2026 上海唯风信息技术有限公司 · ONLYSTYLE</p>
+</footer>
+
+<!-- ===== SCRIPTS ===== -->
+<script>
+/* ---- Stars canvas ---- */
+(function() {
+  const canvas = document.getElementById('starsCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  let raf;
+
+  function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    initStars();
+  }
+
+  function initStars() {
+    stars = [];
+    const n = Math.floor((canvas.width * canvas.height) / 4000);
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.5 + 0.3,
+        a: Math.random(),
+        speed: Math.random() * 0.008 + 0.003,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      const alpha = s.a * (0.5 + 0.5 * Math.sin(t * s.speed * 60 + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.fill();
+    });
+    raf = requestAnimationFrame(draw);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  raf = requestAnimationFrame(draw);
+})();
+
+/* ---- Synergy canvas (闭环图) ---- */
+(function() {
+  const canvas = document.getElementById('synergyCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const R = 170; // orbit radius
+
+  const nodes = [
+    { label: '资产数据', sub: '楼达人', angle: -Math.PI / 2, color: '#1F5BFF', glow: 'rgba(31,91,255,0.6)' },
+    { label: '内容生产', sub: '唯风', angle: 0, color: '#3BE0FF', glow: 'rgba(59,224,255,0.6)' },
+    { label: '全渠道分发', sub: '', angle: Math.PI / 2, color: '#7BA8FF', glow: 'rgba(123,168,255,0.5)' },
+    { label: '线索回流', sub: '', angle: Math.PI, color: '#5EEEFF', glow: 'rgba(94,238,255,0.5)' }
+  ];
+
+  // Particles
+  const particles = [];
+  for (let i = 0; i < 18; i++) {
+    particles.push({
+      t: i / 18,
+      speed: 0.0012 + Math.random() * 0.0006,
+      r: Math.random() * 2.5 + 1,
+      alpha: Math.random() * 0.6 + 0.4
+    });
+  }
+
+  let animT = 0;
+
+  function getPos(angle) {
+    return { x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
+  }
+
+  function drawFrame() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Outer glow ring
+    const ringGrad = ctx.createRadialGradient(cx, cy, R - 20, cx, cy, R + 20);
+    ringGrad.addColorStop(0, 'rgba(31,91,255,0.0)');
+    ringGrad.addColorStop(0.5, 'rgba(59,224,255,0.08)');
+    ringGrad.addColorStop(1, 'rgba(31,91,255,0.0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(59,224,255,0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Center text
+    ctx.save();
+    const cg = ctx.createLinearGradient(cx - 60, cy, cx + 60, cy);
+    cg.addColorStop(0, '#1F5BFF');
+    cg.addColorStop(1, '#3BE0FF');
+    ctx.fillStyle = cg;
+    ctx.font = 'bold 15px -apple-system, "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('资产 × 营销', cx, cy - 12);
+    ctx.fillText('增长闭环', cx, cy + 12);
+    ctx.restore();
+
+    // Connecting lines between nodes
+    nodes.forEach((n, i) => {
+      const next = nodes[(i + 1) % nodes.length];
+      const p1 = getPos(n.angle);
+      const p2 = getPos(next.angle);
+      const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+      grad.addColorStop(0, n.color + '60');
+      grad.addColorStop(1, next.color + '60');
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      // Curve through center area
+      ctx.quadraticCurveTo(cx, cy, p2.x, p2.y);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // Particles along orbit
+    particles.forEach(p => {
+      p.t = (p.t + p.speed) % 1;
+      const angle = -Math.PI / 2 + p.t * Math.PI * 2;
+      const px = cx + R * Math.cos(angle);
+      const py = cy + R * Math.sin(angle);
+      // Color interpolation based on position
+      const nodeIdx = Math.floor(p.t * 4) % 4;
+      const col = nodes[nodeIdx].color;
+      ctx.beginPath();
+      ctx.arc(px, py, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.globalAlpha = p.alpha * (0.6 + 0.4 * Math.sin(animT * 0.05 + p.t * 10));
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    // Node circles
+    nodes.forEach(n => {
+      const pos = getPos(n.angle);
+
+      // Glow
+      const grd = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 36);
+      grd.addColorStop(0, n.glow);
+      grd.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 36, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+
+      // Circle
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
+      ctx.fillStyle = n.color + '22';
+      ctx.fill();
+      ctx.strokeStyle = n.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Pulse ring
+      const pulse = 0.5 + 0.5 * Math.sin(animT * 0.04 + nodes.indexOf(n));
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 20 + pulse * 10, 0, Math.PI * 2);
+      ctx.strokeStyle = n.color;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3 * (1 - pulse);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // Label
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px -apple-system, "PingFang SC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      let lx = pos.x, ly = pos.y;
+      const offset = 42;
+      if (n.angle === -Math.PI / 2) { ly -= offset; }
+      else if (n.angle === 0) { lx += offset; }
+      else if (n.angle === Math.PI / 2) { ly += offset; }
+      else { lx -= offset; }
+
+      ctx.fillStyle = n.color;
+      ctx.fillText(n.label, lx, ly - (n.sub ? 8 : 0));
+      if (n.sub) {
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '11px -apple-system, "PingFang SC", sans-serif';
+        ctx.fillText(n.sub, lx, ly + 8);
+      }
+    });
+
+    // Arrow indicators between nodes
+    nodes.forEach((n, i) => {
+      const next = nodes[(i + 1) % nodes.length];
+      const midAngle = (n.angle + next.angle) / 2 + (i === 3 ? Math.PI : 0);
+      const arrowX = cx + (R + 0) * Math.cos(midAngle);
+      const arrowY = cy + (R + 0) * Math.sin(midAngle);
+      ctx.save();
+      ctx.translate(arrowX, arrowY);
+      ctx.rotate(midAngle + Math.PI / 2);
+      ctx.fillStyle = 'rgba(59,224,255,0.6)';
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.lineTo(5, 4);
+      ctx.lineTo(-5, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+
+    animT++;
+    requestAnimationFrame(drawFrame);
+  }
+
+  drawFrame();
+})();
+
+/* ---- IntersectionObserver reveal ---- */
+(function() {
+  const els = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(el => el.classList.add('visible'));
+    return;
+  }
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  els.forEach(el => obs.observe(el));
+})();
+
+/* ---- IntersectionObserver 视频播放/暂停 ---- */
+(function() {
+  const videos = document.querySelectorAll('video[data-video-observe]');
+  if (!('IntersectionObserver' in window)) return;
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      const v = e.target;
+      if (e.isIntersecting) {
+        v.play().catch(() => {});
+      } else {
+        v.pause();
+      }
+    });
+  }, { threshold: 0.1 });
+  videos.forEach(v => obs.observe(v));
+})();
+
+/* ---- 鼠标视差 3D 倾斜（桌面端） ---- */
+(function() {
+  // 检测触屏设备，移动端跳过
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
+
+  const MAX_TILT = 12; // 最大倾斜角度 deg
+  const EASE = 0.12;   // 缓动系数
+
+  // Hero 双星
+  const heroBlue = document.getElementById('heroStarBlue');
+  const heroCyan = document.getElementById('heroStarCyan');
+  // 产品章节星球
+  const prodBlue = document.getElementById('prodStarBlue');
+  const prodCyan = document.getElementById('prodStarCyan');
+
+  // 每个星球的当前倾斜状态
+  const state = {
+    heroBlue:  { ry: -18, rx: 8,  tRy: -18, tRx: 8  },
+    heroCyan:  { ry:  18, rx: 8,  tRy:  18, tRx: 8  },
+    prodBlue:  { ry: -20, rx: 10, tRy: -20, tRx: 10 },
+    prodCyan:  { ry:  20, rx: 10, tRy:  20, tRx: 10 },
+  };
+
+  function applyTilt(el, s) {
+    if (!el) return;
+    el.style.transform = `rotateY(${s.ry.toFixed(2)}deg) rotateX(${s.rx.toFixed(2)}deg)`;
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  let rafId;
+  function tick() {
+    let changed = false;
+    for (const key in state) {
+      const s = state[key];
+      const newRy = lerp(s.ry, s.tRy, EASE);
+      const newRx = lerp(s.rx, s.tRx, EASE);
+      if (Math.abs(newRy - s.ry) > 0.01 || Math.abs(newRx - s.rx) > 0.01) {
+        s.ry = newRy; s.rx = newRx;
+        changed = true;
+      }
+    }
+    applyTilt(heroBlue, state.heroBlue);
+    applyTilt(heroCyan, state.heroCyan);
+    applyTilt(prodBlue, state.prodBlue);
+    applyTilt(prodCyan, state.prodCyan);
+    rafId = requestAnimationFrame(tick);
+  }
+  tick();
+
+  function handleMouseMove(e) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // 归一化鼠标位置 [-1, 1]
+    const nx = (e.clientX / vw - 0.5) * 2;
+    const ny = (e.clientY / vh - 0.5) * 2;
+
+    // Hero 双星：鼠标在左半边时蓝星更靠近，右半边时青星更靠近
+    state.heroBlue.tRy  = -18 + nx * MAX_TILT;
+    state.heroBlue.tRx  =   8 - ny * MAX_TILT * 0.5;
+    state.heroCyan.tRy  =  18 + nx * MAX_TILT;
+    state.heroCyan.tRx  =   8 - ny * MAX_TILT * 0.5;
+
+    // 产品章节：轻微视差
+    state.prodBlue.tRy  = -20 + nx * MAX_TILT * 0.6;
+    state.prodBlue.tRx  =  10 - ny * MAX_TILT * 0.3;
+    state.prodCyan.tRy  =  20 + nx * MAX_TILT * 0.6;
+    state.prodCyan.tRx  =  10 - ny * MAX_TILT * 0.3;
+  }
+
+  document.addEventListener('mousemove', handleMouseMove, { passive: true });
+})();
+
+/* ---- Section nav active state ---- */
+function setActiveNav(el) {
+  document.querySelectorAll('.section-nav-link').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ---- Mobile nav toggle ---- */
+(function() {
+  const toggle = document.getElementById('mobileToggle');
+  const links = document.getElementById('navLinks');
+  if (!toggle || !links) return;
+  toggle.addEventListener('click', () => {
+    const open = links.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open);
+  });
+})();
+
+/* ---- Smooth scroll for section nav ---- */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    const target = document.getElementById(id);
+    if (target) {
+      e.preventDefault();
+      const offset = 64 + 44; // nav + section-nav
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  });
+});
+
+/* ---- IntersectionObserver for section nav highlight ---- */
+(function() {
+  const sections = ['louda', 'weifeng', 'synergy', 'sectors'];
+  const links = document.querySelectorAll('.section-nav-link');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        links.forEach(l => {
+          l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) obs.observe(el);
+  });
+})();
+</script>
+
+
+</body></html>
