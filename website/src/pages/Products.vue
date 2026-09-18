@@ -37,9 +37,10 @@ watch(() => site.value?.brand, pushBrand, { deep: true });
 </script>
 
 <template>
+  <!-- ⚠️ embed 内容有更新时必须升 ?v= 版本参数，否则用户浏览器会拿旧缓存 -->
   <iframe
     class="pd-frame"
-    src="/products-embed.html"
+    src="/products-embed.html?v=b2"
     title="产品介绍"
     @load="pushBrand"
   ></iframe>
