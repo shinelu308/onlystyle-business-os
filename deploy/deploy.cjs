@@ -170,6 +170,26 @@ function packTarball() {
     }
   }
 
+  // ⚠️ 证书图片同样要随包发布，理由与品牌图形一致（挂在 /uploads/，两套 nginx 都反代）。
+  //    单独一段、单独一个白名单目录（uploads/certs/），避免动上面那条品牌规则
+  //    —— selfcheck 第 8 节对它有「本机有且仅有一个品牌素材」的断言。
+  //    同样按内容哈希命名（cert_<sha256前8位>.<ext>），immutable 缓存才安全。
+  // ⚠️ 改这里要同步 deploy/selfcheck.cjs 第 8b 节。
+  const CERT_ASSET = /^cert_[0-9a-f]{8}\.(png|jpg|webp)$/i;
+  const certSrc = path.join(ROOT, 'biz-os', 'backend', 'uploads', 'certs');
+  if (fs.existsSync(certSrc)) {
+    let n = 0;
+    for (const f of fs.readdirSync(certSrc)) {
+      if (!CERT_ASSET.test(f)) continue;
+      const certDst = path.join(app, 'biz-os', 'backend', 'uploads', 'certs');
+      fs.mkdirSync(certDst, { recursive: true });
+      fs.copyFileSync(path.join(certSrc, f), path.join(certDst, f));
+      total += fs.statSync(path.join(certDst, f)).size;
+      n++;
+    }
+    if (n) say('    + 证书图片（随包发布）: ' + n + ' 张');
+  }
+
   const dist = path.join(ROOT, 'website', 'dist');
   if (!fs.existsSync(dist)) die('website/dist 不存在，无法打包');
   total += copyTree(dist, path.join(app, 'website', 'dist'), () => true);

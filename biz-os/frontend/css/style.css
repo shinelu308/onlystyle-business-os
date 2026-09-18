@@ -2199,3 +2199,58 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12p
 span.staff-mini-avatar { display: inline-flex; align-items: center; justify-content: center; background: #eef2ff; color: #4f46e5; font-size: 12px; font-weight: 600; }
 .wechat-staff-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .user-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+
+/* ════════════════════════════════════════════════════════════════════
+   关于我们 → 航行资质 · 证书管理组件（cm-cert-*）
+   + repeater 行修饰类（.cm-row.rep）
+   追加块，不改动上方任何既有规则（含 sidebar-bv1）。
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── repeater 一行多项：复用真实 .cm-row（flex / 边框 / 灰底） ──
+   基础 .cm-row 是 align-items:center；多列 .form-group（纵向 flex）高度不一时
+   标签会互相对不齐（数值列矮、说明列高 → 标签错行）→ 改成底对齐 + 子项等分。 */
+.cm-row.rep { align-items: flex-end; }
+.cm-row.rep .form-group { flex: 1; min-width: 0; }
+.cm-row.rep .cm-inline-check { flex: none; padding-bottom: 11px; white-space: nowrap; }
+
+/* ── 证书卡片 ── */
+.cm-cert {
+  display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 16px;
+  padding: 14px; margin-bottom: 14px;
+  border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--gray-50);
+}
+.cm-cert-thumb {
+  width: 132px; height: 180px; border-radius: var(--r-md); overflow: hidden;
+  border: 1px solid var(--border); background: #fff; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.cm-cert-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cm-cert-thumb .ph { text-align: center; color: var(--gray-400); font-size: 12px; line-height: 1.7; padding: 0 8px; }
+.cm-cert-thumb .ph svg { display: block; margin: 0 auto 6px; }
+.cm-cert-badge {
+  position: absolute; left: 6px; top: 6px; z-index: 1;
+  font-size: 10.5px; line-height: 1.5; padding: 2px 7px; border-radius: var(--r-full);
+  background: var(--success); color: #fff;
+}
+.cm-cert-badge.pending { background: var(--gray-400); }
+.cm-cert-ops { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.cm-cert-note { margin-top: 8px; font-size: 12px; color: var(--gray-500); line-height: 1.7; }
+.cm-cert-note b { color: var(--gray-700); font-weight: 600; }
+.cm-cert-note.warn { color: var(--warning); }
+.cm-cert-detail { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; }
+.cm-cert-detail > summary { cursor: pointer; font-size: 12.5px; color: var(--gray-500); outline: none; user-select: none; }
+.cm-cert-detail > summary:hover { color: var(--blue-500); }
+.cm-cert-fields { margin-top: 10px; }
+.cm-cert-fields .cm-row { padding: 7px 10px; }
+.cm-cert-fields .cm-row input { font-size: 13px; padding: 8px 11px; }
+.cm-cert-empty { font-size: 12.5px; color: var(--gray-500); padding: 8px 0; }
+
+/* ── 段落 repeater 的自适应栅格（.cm-rep2） ──
+   一行塞 4~7 个 input 在 620px 表单列里会被压到 100px 以内（注释根本看不清），
+   这里把外层 .cm-row 留着（cmRepDel / cmRepRead 原样可用），内部换成按宽度自动折行的栅格。 */
+.cm-row.cm-rep2-row { align-items: flex-start; padding: 11px 12px; }
+.cm-rep2-grid { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 10px 12px; }
+.cm-rep2-grid .form-group label { font-size: 12px; color: var(--gray-500); }
+.cm-rep2-grid .form-group input { font-size: 13px; padding: 8px 11px; }
+.cm-rep2-grid .cm-inline-check { align-self: end; padding-bottom: 9px; }
+.cm-row.cm-rep2-row .cm-del { margin-top: 2px; }

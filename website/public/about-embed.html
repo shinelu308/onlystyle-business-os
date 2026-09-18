@@ -442,7 +442,95 @@ img{display:block;max-width:100%}
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
   .reveal{opacity:1;transform:none}
 }
-</style>
+</style><style>
+/* ══════════════════════════════════════════════════════════════
+   证书查看浮层（方案 A · 星舰舷窗）+ 后台数据层
+   追加块，不改设计稿任何既有规则。
+   ⚠️ .sec-light 的 color 是 --ink（深蓝），浮层挂在这块里会**继承深蓝**，
+      深色面板上就看不见字 —— 所以面板与所有文字一律显式写 color:#fff。
+   ══════════════════════════════════════════════════════════════ */
+.cert-btn.is-pending{
+  width:100%;font:inherit;font-size:14px;font-weight:600;
+  background:rgba(11,27,58,.045);color:var(--ink-muted);
+  border:1px dashed rgba(11,27,58,.22);cursor:not-allowed;
+}
+.cert-btn.is-pending:hover{opacity:1}
+.cert-btn.is-pending svg{display:none}
+button.cert-btn{border:none}
+
+.cv{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:24px}
+.cv[hidden]{display:none}
+.cv-bd{
+  position:absolute;inset:0;opacity:0;transition:opacity .3s;
+  background:radial-gradient(120% 92% at 50% 26%,rgba(9,20,42,.80),rgba(3,6,16,.93));
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+.cv.open .cv-bd{opacity:1}
+.cv-panel{
+  position:relative;color:#fff;   /* ⚠️ 浅色区继承防护，见上 */
+  width:min(920px,100%);max-height:calc(100vh - 48px);
+  display:flex;flex-direction:column;border-radius:20px;overflow:hidden;
+  background:linear-gradient(160deg,rgba(13,26,56,.97),rgba(5,11,26,.99));
+  border:1px solid rgba(59,224,255,.26);
+  box-shadow:0 40px 120px rgba(0,0,0,.62),0 0 90px rgba(31,91,255,.16) inset;
+  transform:translateY(16px) scale(.982);opacity:0;
+  transition:transform .34s cubic-bezier(.2,.9,.3,1),opacity .3s;
+}
+.cv.open .cv-panel{transform:none;opacity:1}
+/* 舷窗边缘光：渐变描边（mask 挖空中间） */
+.cv-panel::after{
+  content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;
+  padding:1px;background:linear-gradient(135deg,rgba(59,224,255,.55),rgba(59,224,255,0) 42%,rgba(31,91,255,.5));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+}
+.cv-bar{display:flex;align-items:center;gap:14px;padding:15px 18px;border-bottom:1px solid rgba(255,255,255,.10);flex:none}
+.cv-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);flex:none}
+.cv-eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--cyan);flex:none}
+.cv-title{margin:0;font-size:16px;font-weight:700;color:#fff;line-height:1.4;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cv-close{
+  flex:none;width:34px;height:34px;border-radius:10px;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;
+  font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;
+  transition:background .2s,border-color .2s;
+}
+.cv-close:hover{background:rgba(255,255,255,.13);border-color:rgba(59,224,255,.45)}
+.cv-stage{
+  position:relative;flex:1;min-height:180px;overflow:auto;padding:22px;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(78% 58% at 50% 40%,rgba(31,91,255,.14),transparent 72%);
+}
+.cv-img{max-width:100%;max-height:calc(100vh - 250px);display:block;border-radius:10px;object-fit:contain;box-shadow:0 18px 52px rgba(0,0,0,.55)}
+.cv-load,.cv-fail{text-align:center;color:rgba(255,255,255,.66);font-size:13.5px;line-height:1.9;padding:34px 10px}
+.cv-load[hidden],.cv-fail[hidden]{display:none}
+.cv-fail b{display:block;color:#fff;font-size:14.5px;margin-bottom:6px}
+.cv-spin{
+  display:block;width:26px;height:26px;margin:0 auto 12px;border-radius:50%;
+  border:2px solid rgba(59,224,255,.25);border-top-color:var(--cyan);animation:cvspin .8s linear infinite;
+}
+@keyframes cvspin{to{transform:rotate(360deg)}}
+.cv-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 18px;border-top:1px solid rgba(255,255,255,.10);flex:none}
+.cv-issuer{margin:0;font-size:12px;color:rgba(255,255,255,.62);line-height:1.6}
+.cv-tip{font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.40);letter-spacing:.06em;flex:none}
+@media (max-width:720px){
+  .cv{padding:0}
+  .cv-panel{width:100%;max-height:100vh;border-radius:0;height:100vh}
+  .cv-img{max-height:calc(100vh - 210px)}
+  .cv-eyebrow{display:none}
+}
+
+/* 轻提示（点击「证书待上传」时给个交代，不出空白浮层） */
+.ds-toast{
+  position:fixed;left:50%;bottom:34px;transform:translate(-50%,14px);z-index:9100;
+  max-width:min(520px,calc(100vw - 40px));
+  padding:11px 18px;border-radius:999px;font-size:13.5px;line-height:1.6;
+  background:rgba(11,27,58,.94);color:#fff;border:1px solid rgba(59,224,255,.3);
+  box-shadow:0 14px 40px rgba(0,0,0,.35);
+  opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;
+}
+.ds-toast.show{opacity:1;transform:translate(-50%,0)}
+</style><!-- ds-about-data-v1 -->
 </head>
 <body>
 
@@ -489,14 +577,14 @@ img{display:block;max-width:100%}
   <div class="hero-content" data-lvt-eid="c46b0e8bf5">
     <div class="container" data-lvt-eid="a1390779b4">
       <div class="hero-inner" data-lvt-eid="c7259a3228">
-        <p class="breadcrumb reveal" data-lvt-eid="f57db530bc">首页 <span class="sep" data-lvt-eid="53bfa95264">/</span> <span class="cur" data-lvt-eid="2d9fd8b7e0">关于我们</span></p>
-        <h1 class="hero-title reveal reveal-d1" data-lvt-eid="8affae6101"><span class="grad" data-lvt-eid="d365e0973c">关于我们</span></h1>
-        <p class="hero-sub reveal reveal-d2" data-lvt-eid="ed6d044044"><b data-lvt-eid="553dd675e3">数字化转型的引领者</b> · 探索产业未来的星际舰队</p>
+        <p class="breadcrumb reveal" data-lvt-eid="f57db530bc">首页 <span class="sep" data-lvt-eid="53bfa95264">/</span> <span class="cur" id="dsCrumb" data-lvt-eid="2d9fd8b7e0">关于我们</span></p>
+        <h1 class="hero-title reveal reveal-d1" data-lvt-eid="8affae6101"><span class="grad" id="dsHeroTitle" data-lvt-eid="d365e0973c">关于我们</span></h1>
+        <p class="hero-sub reveal reveal-d2" data-lvt-eid="ed6d044044"><b id="dsHeroBold" data-lvt-eid="553dd675e3">数字化转型的引领者</b><span id="dsHeroRest"> · 探索产业未来的星际舰队</span></p>
         <div class="hero-cta-row reveal reveal-d3" data-lvt-eid="e6ad686be2">
-          <a href="#cta" class="btn-primary" data-lvt-eid="0c1eb814ff">联系我们
+          <a href="#cta" class="btn-primary" id="dsHeroCta" data-lvt-eid="0c1eb814ff">联系我们
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" data-lvt-eid="7383edb918"><path d="M3 9h12M10 4l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="69619f7aac"></path></svg>
           </a>
-          <span class="hero-hint" data-lvt-eid="28e96e403a">EST. 2003 · SHANGHAI</span>
+          <span class="hero-hint" id="dsHeroHint" data-lvt-eid="28e96e403a">EST. 2003 · SHANGHAI</span>
         </div>
       </div>
     </div>
@@ -510,12 +598,12 @@ img{display:block;max-width:100%}
     <div class="profile-grid" data-lvt-eid="843b344757">
       <div class="profile-text" data-lvt-eid="b8cd4dc0be">
         <div class="sec-head reveal" style="margin-bottom:32px" data-lvt-eid="6389d5960b">
-          <p class="sec-eyebrow" data-lvt-eid="04b561f497">COMPANY PROFILE / 公司简介</p>
-          <h2 class="sec-title" data-lvt-eid="3a6aeb1d02">星尘起源 · <em data-lvt-eid="71b2697382">数字化星域的探索旗舰</em></h2>
+          <p class="sec-eyebrow" id="dsProfEyebrow" data-lvt-eid="04b561f497">COMPANY PROFILE / 公司简介</p>
+          <h2 class="sec-title" data-lvt-eid="3a6aeb1d02"><span id="dsProfTitle">星尘起源 · </span><em id="dsProfEm" data-lvt-eid="71b2697382">数字化星域的探索旗舰</em></h2>
         </div>
-        <p class="reveal reveal-d1" data-lvt-eid="ac8a620619"><strong data-lvt-eid="9af95cf66d">上海唯风信息技术有限公司</strong>是一家在数字化领域拥有广泛经验的领先企业。我们专注于为不同行业的企业和机构提供全面的数字化解决方案，以满足他们的不同需求和挑战。</p>
-        <p class="reveal reveal-d2" data-lvt-eid="35ddc0f6b8">我们深知数字化转型对于企业的重要性，因此我们的使命是为客户提供卓越的服务，帮助他们在数字时代取得成功。</p>
-        <div class="profile-tags reveal reveal-d3" data-lvt-eid="42e5b7f395">
+        <p class="reveal reveal-d1" id="dsProfBody" data-lvt-eid="ac8a620619"><strong data-lvt-eid="9af95cf66d">上海唯风信息技术有限公司</strong>是一家在数字化领域拥有广泛经验的领先企业。我们专注于为不同行业的企业和机构提供全面的数字化解决方案，以满足他们的不同需求和挑战。</p>
+        <p class="reveal reveal-d2" data-ds-extra="1" data-lvt-eid="35ddc0f6b8">我们深知数字化转型对于企业的重要性，因此我们的使命是为客户提供卓越的服务，帮助他们在数字时代取得成功。</p>
+        <div class="profile-tags reveal reveal-d3" id="dsProfTags" data-lvt-eid="42e5b7f395">
           <span class="profile-tag" data-lvt-eid="9287fcbcb8">全链路数字化</span>
           <span class="profile-tag" data-lvt-eid="1ac8b3ae7f">行业智能化</span>
           <span class="profile-tag" data-lvt-eid="525d2a366f">AI 交付</span>
@@ -525,7 +613,7 @@ img{display:block;max-width:100%}
       <div class="profile-visual reveal reveal-d2" aria-hidden="true" data-lvt-eid="562de89e4b">
         <div class="pv-stage" data-lvt-eid="6f62f5cdd6">
           <canvas id="pvCanvas" data-lvt-eid="fea1a79927"></canvas>
-          <span class="pv-caption" data-lvt-eid="73f8beabe5">ONLYSTYLE · CORE SYSTEM</span>
+          <span class="pv-caption" id="dsProfCaption" data-lvt-eid="73f8beabe5">ONLYSTYLE · CORE SYSTEM</span>
         </div>
       </div>
     </div>
@@ -535,7 +623,7 @@ img{display:block;max-width:100%}
 <!-- ===== FLEET DATA ===== -->
 <section class="stats-band" id="stats" aria-label="核心数据" data-lvt-eid="76e2976b6b">
   <div class="container" data-lvt-eid="950ea56f7e">
-    <div class="stats-grid" data-lvt-eid="d05d70b581">
+    <div class="stats-grid" id="dsStatsGrid" data-lvt-eid="d05d70b581">
       <div class="stat-card reveal" data-lvt-eid="c8365e76b1">
         <svg class="stat-icon" viewBox="0 0 44 44" fill="none" aria-hidden="true" data-lvt-eid="18cb9c76a3">
           <circle cx="22" cy="22" r="16" stroke="#3BE0FF" stroke-width="1.4" opacity=".55" data-lvt-eid="e7268d4409"></circle>
@@ -583,10 +671,10 @@ img{display:block;max-width:100%}
 <section class="sec" id="timeline" aria-label="品牌时间线" data-lvt-eid="bd7a48ce6a">
   <div class="container" data-lvt-eid="54e61c6214">
     <div class="sec-head reveal" data-lvt-eid="14aba1eda9">
-      <p class="sec-eyebrow" data-lvt-eid="c4ff9f1313">VOYAGE TIMELINE / 品牌时间线</p>
-      <h2 class="sec-title" data-lvt-eid="8d1ebb1bcd">航迹 · <em data-lvt-eid="b1e4af5c24">二十余年的星际征途</em></h2>
+      <p class="sec-eyebrow" id="dsTlEyebrow" data-lvt-eid="c4ff9f1313">VOYAGE TIMELINE / 品牌时间线</p>
+      <h2 class="sec-title" data-lvt-eid="8d1ebb1bcd"><span id="dsTlTitle">航迹 · </span><em id="dsTlEm" data-lvt-eid="b1e4af5c24">二十余年的星际征途</em></h2>
     </div>
-    <div class="tl-wrap" data-lvt-eid="3d2863341a">
+    <div class="tl-wrap" id="dsTlWrap" data-lvt-eid="3d2863341a">
       <div class="tl-line" aria-hidden="true" data-lvt-eid="776ad902a2"></div>
 
       <div class="tl-item reveal" data-lvt-eid="4b1c97fbbb">
@@ -645,9 +733,9 @@ img{display:block;max-width:100%}
 <section class="sec" id="crew" aria-label="舰队成员" data-lvt-eid="cb48cf1984">
   <div class="container" data-lvt-eid="5f28fcba56">
     <div class="sec-head reveal" data-lvt-eid="bb74aee529">
-      <p class="sec-eyebrow" data-lvt-eid="a5ca4a6aa1">FLEET CREW / 舰队成员</p>
-      <h2 class="sec-title" data-lvt-eid="a9ecec7469">舰员 · <em data-lvt-eid="d6cc996011">各司其职的星际乘组</em></h2>
-      <p class="sec-sub" data-lvt-eid="71ba55e7ba">每一位舰员都是舰队不可或缺的一环 —— 从领航到交付，专业分工，协同推进每一次星际任务。</p>
+      <p class="sec-eyebrow" id="dsCrewEyebrow" data-lvt-eid="a5ca4a6aa1">FLEET CREW / 舰队成员</p>
+      <h2 class="sec-title" data-lvt-eid="a9ecec7469"><span id="dsCrewTitle">舰员 · </span><em id="dsCrewEm" data-lvt-eid="d6cc996011">各司其职的星际乘组</em></h2>
+      <p class="sec-sub" id="dsCrewSub" data-lvt-eid="71ba55e7ba">每一位舰员都是舰队不可或缺的一环 —— 从领航到交付，专业分工，协同推进每一次星际任务。</p>
     </div>
     <div class="crew-grid" id="crewGrid" data-lvt-eid="2e2abfcf46">
       <!-- 舰员卡片由 JS 注入（统一全息头像生成器） -->
@@ -659,10 +747,10 @@ img{display:block;max-width:100%}
 <section class="sec" id="tech" aria-label="星舰系统" data-lvt-eid="801bd88350">
   <div class="container" data-lvt-eid="85fb1ab692">
     <div class="sec-head reveal" data-lvt-eid="1c59f89f88">
-      <p class="sec-eyebrow" data-lvt-eid="b604a55b48">STARSHIP SYSTEMS / 星舰系统</p>
-      <h2 class="sec-title" data-lvt-eid="8d91515410">系统 · <em data-lvt-eid="925f992f97">驱动舰队前进的六大子系统</em></h2>
+      <p class="sec-eyebrow" id="dsTechEyebrow" data-lvt-eid="b604a55b48">STARSHIP SYSTEMS / 星舰系统</p>
+      <h2 class="sec-title" data-lvt-eid="8d91515410"><span id="dsTechTitle">系统 · </span><em id="dsTechEm" data-lvt-eid="925f992f97">驱动舰队前进的六大子系统</em></h2>
     </div>
-    <div class="tech-grid" data-lvt-eid="fc462d93f5">
+    <div class="tech-grid" id="dsTechGrid" data-lvt-eid="fc462d93f5">
 
       <div class="tech-card reveal" data-lvt-eid="ae52430d40">
         <div class="tech-icon" data-lvt-eid="a19187a707">
@@ -745,11 +833,11 @@ img{display:block;max-width:100%}
 <section class="sec sec-light" id="credentials" aria-label="航行资质" data-lvt-eid="400cb1f764">
   <div class="container" data-lvt-eid="94535cc72d">
     <div class="sec-head reveal" data-lvt-eid="500b06bb59">
-      <p class="sec-eyebrow" data-lvt-eid="e596d78676">CREDENTIALS / 航行资质</p>
-      <h2 class="sec-title" data-lvt-eid="28eb0f34a0">资质与荣誉 · <em data-lvt-eid="731e617693">官方颁发的航行许可证</em></h2>
-      <p class="sec-sub" data-lvt-eid="d82b1a9220">每一份证照，都是舰队合法远航的凭证 —— 经政府主管部门核准，真实可查。</p>
+      <p class="sec-eyebrow" id="dsCertEyebrow" data-lvt-eid="e596d78676">CREDENTIALS / 航行资质</p>
+      <h2 class="sec-title" data-lvt-eid="28eb0f34a0"><span id="dsCertTitle">资质与荣誉 · </span><em id="dsCertEm" data-lvt-eid="731e617693">官方颁发的航行许可证</em></h2>
+      <p class="sec-sub" id="dsCertSub" data-lvt-eid="d82b1a9220">每一份证照，都是舰队合法远航的凭证 —— 经政府主管部门核准，真实可查。</p>
     </div>
-    <div class="cert-grid" data-lvt-eid="0a9807e474">
+    <div class="cert-grid" id="dsCertGrid" data-lvt-eid="0a9807e474">
 
       <div class="cert-card reveal" data-lvt-eid="a5240d6472">
         <div class="cert-top" data-lvt-eid="9c235dc84a">
@@ -820,9 +908,9 @@ img{display:block;max-width:100%}
   <span class="cta-glow1" aria-hidden="true" data-lvt-eid="25a705d77e"></span>
   <span class="cta-glow2" aria-hidden="true" data-lvt-eid="976765a7f1"></span>
   <div class="container" data-lvt-eid="670dce71da">
-    <h2 class="cta-title reveal" data-lvt-eid="2b391c6867"><span class="grad" data-lvt-eid="01aa47d446">准备启航？</span></h2>
-    <p class="cta-sub reveal reveal-d1" data-lvt-eid="abdcd79ea0">与 ONLYSTYLE 一起探索数字星域</p>
-    <a href="/contact" target="_top" class="btn-primary reveal reveal-d2" data-lvt-eid="b86f5f41ac">联系我们
+    <h2 class="cta-title reveal" data-lvt-eid="2b391c6867"><span class="grad" id="dsCtaTitle" data-lvt-eid="01aa47d446">准备启航？</span></h2>
+    <p class="cta-sub reveal reveal-d1" id="dsCtaSub" data-lvt-eid="abdcd79ea0">与 ONLYSTYLE 一起探索数字星域</p>
+    <a href="/contact" target="_top" class="btn-primary reveal reveal-d2" id="dsCtaBtn" data-lvt-eid="b86f5f41ac">联系我们
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" data-lvt-eid="60807aaf87"><path d="M3 9h12M10 4l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="9901561e69"></path></svg>
     </a>
   </div>
@@ -889,11 +977,17 @@ img{display:block;max-width:100%}
     '</svg>';
   }
 
-  var crewGrid = document.getElementById("crewGrid");
-  if(crewGrid){
+  function renderCrew(items){
+    var crewGrid = document.getElementById("crewGrid");
+    if(!crewGrid) return;
+    if(items && items.length) crew = items;   /* 后台下发：只带 代号/角色/英文/描述 */
     var html = "";
     for(var i=0;i<crew.length;i++){
       var c = crew[i];
+      /* 视觉参数一律按序号派生：与设计稿原 6 人的取值逐一对应，且对任意人数都是全函数 */
+      c.hue   = i % 6;
+      c.visor = ["band","grid","split","lens","shield","scan"][i % 6];
+      c.crest = ["antenna","fin","crown","orb","horn","jet"][i % 6];
       var dcls = i%3===1 ? " reveal-d1" : (i%3===2 ? " reveal-d2" : "");
       html += '<div class="crew-card reveal'+dcls+'">'+
         '<span class="crew-id">'+c.id+'</span>'+
@@ -905,6 +999,8 @@ img{display:block;max-width:100%}
     }
     crewGrid.innerHTML = html;
   }
+  renderCrew();
+  window.__abRenderCrew = renderCrew;   /* 供 bos-about 复调用 */
 
   /* ===== HERO 视频：兜底确保自动播放（muted+playsinline 已满足浏览器策略） ===== */
   var heroVideo = document.getElementById("heroVideo");
@@ -936,17 +1032,24 @@ img{display:block;max-width:100%}
   }
 
   /* ===== 入场揭示 IntersectionObserver ===== */
-  var revealEls = document.querySelectorAll(".reveal");
-  if("IntersectionObserver" in window){
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(en){
-        if(en.isIntersecting){ en.target.classList.add("visible"); io.unobserve(en.target); }
-      });
-    },{threshold:.14, rootMargin:"0px 0px -40px 0px"});
-    revealEls.forEach(function(el){ io.observe(el); });
-  } else {
-    revealEls.forEach(function(el){ el.classList.add("visible"); });
+  var io = null;
+  function observeReveal(root){
+    var els = (root || document).querySelectorAll(".reveal:not(.visible)");
+    if(!("IntersectionObserver" in window)){
+      for(var i=0;i<els.length;i++) els[i].classList.add("visible");
+      return;
+    }
+    if(!io){
+      io = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if(en.isIntersecting){ en.target.classList.add("visible"); io.unobserve(en.target); }
+        });
+      },{threshold:.14, rootMargin:"0px 0px -40px 0px"});
+    }
+    for(var j=0;j<els.length;j++) io.observe(els[j]);
   }
+  observeReveal(document);
+  window.__abReveal = observeReveal;   /* 重建 DOM 后必须调一次 */
 
   /* ===== 数据 counting-up ===== */
   var nums = document.querySelectorAll(".stat-num");
@@ -963,16 +1066,21 @@ img{display:block;max-width:100%}
     }
     requestAnimationFrame(step);
   }
+  function markCounted(el){ el.setAttribute("data-counted","1"); }
   if("IntersectionObserver" in window){
     var io2 = new IntersectionObserver(function(entries){
       entries.forEach(function(en){
-        if(en.isIntersecting){ countUp(en.target); io2.unobserve(en.target); }
+        if(en.isIntersecting){ markCounted(en.target); countUp(en.target); io2.unobserve(en.target); }
       });
     },{threshold:.5});
     nums.forEach(function(el){ io2.observe(el); });
   } else {
-    nums.forEach(function(el){ el.textContent = el.getAttribute("data-target"); });
+    nums.forEach(function(el){ markCounted(el); el.textContent = el.getAttribute("data-target"); });
   }
+  window.__abSetStat = function(el, value){
+    el.setAttribute("data-target", value);
+    if(el.getAttribute("data-counted")) el.textContent = value;
+  };
 })();
 </script>
 
@@ -1116,4 +1224,367 @@ window.addEventListener('message', function (e) {
     if (n2) n2.textContent = d.nameParts[1];
   }
 });
+</script>
+
+<!-- ══ 证书查看浮层（方案 A · 星舰舷窗）══ -->
+<div class="cv" id="cvRoot" hidden>
+  <div class="cv-bd" id="cvBd"></div>
+  <div class="cv-panel" role="dialog" aria-modal="true" aria-labelledby="cvTitle">
+    <div class="cv-bar">
+      <span class="cv-dot" aria-hidden="true"></span>
+      <span class="cv-eyebrow">CREDENTIAL</span>
+      <h3 class="cv-title" id="cvTitle">证书</h3>
+      <button type="button" class="cv-close" id="cvClose" aria-label="关闭（Esc）">✕</button>
+    </div>
+    <div class="cv-stage" id="cvStage">
+      <div class="cv-load" id="cvLoad"><span class="cv-spin" aria-hidden="true"></span><p>证书加载中…</p></div>
+      <img class="cv-img" id="cvImg" alt="" style="display:none">
+      <div class="cv-fail" id="cvFail" hidden><b>证书暂时无法显示</b>可能是网络问题或图片已被移除，请稍后重试或联系管理员。</div>
+    </div>
+    <div class="cv-foot">
+      <p class="cv-issuer" id="cvIssuer"></p>
+      <span class="cv-tip">ESC / 点击空白处关闭</span>
+    </div>
+  </div>
+</div>
+<div class="ds-toast" id="dsToast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---- About content sync (bos-about-v1) ----
+   与 bos-brand 并列的第二个协议：父页面 About.vue 从内容中台拉 page:about 后下发。
+   收到才重建；收不到 → 页面 = 设计稿原文（逐像素一致）。 */
+(function(){
+  "use strict";
+  var STAT_ICONS = ["<svg class=\"stat-icon\" viewBox=\"0 0 44 44\" fill=\"none\" aria-hidden=\"true\">\n          <circle cx=\"22\" cy=\"22\" r=\"16\" stroke=\"#3BE0FF\" stroke-width=\"1.4\" opacity=\".55\"></circle>\n          <path d=\"M22 10v2M22 32v2M10 22h2M32 22h2\" stroke=\"#3BE0FF\" stroke-width=\"1.6\" stroke-linecap=\"round\"></path>\n          <path d=\"M22 22l7-9\" stroke=\"#1F5BFF\" stroke-width=\"2.2\" stroke-linecap=\"round\"></path>\n          <circle cx=\"22\" cy=\"22\" r=\"2.6\" fill=\"#3BE0FF\"></circle>\n        </svg>","<svg class=\"stat-icon\" viewBox=\"0 0 44 44\" fill=\"none\" aria-hidden=\"true\">\n          <path d=\"M22 6l4.6 9.4 10.4 1.5-7.5 7.3 1.8 10.3L22 29.7l-9.3 4.8 1.8-10.3L7 16.9l10.4-1.5L22 6z\" stroke=\"#3BE0FF\" stroke-width=\"1.4\" stroke-linejoin=\"round\" fill=\"rgba(31,91,255,.18)\"></path>\n        </svg>","<svg class=\"stat-icon\" viewBox=\"0 0 44 44\" fill=\"none\" aria-hidden=\"true\">\n          <path d=\"M14 6h16a2 2 0 012 2v28l-10-6-10 6V8a2 2 0 012-2z\" stroke=\"#3BE0FF\" stroke-width=\"1.4\" stroke-linejoin=\"round\" fill=\"rgba(31,91,255,.14)\"></path>\n          <path d=\"M18 14h8M18 19h8\" stroke=\"#1F5BFF\" stroke-width=\"1.8\" stroke-linecap=\"round\"></path>\n        </svg>","<svg class=\"stat-icon\" viewBox=\"0 0 44 44\" fill=\"none\" aria-hidden=\"true\">\n          <circle cx=\"22\" cy=\"22\" r=\"15\" stroke=\"#3BE0FF\" stroke-width=\"1.4\" opacity=\".55\"></circle>\n          <ellipse cx=\"22\" cy=\"22\" rx=\"15\" ry=\"6\" stroke=\"#1F5BFF\" stroke-width=\"1.2\" opacity=\".8\"></ellipse>\n          <ellipse cx=\"22\" cy=\"22\" rx=\"6\" ry=\"15\" stroke=\"#1F5BFF\" stroke-width=\"1.2\" opacity=\".8\"></ellipse>\n          <circle cx=\"30\" cy=\"14\" r=\"2.6\" fill=\"#3BE0FF\"></circle>\n        </svg>"];
+  var TECH_ICONS = ["<svg viewBox=\"0 0 56 56\" fill=\"none\" aria-hidden=\"true\">\n            <circle cx=\"28\" cy=\"28\" r=\"13\" stroke=\"#3BE0FF\" stroke-width=\"1.6\" fill=\"rgba(31,91,255,.12)\"></circle>\n            <ellipse cx=\"28\" cy=\"28\" rx=\"22\" ry=\"8\" stroke=\"#1F5BFF\" stroke-width=\"1.3\" transform=\"rotate(-18 28 28)\" opacity=\".85\"></ellipse>\n            <circle cx=\"46\" cy=\"20\" r=\"3\" fill=\"#3BE0FF\"></circle>\n          </svg>","<svg viewBox=\"0 0 56 56\" fill=\"none\" aria-hidden=\"true\">\n            <circle cx=\"28\" cy=\"28\" r=\"14\" fill=\"rgba(31,91,255,.16)\" stroke=\"#3BE0FF\" stroke-width=\"1.5\"></circle>\n            <path d=\"M20 30l5-8 5 6 6-10\" stroke=\"#3BE0FF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path>\n            <circle cx=\"28\" cy=\"28\" r=\"20\" stroke=\"#1F5BFF\" stroke-width=\"1\" stroke-dasharray=\"3 5\" opacity=\".7\"></circle>\n          </svg>","<svg viewBox=\"0 0 56 56\" fill=\"none\" aria-hidden=\"true\">\n            <rect x=\"14\" y=\"16\" width=\"28\" height=\"22\" rx=\"4\" stroke=\"#3BE0FF\" stroke-width=\"1.5\" fill=\"rgba(31,91,255,.12)\"></rect>\n            <path d=\"M22 27l4 4 8-9\" stroke=\"#3BE0FF\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path>\n            <path d=\"M20 44h16\" stroke=\"#1F5BFF\" stroke-width=\"2\" stroke-linecap=\"round\"></path>\n            <circle cx=\"42\" cy=\"14\" r=\"3\" fill=\"#3BE0FF\" opacity=\".9\"></circle>\n          </svg>","<svg viewBox=\"0 0 56 56\" fill=\"none\" aria-hidden=\"true\">\n            <path d=\"M18 34a8 8 0 011-16 11 11 0 0121 3 7 7 0 01-2 13H18z\" stroke=\"#3BE0FF\" stroke-width=\"1.5\" fill=\"rgba(31,91,255,.14)\" stroke-linejoin=\"round\"></path>\n            <path d=\"M24 40v6M32 40v6\" stroke=\"#1F5BFF\" stroke-width=\"1.6\" stroke-linecap=\"round\"></path>\n            <circle cx=\"24\" cy=\"48\" r=\"1.8\" fill=\"#3BE0FF\"></circle><circle cx=\"32\" cy=\"48\" r=\"1.8\" fill=\"#3BE0FF\"></circle>\n          </svg>","<svg viewBox=\"0 0 56 56\" fill=\"none\" aria-hidden=\"true\">\n            <path d=\"M28 10l14 5v12c0 9-6 15-14 19-8-4-14-10-14-19V15l14-5z\" stroke=\"#3BE0FF\" stroke-width=\"1.5\" fill=\"rgba(31,91,255,.14)\" stroke-linejoin=\"round\"></path>\n            <path d=\"M22 28l4.5 4.5L35 23\" stroke=\"#3BE0FF\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path>\n          </svg>","<svg viewBox=\"0 0 56 56\" fill=\"none\" aria-hidden=\"true\">\n            <circle cx=\"28\" cy=\"28\" r=\"16\" stroke=\"#3BE0FF\" stroke-width=\"1.5\" fill=\"rgba(31,91,255,.12)\"></circle>\n            <ellipse cx=\"28\" cy=\"28\" rx=\"16\" ry=\"6\" stroke=\"#1F5BFF\" stroke-width=\"1.2\"></ellipse>\n            <path d=\"M12 28h32M28 12c5 8 5 24 0 32M28 12c-5 8-5 24 0 32\" stroke=\"#1F5BFF\" stroke-width=\"1\" opacity=\".7\"></path>\n            <circle cx=\"40\" cy=\"18\" r=\"3\" fill=\"#3BE0FF\"></circle>\n          </svg>"];
+  var SEAL = "<svg width=\"26\" height=\"26\" viewBox=\"0 0 26 26\" fill=\"none\"><path d=\"M13 3l2.6 5.4 5.9.8-4.3 4.2 1 5.9L13 16.5 7.8 19.3l1-5.9L4.5 9.2l5.9-.8L13 3z\" fill=\"rgba(22,163,74,.18)\" stroke=\"#16A34A\" stroke-width=\"1.4\" stroke-linejoin=\"round\"></path></svg>";
+  var ARROW = "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 7h10M8 3l4 4-4 4\" stroke=\"#fff\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></svg>";
+
+  function esc(v){
+    return String(v == null ? '' : v)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  /* 先转义再套 **加粗** —— 顺序反了就是把运营输入当 HTML 执行 */
+  function rich(v){
+    return esc(v).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  }
+  function setText(id, v){
+    if(v == null || v === '') return;
+    var el = document.getElementById(id);
+    if(el) el.textContent = v;
+  }
+  function setRich(id, v){
+    if(v == null || v === '') return;
+    var el = document.getElementById(id);
+    if(el) el.innerHTML = rich(v);
+  }
+  function paras(v){
+    return String(v == null ? '' : v).split(/\n\s*\n/)
+      .map(function(t){ return t.replace(/^\s+|\s+$/g,''); })
+      .filter(Boolean);
+  }
+  function dcls(i){ return ' reveal' + (i % 3 === 1 ? ' reveal-d1' : (i % 3 === 2 ? ' reveal-d2' : '')); }
+
+  /* ── 公司简介正文：空行分段；第一段保留 **加粗** ── */
+  function renderProfileBody(v){
+    var first = document.getElementById('dsProfBody');
+    if(!first) return;
+    var list = paras(v);
+    if(!list.length) return;
+    var box = first.parentNode;
+    var old = box.querySelectorAll('[data-ds-extra]');
+    for(var i=0;i<old.length;i++) old[i].parentNode.removeChild(old[i]);
+    first.innerHTML = rich(list[0]);
+    var anchor = first;
+    for(var j=1;j<list.length;j++){
+      var p = document.createElement('p');
+      p.className = 'reveal reveal-d' + Math.min(j + 1, 3) + ' visible';
+      p.setAttribute('data-ds-extra','1');
+      p.innerHTML = rich(list[j]);
+      anchor.parentNode.insertBefore(p, anchor.nextSibling);
+      anchor = p;
+    }
+  }
+
+  /* ── 核心数据：数值只认数字，非数字（如「ISO」）不做滚动动画，直接显示 ──
+     单位在后台是**一个字段**（运营不用去纠结「+」和「年」填哪个框），
+     官网按空格拆成至多两段 <span class="stat-unit"> —— 正好复现设计稿
+     「+ 」+「年」两个 span 之间 4px flex gap 的排版。 */
+  function renderStats(items){
+    var grid = document.getElementById('dsStatsGrid');
+    if(!grid || !items || !items.length) return;
+    var h = '';
+    for(var i=0;i<items.length;i++){
+      var it = items[i] || {};
+      var num = parseInt(String(it.value).replace(/[^0-9-]/g,''), 10);
+      var isNum = !isNaN(num);
+      var units = String(it.unit == null ? '' : it.unit).split(/\s+/).filter(Boolean);
+      h += '<div class="stat-card' + dcls(i) + '">' +
+             (STAT_ICONS[i % STAT_ICONS.length] || '') +
+             '<div class="stat-num-row">' +
+               '<span class="stat-num" data-target="' + (isNum ? num : 0) + '">' +
+                 (isNum ? '0' : esc(it.value || '')) + '</span>' +
+               (units[0] ? '<span class="stat-unit">' + esc(units[0]) + '</span>' : '') +
+               (units.length > 1 ? '<span class="stat-unit">' + esc(units.slice(1).join(' ')) + '</span>' : '') +
+             '</div>' +
+             '<p class="stat-label">' + esc(it.label || '') + '</p>' +
+             '<p class="stat-note">' + esc(it.note || '') + '</p>' +
+           '</div>';
+    }
+    grid.innerHTML = h;
+    var nums = grid.querySelectorAll('.stat-num');
+    for(var k=0;k<nums.length;k++){
+      var t = parseInt(nums[k].getAttribute('data-target'), 10);
+      if(t && window.__abSetStat) window.__abSetStat(nums[k], t);
+    }
+  }
+
+  /* ── 品牌时间线：只换 .tl-item，.tl-line 原样留着（它是绝对定位的轴线） ── */
+  function renderTimeline(items){
+    var wrap = document.getElementById('dsTlWrap');
+    if(!wrap || !items || !items.length) return;
+    var old = wrap.querySelectorAll('.tl-item');
+    for(var i=0;i<old.length;i++) old[i].parentNode.removeChild(old[i]);
+    var line = wrap.querySelector('.tl-line');
+    if(!line) return;
+    var h = '';
+    for(var j=0;j<items.length;j++){
+      var it = items[j] || {};
+      h += '<div class="tl-item' + (it.now ? ' now' : '') + dcls(j) + '">' +
+             '<div class="tl-year">' + esc(it.year || '') +
+               (it.small ? '<small>' + esc(it.small) + '</small>' : '') + '</div>' +
+             '<span class="tl-dot" aria-hidden="true"></span>' +
+             '<div class="tl-card">' +
+               '<h3>' + esc(it.title || '') + '</h3>' +
+               (it.desc ? '<p>' + rich(it.desc) + '</p>' : '') +
+               (it.badge ? '<span class="tl-badge">' + esc(it.badge) + '</span>' : '') +
+               (it.code ? '<span class="tl-code">' + esc(it.code) + '</span>' : '') +
+             '</div>' +
+           '</div>';
+    }
+    line.insertAdjacentHTML('afterend', h);
+  }
+
+  /* ── 星舰系统：图标按序号取（设计稿 6 张一一对应，第 7 张起循环） ── */
+  function renderTech(items){
+    var grid = document.getElementById('dsTechGrid');
+    if(!grid || !items || !items.length) return;
+    var h = '';
+    for(var i=0;i<items.length;i++){
+      var it = items[i] || {};
+      h += '<div class="tech-card' + dcls(i) + '">' +
+             '<div class="tech-icon">' + (TECH_ICONS[i % TECH_ICONS.length] || '') + '</div>' +
+             '<h3>' + (it.idx ? '<span class="idx">' + esc(it.idx) + '</span>' : '') + esc(it.title || '') + '</h3>' +
+             '<p>' + esc(it.desc || '') + '</p>' +
+           '</div>';
+    }
+    grid.innerHTML = h;
+  }
+
+  /* ── 航行资质：证书卡（文案 + 图片 + 按钮三态） ── */
+  var CERTS = [];
+  function renderCerts(items){
+    var grid = document.getElementById('dsCertGrid');
+    if(!grid) return;
+    items = Array.isArray(items) ? items : [];
+    CERTS = items;
+    var h = '';
+    for(var i=0;i<items.length;i++){
+      var it = items[i] || {};
+      var rows = '';
+      var fl = Array.isArray(it.fields) ? it.fields : [];
+      for(var j=0;j<fl.length;j++){
+        var f = fl[j] || {};
+        if(!f.k && !f.v) continue;
+        rows += '<div class="cert-row"><dt>' + esc(f.k) + '</dt>' +
+                '<dd' + (f.mono ? ' class="mono"' : '') + '>' + esc(f.v) + '</dd></div>';
+      }
+      var name = it.name || '证书';
+      var btn = it.imageUrl
+        ? '<a class="cert-btn" href="#" data-cert="' + i + '" aria-label="查看' + esc(name) + '">查看证书' + ARROW + '</a>'
+        : '<button type="button" class="cert-btn is-pending" data-cert="' + i + '" aria-label="' + esc(name) + '尚未上传">证书待上传</button>';
+      h += '<div class="cert-card' + dcls(i) + '">' +
+             '<div class="cert-top">' +
+               '<h3 class="cert-name">' + esc(name) + '</h3>' +
+               '<span class="cert-seal" aria-hidden="true">' + SEAL + '</span>' +
+             '</div>' +
+             '<dl class="cert-rows">' + rows + '</dl>' +
+             btn +
+             '<p class="cert-issuer"><b>' + esc(it.issuerLabel || '发证机关') + '</b>' + esc(it.issuer || '') + '</p>' +
+           '</div>';
+    }
+    grid.innerHTML = h;
+  }
+
+  function applyAbout(d){
+    var hero = d.hero || {}, prof = d.profile || {}, tl = d.timeline || {},
+        crew = d.crew || {}, tech = d.tech || {}, cert = d.credentials || {}, cta = d.cta || {};
+
+    /* Hero */
+    setText('dsHeroTitle', hero.title);
+    setText('dsCrumb', hero.title);
+    setText('dsHeroBold', hero.subtitleBold);
+    if(hero.subtitleRest != null && hero.subtitleRest !== ''){
+      var rest = document.getElementById('dsHeroRest');
+      if(rest) rest.textContent = ' · ' + hero.subtitleRest;
+    }
+    setText('dsHeroHint', hero.hint);
+    var hc = document.getElementById('dsHeroCta');
+    if(hc && hero.ctaText){
+      for(var n=0;n<hc.childNodes.length;n++){
+        if(hc.childNodes[n].nodeType === 3 && hc.childNodes[n].nodeValue.trim()){
+          hc.childNodes[n].nodeValue = hero.ctaText + ' ';
+        }
+      }
+    }
+
+    /* 公司简介 */
+    setText('dsProfEyebrow', prof.eyebrow);
+    setText('dsProfTitle', prof.title);
+    setText('dsProfEm', prof.em);
+    renderProfileBody(prof.body);
+    if(Array.isArray(prof.tags) && prof.tags.length){
+      var tg = document.getElementById('dsProfTags');
+      if(tg){
+        var th = '';
+        for(var i=0;i<prof.tags.length;i++) th += '<span class="profile-tag">' + esc(prof.tags[i]) + '</span>';
+        tg.innerHTML = th;
+      }
+    }
+    setText('dsProfCaption', prof.caption);
+
+    /* 核心数据 / 时间线 / 舰队 / 系统 */
+    renderStats(d.stats);
+    setText('dsTlEyebrow', tl.eyebrow);
+    setText('dsTlTitle', tl.title);
+    setText('dsTlEm', tl.em);
+    renderTimeline(tl.items);
+    setText('dsCrewEyebrow', crew.eyebrow);
+    setText('dsCrewTitle', crew.title);
+    setText('dsCrewEm', crew.em);
+    setText('dsCrewSub', crew.sub);
+    if(window.__abRenderCrew) window.__abRenderCrew(crew.items || []);
+    setText('dsTechEyebrow', tech.eyebrow);
+    setText('dsTechTitle', tech.title);
+    setText('dsTechEm', tech.em);
+    renderTech(tech.items);
+
+    /* 航行资质 */
+    setText('dsCertEyebrow', cert.eyebrow);
+    setText('dsCertTitle', cert.title);
+    setText('dsCertEm', cert.em);
+    setText('dsCertSub', cert.sub);
+    renderCerts(cert.items);
+
+    /* 底部 CTA */
+    setText('dsCtaTitle', cta.title);
+    setText('dsCtaSub', cta.subtitle);
+    var cb = document.getElementById('dsCtaBtn');
+    if(cb){
+      for(var m=0;m<cb.childNodes.length;m++){
+        if(cb.childNodes[m].nodeType === 3 && cb.childNodes[m].nodeValue.trim()){
+          cb.childNodes[m].nodeValue = (cta.ctaText || '联系我们') + ' ';
+        }
+      }
+      if(cta.ctaUrl){
+        cb.setAttribute('href', cta.ctaUrl);
+        if(/^https?:/i.test(cta.ctaUrl)) cb.setAttribute('target','_blank');
+        else cb.setAttribute('target','_top');
+      }
+    }
+
+    /* 🔴 重建出来的 .reveal 必须重新观察，否则永远停在 opacity:0（静默隐形） */
+    if(window.__abReveal) window.__abReveal(document);
+  }
+
+  /* ── 浮层 ── */
+  var lastFocus = null;
+  function toast(msg){
+    var t = document.getElementById('dsToast');
+    if(!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ t.classList.remove('show'); }, 2800);
+  }
+  function openCert(i){
+    var it = CERTS[i];
+    if(!it) return;
+    if(!it.imageUrl){
+      toast('「' + (it.name || '该证书') + '」尚未上传，请先在后台「关于我们 → 航行资质」里上传证书图片。');
+      return;
+    }
+    var root = document.getElementById('cvRoot');
+    if(!root) return;
+    lastFocus = document.activeElement;
+    var img  = document.getElementById('cvImg');
+    var load = document.getElementById('cvLoad');
+    var fail = document.getElementById('cvFail');
+    document.getElementById('cvTitle').textContent = it.name || '证书';
+    document.getElementById('cvIssuer').textContent = it.issuer
+      ? (it.issuerLabel || '发证机关') + '｜' + it.issuer : '';
+    fail.hidden = true; load.hidden = false;
+    img.style.display = 'none'; img.removeAttribute('src');
+    img.onload  = function(){ load.hidden = true; fail.hidden = true; img.style.display = 'block'; };
+    img.onerror = function(){ load.hidden = true; img.style.display = 'none'; fail.hidden = false; };
+    img.alt = it.name || '证书';
+    img.src = it.imageUrl;
+    root.hidden = false;
+    requestAnimationFrame(function(){ root.classList.add('open'); });
+    document.documentElement.style.overflow = 'hidden';
+    setTimeout(function(){ var c = document.getElementById('cvClose'); if(c) c.focus(); }, 40);
+  }
+  function closeCert(){
+    var root = document.getElementById('cvRoot');
+    if(!root || root.hidden) return;
+    root.classList.remove('open');
+    document.documentElement.style.overflow = '';
+    setTimeout(function(){
+      root.hidden = true;
+      var img = document.getElementById('cvImg');
+      if(img) img.removeAttribute('src');
+    }, 300);
+    if(lastFocus && lastFocus.focus){ try{ lastFocus.focus(); }catch(e){} }
+  }
+  window.__abCloseCert = closeCert;
+
+  document.addEventListener('click', function(e){
+    var el = e.target;
+    while(el && el !== document && !(el.classList && el.classList.contains('cert-btn'))) el = el.parentNode;
+    if(!el || el === document) return;
+    e.preventDefault();
+    var i = parseInt(el.getAttribute('data-cert'), 10);
+    if(!isNaN(i)) openCert(i);
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' || e.keyCode === 27) closeCert();
+  });
+  (function(){
+    var bd = document.getElementById('cvBd');
+    var cl = document.getElementById('cvClose');
+    if(bd) bd.addEventListener('click', closeCert);
+    if(cl) cl.addEventListener('click', closeCert);
+  })();
+
+  window.addEventListener('message', function(e){
+    var d = e && e.data;
+    if(!d || d.type !== 'bos-about') return;
+    try { applyAbout(d); }
+    catch(err){ /* 一份脏数据不该把整页打挂，保留设计稿原文 */ }
+  });
+
+  /* 供验收脚本使用：断言「内容真的被灌进去了」而不是「父页面发了消息」 */
+  window.__abAbout = {
+    applied: function(){ return CERTS.length; },
+    certs: function(){ return CERTS; },
+    openCert: openCert,
+    closeCert: closeCert,
+    isOpen: function(){
+      var r = document.getElementById('cvRoot');
+      return !!r && !r.hidden && r.classList.contains('open');
+    },
+    title: function(){ return document.getElementById('cvTitle').textContent; }
+  };
+})();
 </script>

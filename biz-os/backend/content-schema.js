@@ -735,6 +735,169 @@ function migrateContentPermissions(db) {
   db.run("INSERT INTO content_settings (key, value, grp) VALUES (?, '1', 'system')", MARK);
 }
 
+/**
+ * 「关于我们」页的 8 段内容骨架 —— **后台表单与官网注入共用同一套 type 名**：
+ *   hero / profile / stats / timeline / crew / tech / credentials / cta
+ *
+ * 内容 = Lovart 设计稿原文（website/public/about-embed.html 里的静态 markup 是同一个副本）。
+ * 为什么要把设计稿文案搬进 DB：
+ *   改造前 about 的 blocks 是老的 prose/duo/iconGrid 三段，与新版设计稿毫无关系，
+ *   后台表单也就无从编辑。搬进 DB 才有「一处可改、官网同步」。
+ *
+ * ⚠️ 这里是**初始值**，不是真相源 —— 运营一旦在后台保存过，就以 DB 为准，
+ *    migrateAboutBlocks 的内容感知判断（见下）保证不会再被覆盖回来。
+ * ⚠️ imageUrl 一律留空：证书图片由运营自己上传（上传前官网按钮显示「证书待上传」，
+ *    这是刻意的 —— 与其给一个点了没反应的「查看证书」，不如明说还没传。
+ */
+const ABOUT_BLOCKS = [
+  {
+    type: 'hero',
+    title: '关于我们',
+    subtitleBold: '数字化转型的引领者',
+    subtitleRest: '探索产业未来的星际舰队',
+    hint: 'EST. 2003 · SHANGHAI',
+    ctaText: '联系我们',
+  },
+  {
+    type: 'profile',
+    eyebrow: 'COMPANY PROFILE / 公司简介',
+    title: '星尘起源 · ',
+    em: '数字化星域的探索旗舰',
+    // **加粗** 是唯一的行内标记（前端先转义再套 strong），空行分段
+    body: '**上海唯风信息技术有限公司**是一家在数字化领域拥有广泛经验的领先企业。我们专注于为不同行业的企业和机构提供全面的数字化解决方案，以满足他们的不同需求和挑战。\n\n我们深知数字化转型对于企业的重要性，因此我们的使命是为客户提供卓越的服务，帮助他们在数字时代取得成功。',
+    tags: ['全链路数字化', '行业智能化', 'AI 交付', '高新技术企业'],
+    caption: 'ONLYSTYLE · CORE SYSTEM',
+  },
+  {
+    type: 'stats',
+    // ⚠️ 单位是**一个字段**（不是 unit + unit2 两个）：官网按空格拆成至多两段渲染，
+    //    正好复现设计稿「+」「年」之间 4px flex gap 的排版。后台只填一个框，少一个能填错的地方。
+    items: [
+      { value: '23', unit: '+ 年', label: '行业深耕', note: 'SINCE 2003' },
+      { value: '1000', unit: '万', label: '注册资本', note: 'CNY 10,000,000' },
+      { value: '3', unit: '项', label: '核心资质', note: 'LICENSED & CERTIFIED' },
+      { value: '4', unit: '省', label: '业务覆盖范围', note: '沪 · 苏 · 浙 · 川' },
+    ],
+  },
+  {
+    type: 'timeline',
+    eyebrow: 'VOYAGE TIMELINE / 品牌时间线',
+    title: '航迹 · ',
+    em: '二十余年的星际征途',
+    items: [
+      { year: '2003', small: 'LAUNCH', title: '公司成立，开启数字化征途', desc: '上海唯风信息技术有限公司于上海注册成立，自此起航，驶入数字化星域。' },
+      { year: '2010', small: 'EXPAND', title: '拓展企业信息化服务', desc: '舰队扩容，为不同行业的企业和机构提供全面的信息化解决方案。' },
+      { year: '2018', small: 'ORBIT', title: '布局云计算与大数据', desc: '进入云与数据的新轨道，构建弹性架构与实时洞察能力。' },
+      { year: '2023', small: 'CERTIFY', title: '获评高新技术企业', desc: '技术实力获官方认证，正式取得「高新技术企业」航行许可。', badge: '✓ 官方认证', code: '证书号 GR202331007290' },
+      { year: '2026', small: 'NOW', title: '获跨地区增值电信业务经营许可证', desc: '取得互联网接入服务业务许可，航线覆盖上海、江苏、浙江、四川四省市。', badge: '✓ 现行有效', code: '编号 B1-20262247', now: true },
+    ],
+  },
+  {
+    type: 'crew',
+    eyebrow: 'FLEET CREW / 舰队成员',
+    title: '舰员 · ',
+    em: '各司其职的星际乘组',
+    sub: '每一位舰员都是舰队不可或缺的一环 —— 从领航到交付，专业分工，协同推进每一次星际任务。',
+    // ⚠️ 只存文案。头盔形态（hue/visor/crest）由官网**按序号派生**，
+    //    所以增删成员不会打乱视觉，也不需要运营去选「第几款头盔」。
+    items: [
+      { id: 'CRW-01', role: '战略领航员', en: 'Navigator', desc: '制定航线，把握产业数字化方向' },
+      { id: 'CRW-02', role: '技术架构师', en: 'Architect', desc: '搭建星舰引擎，驱动核心系统' },
+      { id: 'CRW-03', role: '产品指挥官', en: 'Product', desc: '设计作战方案，连接业务与技术' },
+      { id: 'CRW-04', role: '数据占星师', en: 'Data', desc: '解析星图数据，洞察增长轨迹' },
+      { id: 'CRW-05', role: '安全守卫者', en: 'Security', desc: '守护舰队屏障，确保合规稳健' },
+      { id: 'CRW-06', role: '交付推进员', en: 'Delivery', desc: '落地每一项星际任务' },
+    ],
+  },
+  {
+    type: 'tech',
+    eyebrow: 'STARSHIP SYSTEMS / 星舰系统',
+    title: '系统 · ',
+    em: '驱动舰队前进的六大子系统',
+    items: [
+      { idx: 'SYS.01', title: '全链路数字化方案', desc: '咨询 → 平台开发 → 部署 → 运维，一条完整航线贯穿数字化转型全程。' },
+      { idx: 'SYS.02', title: '行业智能化升级', desc: 'AI 算法 + 行业 Know-how，为传统业态装上智能引擎。' },
+      { idx: 'SYS.03', title: 'AI 交付服务', desc: '智能生成，专业交付 —— 让 AI 产能落地为可用的业务成果。' },
+      { idx: 'SYS.04', title: '云计算与大数据', desc: '弹性架构，实时洞察，为舰队提供源源不断的算力燃料。' },
+      { idx: 'SYS.05', title: '网络与信息安全', desc: '等保合规，全链路防护 —— 舰队的能量屏障，坚不可摧。' },
+      { idx: 'SYS.06', title: '互联网接入服务', desc: '跨地区 ISP 许可，四省覆盖 —— 官方授牌的星际航道通行权。' },
+    ],
+  },
+  {
+    type: 'credentials',
+    eyebrow: 'CREDENTIALS / 航行资质',
+    title: '资质与荣誉 · ',
+    em: '官方颁发的航行许可证',
+    sub: '每一份证照，都是舰队合法远航的凭证 —— 经政府主管部门核准，真实可查。',
+    items: [
+      {
+        name: '营业执照', imageUrl: '',
+        issuerLabel: '发证机关', issuer: '上海市闵行区市场监督管理局',
+        fields: [
+          { k: '统一信用代码', v: '913101147472893241', mono: true },
+          { k: '法定代表人', v: '卢时扬' },
+          { k: '注册资本', v: '人民币 1000.0000 万元整' },
+          { k: '成立日期', v: '2003-02-18', mono: true },
+          { k: '营业期限', v: '2003-02-18 至 2033-02-17', mono: true },
+          { k: '住所', v: '上海市闵行区莲花南路 1500 弄 8-9 号 306 室' },
+        ],
+      },
+      {
+        name: '高新技术企业证书', imageUrl: '',
+        issuerLabel: '发证机关', issuer: '上海市科学技术委员会 · 上海市财政局 · 国家税务总局上海市税务局',
+        fields: [
+          { k: '证书编号', v: 'GR202331007290', mono: true },
+          { k: '发证时间', v: '2023-12-12', mono: true },
+          { k: '有效期', v: '三年' },
+          { k: '企业名称', v: '上海唯风信息技术有限公司' },
+        ],
+      },
+      {
+        name: '增值电信业务经营许可证', imageUrl: '',
+        issuerLabel: '发证机关', issuer: '中华人民共和国工业和信息化部',
+        fields: [
+          { k: '许可证编号', v: 'B1-20262247', mono: true },
+          { k: '业务种类', v: '互联网接入服务业务' },
+          { k: '覆盖范围', v: '上海、江苏、浙江、四川' },
+          { k: '发证日期', v: '2026-06-26', mono: true },
+          { k: '有效期至', v: '2031-06-26', mono: true },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'cta',
+    title: '准备启航？',
+    subtitle: '与 ONLYSTYLE 一起探索数字星域',
+    ctaText: '联系我们',
+    ctaUrl: '/contact',
+  },
+];
+
+/**
+ * 「关于我们」页 blocks 升级：老的 prose/duo/iconGrid → 新版 8 段结构。
+ *
+ * 用**内容感知**而不是 marker 键：老库必然没有 type==='hero' 的段，
+ * 运营保存过之后一定有 —— 于是天然幂等，且不需要往 content_settings 里塞标记。
+ * ⚠️ 判据是「有没有 hero 段」，所以后台表单必须始终保留 hero（不要允许整段删除）。
+ */
+function migrateAboutBlocks(db) {
+  try {
+    const row = db.get("SELECT id, blocks FROM content_pages WHERE slug = 'about'");
+    if (!row) return;
+    let blocks = [];
+    try { blocks = JSON.parse(row.blocks || '[]'); } catch (e) { blocks = []; }
+    if (Array.isArray(blocks) && blocks.some((b) => b && b.type === 'hero')) return;
+    db.run(
+      "UPDATE content_pages SET blocks = ?, updated_at = datetime('now','localtime') WHERE id = ?",
+      JSON.stringify(ABOUT_BLOCKS), row.id
+    );
+    console.log('[Content] 关于我们页 blocks 已升级为 8 段结构（原 ' + (blocks.length || 0) + ' 段旧结构）');
+  } catch (e) {
+    console.warn('[Content] 关于我们页 blocks 迁移跳过:', e.message);
+  }
+}
+
 /** 读 / 自增内容版本号（后台每次写操作都要 bump） */
 function bumpContentVersion(db) {
   const row = db.get("SELECT value FROM content_settings WHERE key = 'content.version'");
@@ -751,4 +914,4 @@ function getContentVersion(db) {
   return parseInt(row?.value, 10) || 1;
 }
 
-module.exports = { initContentSchema, seedContent, migrateContentPermissions, bumpContentVersion, getContentVersion, SEED };
+module.exports = { initContentSchema, seedContent, migrateContentPermissions, migrateAboutBlocks, ABOUT_BLOCKS, bumpContentVersion, getContentVersion, SEED };

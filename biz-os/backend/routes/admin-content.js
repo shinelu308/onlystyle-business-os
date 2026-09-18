@@ -12,10 +12,13 @@
  */
 const express = require('express');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const router = express.Router();
 const { getDatabase } = require('../database');
 const { bumpContentVersion, getContentVersion } = require('../content-schema');
 const { verifyStaffToken, safeEqual } = require('../content-auth');
+const certImage = require('../lib/cert-image');
 
 /* ── 类型 → 表映射（外部只能传这些 key，杜绝任意表名）── */
 const TYPES = {
@@ -116,6 +119,60 @@ router.post('/publish', auth, (req, res) => {
     OK(res, { version: bumpContentVersion(getDatabase()) });
   } catch (e) {
     fail(res, 500, e.message);
+  }
+});
+
+/* ════════ 证书图片上传（官网「关于我们 → 航行资质」）════════
+
+   与 settings.js 的 upload-logo 同一套「内容寻址」思路，理由也一样：
+   /uploads/* 的响应头是 `public, max-age=31536000, immutable`，
+   固定文件名换图后老访客一年都看不到新图 —— 所以文件名必须带内容哈希
+   （cert_<sha256前8位>.<ext>），换证自然换名，缓存自动失效。
+
+   ⚠️ 落在 uploads/certs/ 子目录，不是 uploads 根目录：
+      deploy.cjs 把整个 uploads 排除在打包之外（那是本机开发素材），
+      只靠白名单单独镜像必需的图片 —— 证书图与品牌 logo 各自一段白名单，
+      互不干扰（品牌 logo 那条还带着 selfcheck 的 「有且仅有一个」 断言）。
+
+   ⚠️ 这里**不删任何旧文件**。upload-logo 会在落库后清同族旧图，
+   但证书的「落库」发生在后台点保存时，比上传晚 —— 中途放弃保存就会让
+   DB 指向已被删掉的图，官网直接裂图。孤儿文件留着更安全（内容寻址，体积可控）。 */
+router.post('/upload-cert', auth, (req, res) => {
+  const body = req.body || {};
+  const m = String(body.image_data || '').match(/^data:image\/[\w.+-]+;base64,([\s\S]+)$/);
+  if (!m) return fail(res, 400, '缺少图片数据（应为 data:image/...;base64,... 形式）');
+
+  let raw;
+  try {
+    raw = Buffer.from(m[1], 'base64');
+  } catch (e) {
+    return fail(res, 400, '图片内容无法解码（base64 不合法）');
+  }
+
+  const info = certImage.inspect(raw);
+  if (!info.ok) return fail(res, 400, info.error);
+
+  try {
+    const hash = crypto.createHash('sha256').update(raw).digest('hex').slice(0, 8);
+    const filename = 'cert_' + hash + '.' + info.ext;
+    const dir = path.join(__dirname, '..', 'uploads', 'certs');
+    const filepath = path.join(dir, filename);
+    fs.mkdirSync(dir, { recursive: true });
+    // 内容寻址：同名即同内容，重复上传不重写（也避免改动 mtime）
+    if (!fs.existsSync(filepath)) fs.writeFileSync(filepath, raw);
+
+    OK(res, {
+      url: '/uploads/certs/' + filename,
+      filename: filename,
+      size: raw.length,
+      width: info.width || 0,
+      height: info.height || 0,
+      longEdge: info.longEdge || 0,
+      reused: false,
+      warn: info.warn || '',
+    });
+  } catch (e) {
+    fail(res, 500, '保存图片失败: ' + e.message);
   }
 });
 

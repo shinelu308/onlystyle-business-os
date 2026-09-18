@@ -1113,7 +1113,6 @@ function cmDeleteEntity(type, id) {
    ================================================================ */
 
 var _cmProductsId = null;
-var _cmAboutId = null;
 
 /* 官网内置兜底文案（与 Products.vue 的 fallback 保持一致；后台只在前端拉不到行时用来预填表单） */
 var CM_PRODUCTS_FB = {
@@ -1220,7 +1219,356 @@ function cmSaveProducts() {
   cmRun(req, '已保存。官网产品介绍页最多 60 秒内自动更新。');
 }
 
-/* ---- 关于我们 ---- */
+/* ---- 关于我们 ----
+   8 段结构与后端 content-schema.js 的 ABOUT_BLOCKS 一一对应：
+     hero / profile / stats / timeline / crew / tech / credentials / cta
+   ⚠️ 两处的初始值必须保持一致（verify-about-admin.cjs 会做深度比对）；
+      唯一的真相源仍是 DB —— 这里只在前端拉不到行时用来预填表单。
+   ⚠️ 空值语义：官网侧 setText 遇到空字符串会**跳过**（保持设计稿原文），
+      所以「留空」= 回落到设计稿，而不是把官网清空。 */
+
+var CM_ABOUT_FB = {
+  hero: {
+    title: '关于我们',
+    subtitleBold: '数字化转型的引领者',
+    subtitleRest: '探索产业未来的星际舰队',
+    hint: 'EST. 2003 · SHANGHAI',
+    ctaText: '联系我们'
+  },
+  profile: {
+    eyebrow: 'COMPANY PROFILE / 公司简介',
+    title: '星尘起源 · ',
+    em: '数字化星域的探索旗舰',
+    body: '**上海唯风信息技术有限公司**是一家在数字化领域拥有广泛经验的领先企业。我们专注于为不同行业的企业和机构提供全面的数字化解决方案，以满足他们的不同需求和挑战。\n\n我们深知数字化转型对于企业的重要性，因此我们的使命是为客户提供卓越的服务，帮助他们在数字时代取得成功。',
+    tags: ['全链路数字化', '行业智能化', 'AI 交付', '高新技术企业'],
+    caption: 'ONLYSTYLE · CORE SYSTEM'
+  },
+  stats: {
+    items: [
+      { value: '23', unit: '+ 年', label: '行业深耕', note: 'SINCE 2003' },
+      { value: '1000', unit: '万', label: '注册资本', note: 'CNY 10,000,000' },
+      { value: '3', unit: '项', label: '核心资质', note: 'LICENSED & CERTIFIED' },
+      { value: '4', unit: '省', label: '业务覆盖范围', note: '沪 · 苏 · 浙 · 川' }
+    ]
+  },
+  timeline: {
+    eyebrow: 'VOYAGE TIMELINE / 品牌时间线',
+    title: '航迹 · ',
+    em: '二十余年的星际征途',
+    items: [
+      { year: '2003', small: 'LAUNCH', title: '公司成立，开启数字化征途', desc: '上海唯风信息技术有限公司于上海注册成立，自此起航，驶入数字化星域。' },
+      { year: '2010', small: 'EXPAND', title: '拓展企业信息化服务', desc: '舰队扩容，为不同行业的企业和机构提供全面的信息化解决方案。' },
+      { year: '2018', small: 'ORBIT', title: '布局云计算与大数据', desc: '进入云与数据的新轨道，构建弹性架构与实时洞察能力。' },
+      { year: '2023', small: 'CERTIFY', title: '获评高新技术企业', desc: '技术实力获官方认证，正式取得「高新技术企业」航行许可。', badge: '✓ 官方认证', code: '证书号 GR202331007290' },
+      { year: '2026', small: 'NOW', title: '获跨地区增值电信业务经营许可证', desc: '取得互联网接入服务业务许可，航线覆盖上海、江苏、浙江、四川四省市。', badge: '✓ 现行有效', code: '编号 B1-20262247', now: true }
+    ]
+  },
+  crew: {
+    eyebrow: 'FLEET CREW / 舰队成员',
+    title: '舰员 · ',
+    em: '各司其职的星际乘组',
+    sub: '每一位舰员都是舰队不可或缺的一环 —— 从领航到交付，专业分工，协同推进每一次星际任务。',
+    items: [
+      { id: 'CRW-01', role: '战略领航员', en: 'Navigator', desc: '制定航线，把握产业数字化方向' },
+      { id: 'CRW-02', role: '技术架构师', en: 'Architect', desc: '搭建星舰引擎，驱动核心系统' },
+      { id: 'CRW-03', role: '产品指挥官', en: 'Product', desc: '设计作战方案，连接业务与技术' },
+      { id: 'CRW-04', role: '数据占星师', en: 'Data', desc: '解析星图数据，洞察增长轨迹' },
+      { id: 'CRW-05', role: '安全守卫者', en: 'Security', desc: '守护舰队屏障，确保合规稳健' },
+      { id: 'CRW-06', role: '交付推进员', en: 'Delivery', desc: '落地每一项星际任务' }
+    ]
+  },
+  tech: {
+    eyebrow: 'STARSHIP SYSTEMS / 星舰系统',
+    title: '系统 · ',
+    em: '驱动舰队前进的六大子系统',
+    items: [
+      { idx: 'SYS.01', title: '全链路数字化方案', desc: '咨询 → 平台开发 → 部署 → 运维，一条完整航线贯穿数字化转型全程。' },
+      { idx: 'SYS.02', title: '行业智能化升级', desc: 'AI 算法 + 行业 Know-how，为传统业态装上智能引擎。' },
+      { idx: 'SYS.03', title: 'AI 交付服务', desc: '智能生成，专业交付 —— 让 AI 产能落地为可用的业务成果。' },
+      { idx: 'SYS.04', title: '云计算与大数据', desc: '弹性架构，实时洞察，为舰队提供源源不断的算力燃料。' },
+      { idx: 'SYS.05', title: '网络与信息安全', desc: '等保合规，全链路防护 —— 舰队的能量屏障，坚不可摧。' },
+      { idx: 'SYS.06', title: '互联网接入服务', desc: '跨地区 ISP 许可，四省覆盖 —— 官方授牌的星际航道通行权。' }
+    ]
+  },
+  credentials: {
+    eyebrow: 'CREDENTIALS / 航行资质',
+    title: '资质与荣誉 · ',
+    em: '官方颁发的航行许可证',
+    sub: '每一份证照，都是舰队合法远航的凭证 —— 经政府主管部门核准，真实可查。',
+    items: [
+      {
+        name: '营业执照', imageUrl: '', issuerLabel: '发证机关', issuer: '上海市闵行区市场监督管理局',
+        fields: [
+          { k: '统一信用代码', v: '913101147472893241', mono: true },
+          { k: '法定代表人', v: '卢时扬' },
+          { k: '注册资本', v: '人民币 1000.0000 万元整' },
+          { k: '成立日期', v: '2003-02-18', mono: true },
+          { k: '营业期限', v: '2003-02-18 至 2033-02-17', mono: true },
+          { k: '住所', v: '上海市闵行区莲花南路 1500 弄 8-9 号 306 室' }
+        ]
+      },
+      {
+        name: '高新技术企业证书', imageUrl: '', issuerLabel: '发证机关',
+        issuer: '上海市科学技术委员会 · 上海市财政局 · 国家税务总局上海市税务局',
+        fields: [
+          { k: '证书编号', v: 'GR202331007290', mono: true },
+          { k: '发证时间', v: '2023-12-12', mono: true },
+          { k: '有效期', v: '三年' },
+          { k: '企业名称', v: '上海唯风信息技术有限公司' }
+        ]
+      },
+      {
+        name: '增值电信业务经营许可证', imageUrl: '', issuerLabel: '发证机关',
+        issuer: '中华人民共和国工业和信息化部',
+        fields: [
+          { k: '许可证编号', v: 'B1-20262247', mono: true },
+          { k: '业务种类', v: '互联网接入服务业务' },
+          { k: '覆盖范围', v: '上海、江苏、浙江、四川' },
+          { k: '发证日期', v: '2026-06-26', mono: true },
+          { k: '有效期至', v: '2031-06-26', mono: true }
+        ]
+      }
+    ]
+  },
+  cta: {
+    title: '准备启航？',
+    subtitle: '与 ONLYSTYLE 一起探索数字星域',
+    ctaText: '联系我们',
+    ctaUrl: '/contact'
+  }
+};
+
+/* 段落 reapter 的两套列定义（容器 id → 列） */
+var CM_STAT_COLS = [
+  { k: 'value', label: '数值', ph: '23' },
+  { k: 'unit', label: '单位', ph: '+ 年（空格分隔会渲染成两段）' },
+  { k: 'label', label: '指标名', ph: '行业深耕' },
+  { k: 'note', label: '注释', ph: 'SINCE 2003' }
+];
+var CM_TL_COLS = [
+  { k: 'year', label: '年份', ph: '2003' },
+  { k: 'small', label: '角标', ph: 'LAUNCH' },
+  { k: 'title', label: '标题', ph: '公司成立，开启数字化征途' },
+  { k: 'desc', label: '描述', ph: '一句话说明' },
+  { k: 'badge', label: '徽标（可空）', ph: '✓ 官方认证' },
+  { k: 'code', label: '编号（可空）', ph: '证书号 GR202331007290' },
+  { k: 'now', label: '标记为「现在」', type: 'check' }
+];
+var CM_CREW_COLS = [
+  { k: 'id', label: '代号', ph: 'CRW-01' },
+  { k: 'role', label: '角色', ph: '战略领航员' },
+  { k: 'en', label: '英文', ph: 'Navigator' },
+  { k: 'desc', label: '描述', ph: '制定航线，把握产业数字化方向' }
+];
+var CM_TECH_COLS = [
+  { k: 'idx', label: '编号', ph: 'SYS.01' },
+  { k: 'title', label: '标题', ph: '全链路数字化方案' },
+  { k: 'desc', label: '描述', ph: '咨询 → 平台开发 → 部署 → 运维' }
+];
+var CM_CERTFIELD_COLS = [
+  { k: 'k', label: '字段名', ph: '如 证书编号' },
+  { k: 'v', label: '内容', ph: '如 GR202331007290' },
+  { k: 'mono', label: '等宽字体', type: 'check' }
+];
+
+/* ================================================================
+   段落 repeater（cm-rep2）—— cm-row 的「多字段换行」变体
+   为什么另起一套：cmRepRow 是一行塞 N 个 input，4 个以上就会被压到 100px 以内
+   （注释「SINCE 2003」根本看不清）。这里保持外层 .cm-row 不变（于是
+   cmRepDel / cmRepRead 原样可用），只把内部换成自适应栅格。
+   ================================================================ */
+
+function cmRep2Row(cols, v) {
+  v = v || {};
+  var h = '<div class="cm-row cm-rep2-row"><span class="cm-grip" title="拖拽排序">⠿</span><div class="cm-rep2-grid">';
+  for (var i = 0; i < cols.length; i++) {
+    var c = cols[i];
+    if (c.type === 'check') {
+      h += '<label class="cm-inline-check"><input type="checkbox" data-k="' + cmTxt(c.k) + '"' +
+        (v[c.k] ? ' checked' : '') + '>' + cmTxt(c.label || c.k) + '</label>';
+    } else {
+      h += '<div class="form-group"><label>' + cmTxt(c.label || c.k) + '</label>' +
+        '<input type="text" data-k="' + cmTxt(c.k) + '" placeholder="' + cmTxt(c.ph || '') + '" value="' +
+        cmTxt(v[c.k] == null ? '' : v[c.k]) + '"></div>';
+    }
+  }
+  h += '</div><button type="button" class="cm-del" title="删除本行" onclick="cmRepDel(this)">✕</button></div>';
+  return h;
+}
+
+function cmRep2Html(containerId, cols, rows) {
+  cmRepCols(containerId, cols);
+  rows = Array.isArray(rows) ? rows : [];
+  var h = '<div class="cm-repeater cm-rep2" id="' + containerId + '">';
+  for (var i = 0; i < rows.length; i++) h += cmRep2Row(cols, rows[i]);
+  h += '</div>';
+  h += '<button type="button" class="btn btn-sm btn-outline" style="margin-top:8px" onclick="cmRep2Add(\'' +
+    containerId + '\')">+ 添加一行</button>';
+  return h;
+}
+
+function cmRep2Add(containerId) {
+  var box = $(containerId);
+  if (!box) return;
+  box.insertAdjacentHTML('beforeend', cmRep2Row(_cmRepCols[containerId] || [], {}));
+}
+
+/* ================================================================
+   证书管理（cm-cert-*）：上传 / 替换 / 删除 + 详情字段 repeater
+   ================================================================ */
+
+var _cmCertSeq = 0;
+var _cmAboutId = null;
+var _cmAboutBlocks = [];
+
+/** 缩略图：未上传时给个明确的占位，而不是空白方块 */
+function cmCertThumbHtml(c) {
+  var url = (c && c.imageUrl) || '';
+  if (url) {
+    return '<div class="cm-cert-thumb"><span class="cm-cert-badge">已上传</span>' +
+      '<img src="' + cmTxt(url) + '" alt="证书预览"></div>';
+  }
+  return '<div class="cm-cert-thumb"><span class="cm-cert-badge pending">待上传</span>' +
+    '<div class="ph">' +
+      '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+      '<rect x="3" y="4" width="18" height="16" rx="2.5" stroke="#CBD5E1" stroke-width="1.5"></rect>' +
+      '<circle cx="9" cy="10" r="1.6" fill="#CBD5E1"></circle>' +
+      '<path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>' +
+      '</svg>尚未上传<br>点击右侧按钮</div></div>';
+}
+
+function cmCertRow(c, seed) {
+  c = c || {};
+  var fid = 'cmCertFields_' + (seed == null ? (++_cmCertSeq) : seed);
+  var fields = Array.isArray(c.fields) ? c.fields : [];
+  var url = c.imageUrl || '';
+  return '<div class="cm-cert" data-url="' + cmTxt(url) + '">' +
+    cmCertThumbHtml(c) +
+    '<div>' +
+      '<div class="form-group"><label>证书名称</label>' +
+        '<input type="text" class="cm-cert-name" value="' + cmTxt(c.name || '') + '" placeholder="如 营业执照"></div>' +
+      '<div class="cm-cert-ops">' +
+        '<button type="button" class="btn btn-sm btn-primary" onclick="cmCertPick(this)">' +
+          (url ? '上传 / 替换' : '上传证书') + '</button>' +
+        '<button type="button" class="btn btn-sm btn-outline" onclick="cmCertDel(this)">删除证书</button>' +
+        '<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="cmCertFile(this)">' +
+      '</div>' +
+      '<div class="cm-cert-note">图片要求：JPG / PNG / WebP，≤ 8MB，建议长边 ≥ 1600px（横竖版均可，' +
+        '查看器等比完整展示，不裁切）。<br>当前文件：<b class="cm-cert-file">' +
+        cmTxt(url || '（尚未上传）') + '</b></div>' +
+      '<div class="cm-2col" style="margin-top:12px">' +
+        '<div class="form-group"><label>机关前缀</label>' +
+          '<input type="text" class="cm-cert-issuer-label" value="' + cmTxt(c.issuerLabel || '发证机关') + '"></div>' +
+        '<div class="form-group"><label>发证机关</label>' +
+          '<input type="text" class="cm-cert-issuer" value="' + cmTxt(c.issuer || '') + '"></div>' +
+      '</div>' +
+      '<details class="cm-cert-detail"><summary>证书详情字段（卡片上展示的键值对）· ' + fields.length + ' 行</summary>' +
+        '<div class="cm-cert-fields">' + cmRep2Html(fid, CM_CERTFIELD_COLS, fields) + '</div>' +
+      '</details>' +
+    '</div>' +
+  '</div>';
+}
+
+function cmCertPick(btn) {
+  var box = btn.closest ? btn.closest('.cm-cert') : null;
+  if (!box) return;
+  var inp = box.querySelector('input[type=file]');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+
+/** 选好文件 → 读成 base64 → POST /upload-cert（接口鉴权走 X-Admin-Token） */
+function cmCertFile(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var box = input.closest ? input.closest('.cm-cert') : null;
+  var note = box ? box.querySelector('.cm-cert-note') : null;
+  var keep = note ? note.innerHTML : '';
+
+  if (file.size > 8 * 1024 * 1024) {
+    showAlert('图片 ' + (file.size / 1048576).toFixed(1) + 'MB，超过 8MB 上限。\n' +
+      '请先用图片工具压缩（或导出为 JPG 质量 85% 左右）再上传 —— ' +
+      '直接截屏保存通常只有几百 KB，已经够用。', '图片过大');
+    input.value = '';
+    return;
+  }
+  if (note) note.innerHTML = '⏳ 正在上传 <b>' + cmTxt(file.name) + '</b>（' + (file.size / 1024).toFixed(0) + ' KB）…';
+
+  var fr = new FileReader();
+  fr.onload = function () {
+    API.content.post(CM_API + '/upload-cert', { image_data: fr.result }).then(function (d) {
+      var url = d && d.url;
+      if (!url) throw new Error('接口未返回图片地址');
+      if (box) {
+        box.setAttribute('data-url', url);
+        var thumb = box.querySelector('.cm-cert-thumb');
+        if (thumb) thumb.innerHTML = '<span class="cm-cert-badge">已上传</span><img src="' + cmTxt(url) + '" alt="证书预览">';
+        var upBtn = box.querySelector('.cm-cert-ops .btn-primary');
+        if (upBtn) upBtn.textContent = '上传 / 替换';
+        var fileEl = box.querySelector('.cm-cert-file');
+        if (fileEl) fileEl.textContent = url;
+      }
+      if (note) {
+        note.innerHTML = '图片要求：JPG / PNG / WebP，≤ 8MB，建议长边 ≥ 1600px（横竖版均可，查看器等比完整展示，不裁切）。<br>' +
+          '当前文件：<b class="cm-cert-file">' + cmTxt(url) + '</b>' +
+          (d.warn ? '<br><span class="cm-cert-note warn">⚠️ ' + cmTxt(d.warn) + '</span>' : '');
+      }
+      showAlert('证书图片已上传。\n\n记得点最下方「保存关于我们页」—— 官网才会用上这张图。', '上传成功');
+    }).catch(function (e) {
+      if (note) note.innerHTML = keep;
+      showAlert('上传失败：' + (e && e.message ? e.message : e), '出错了');
+    });
+  };
+  fr.onerror = function () {
+    if (note) note.innerHTML = keep;
+    showAlert('读取本地文件失败，请重试', '出错了');
+  };
+  fr.readAsDataURL(file);
+}
+
+function cmCertDel(btn) {
+  var box = btn.closest ? btn.closest('.cm-cert') : null;
+  if (!box) return;
+  var name = box.querySelector('.cm-cert-name');
+  showConfirm('删除证书「' + ((name && name.value) || '未命名') + '」？\n\n' +
+    '（只是在表单里移掉这一条，点「保存关于我们页」之后官网才会少一张卡；' +
+    '已经上传的图片文件不删除。）', function () {
+    box.parentNode.removeChild(box);
+  }, '删除证书');
+}
+
+function cmCertAdd() {
+  var list = $('cmCertList');
+  if (!list) return;
+  list.insertAdjacentHTML('beforeend', cmCertRow({ issuerLabel: '发证机关' }, null));
+}
+
+/** 读回证书列表（结构读 DOM，不按序号 —— 删掉中间一条不会串行） */
+function cmCertRead() {
+  var list = $('cmCertList');
+  var out = [];
+  if (!list) return out;
+  var blocks = list.querySelectorAll('.cm-cert');
+  for (var i = 0; i < blocks.length; i++) {
+    var b = blocks[i];
+    out.push({
+      name: (b.querySelector('.cm-cert-name') || {}).value || '',
+      imageUrl: b.getAttribute('data-url') || '',
+      issuerLabel: (b.querySelector('.cm-cert-issuer-label') || {}).value || '发证机关',
+      issuer: (b.querySelector('.cm-cert-issuer') || {}).value || '',
+      fields: cmRepRead((b.querySelector('.cm-cert-fields .cm-repeater') || {}).id || '')
+    });
+  }
+  return out;
+}
+
+/* ================================================================
+   关于我们 · 页面渲染
+   ================================================================ */
+
+function cmAbGrid2(a, b) {
+  // 两列小栅格（区块标题 + 强调后缀这类成对字段）
+  return '<div class="cm-2col">' + a + b + '</div>';
+}
 
 function renderContentAbout(pane) {
   pane.innerHTML = cmToolbar() + '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
@@ -1228,72 +1576,178 @@ function renderContentAbout(pane) {
     var row = cmPageFind(rows, 'about');
     var bl = (row && Array.isArray(row.blocks)) ? row.blocks : [];
     function blk(type) {
-      for (var i = 0; i < bl.length; i++) if (bl[i].type === type) return bl[i];
+      for (var i = 0; i < bl.length; i++) if (bl[i] && bl[i].type === type) return bl[i];
       return null;
     }
-    var prose = blk('prose'), duo = blk('duo');
-    var it0 = (duo && duo.items && duo.items[0]) || {};
-    var it1 = (duo && duo.items && duo.items[1]) || {};
-
-    pane.innerHTML = cmToolbar() +
-      '<div class="card" style="margin-bottom:20px">' +
-        '<div class="card-header"><h3>页面页头</h3><span class="cm-hint">官网 /about 顶部 Hero</span></div>' +
-        '<div class="card-body">' +
-          cmFld('cmAb_title', '标题', (row && row.title) || '关于我们') +
-          cmFld('cmAb_subtitle', '副标题', (row && row.subtitle) || '数字化转型的引领者') +
-        '</div>' +
-      '</div>' +
-      '<div class="card" style="margin-bottom:20px">' +
-        '<div class="card-header"><h3>公司简介</h3><span class="cm-hint">官网「公司简介」段落正文</span></div>' +
-        '<div class="card-body">' + cmFldTa('cmAb_body', '正文', prose ? prose.body : '', 6) + '</div>' +
-      '</div>' +
-      '<div class="card" style="margin-bottom:20px">' +
-        '<div class="card-header"><h3>愿景与使命</h3><span class="cm-hint">官网双栏卡的两条文案</span></div>' +
-        '<div class="card-body">' +
-          '<div class="cm-2col">' +
-            cmFld('cmAb_vision', '愿景', it0.text || '') +
-            cmFld('cmAb_mission', '使命', it1.text || '') +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="form-actions"><button type="button" class="btn btn-primary" onclick="cmSaveAbout()">保存关于我们页</button></div>' +
-      '<p class="cm-note">核心价值观四宫格等区块将在后续版本开放编辑。</p>';
+    var H = blk('hero') || CM_ABOUT_FB.hero;
+    var P = blk('profile') || CM_ABOUT_FB.profile;
+    var S = blk('stats') || CM_ABOUT_FB.stats;
+    var T = blk('timeline') || CM_ABOUT_FB.timeline;
+    var C = blk('crew') || CM_ABOUT_FB.crew;
+    var K = blk('tech') || CM_ABOUT_FB.tech;
+    var R = blk('credentials') || CM_ABOUT_FB.credentials;
+    var A = blk('cta') || CM_ABOUT_FB.cta;
 
     _cmAboutId = row ? row.id : null;
+    _cmAboutBlocks = bl;
+
+    var tags = Array.isArray(P.tags) ? P.tags : [];
+    var certItems = Array.isArray(R.items) ? R.items : [];
+    var certHtml = '';
+    for (var ci = 0; ci < certItems.length; ci++) certHtml += cmCertRow(certItems[ci], ci);
+
+    pane.innerHTML = cmToolbar() +
+      '<div class="card" style="margin-bottom:20px;border-left:3px solid #16a34a;background:#f0fdf4">' +
+        '<div class="card-body" style="font-size:13px;color:#166534;line-height:1.8">' +
+          '✅ 保存后<b>实时作用于官网 /about</b>：页头文案、公司简介、核心数据、品牌时间线、舰队成员、星舰系统、' +
+          '航行资质（含<b>证书图片上传</b>）、底部 CTA 全部可编辑。<br>' +
+          '留空的字段会保持官网现有文案不变（不会被清空）。' +
+        '</div>' +
+      '</div>' +
+
+      /* ① 页头 */
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>页头 · Hero</h3><span class="cm-hint">官网顶部大标题与按钮</span></div>' +
+        '<div class="card-body">' +
+          cmFld('cmAb_hero_title', '主标题', H.title || '') +
+          cmAbGrid2(
+              cmFld('cmAb_hero_bold', '副标题 · 加粗前半段', H.subtitleBold || ''),
+            cmFld('cmAb_hero_rest', '副标题 · 后半段', H.subtitleRest || '')) +
+          cmAbGrid2(
+              cmFld('cmAb_hero_hint', '右上角小字', H.hint || '', 'EST. 2003 · SHANGHAI'),
+            cmFld('cmAb_hero_cta', '主按钮文案', H.ctaText || '')) +
+        '</div>' +
+      '</div>' +
+
+      /* ② 公司简介 */
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>公司简介</h3><span class="cm-hint">左侧正文 + 右侧 3D 地球</span></div>' +
+        '<div class="card-body">' +
+          cmAbGrid2(
+              cmFld('cmAb_prof_title', '区块标题', P.title || ''),
+            cmFld('cmAb_prof_em', '标题强调后缀', P.em || '')) +
+          cmFld('cmAb_prof_eyebrow', '英文小标题', P.eyebrow || '') +
+          cmFldTa('cmAb_prof_body', '正文（空行分段，**文字** 加粗）', P.body || '', 7) +
+          cmFld('cmAb_prof_tags', '关键词标签（用 · 分隔）', tags.join(' · ')) +
+          cmFld('cmAb_prof_caption', '地球下方小字', P.caption || '') +
+        '</div>' +
+      '</div>' +
+
+      /* ③ 核心数据 */
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>核心数据</h3><span class="cm-hint">数字滚动区，图标按顺序自动分配</span></div>' +
+        '<div class="card-body">' +
+          cmRep2Html('cmAbStats', CM_STAT_COLS, S.items || []) +
+          '<p class="cm-note">数值只写数字，单位可写「+ 年」（中间空格会渲染成两段）、「万」、「项」。</p>' +
+        '</div>' +
+      '</div>' +
+
+      /* ④ 品牌时间线 */
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>品牌时间线</h3><span class="cm-hint">可增删条目，「现在」用于高亮最新一条</span></div>' +
+        '<div class="card-body">' +
+          cmAbGrid2(
+              cmFld('cmAb_tl_title', '区块标题', T.title || ''),
+            cmFld('cmAb_tl_em', '标题强调后缀', T.em || '')) +
+          cmFld('cmAb_tl_eyebrow', '英文小标题', T.eyebrow || '') +
+          cmRep2Html('cmAbTl', CM_TL_COLS, T.items || []) +
+        '</div>' +
+      '</div>' +
+
+      /* ⑤ 舰队成员 */
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>舰队成员</h3><span class="cm-hint">全息头像按序号生成，无需上传图片</span></div>' +
+        '<div class="card-body">' +
+          cmAbGrid2(
+              cmFld('cmAb_crew_title', '区块标题', C.title || ''),
+            cmFld('cmAb_crew_em', '标题强调后缀', C.em || '')) +
+          cmFld('cmAb_crew_eyebrow', '英文小标题', C.eyebrow || '') +
+          cmFldTa('cmAb_crew_sub', '区块说明', C.sub || '', 3) +
+          cmRep2Html('cmAbCrew', CM_CREW_COLS, C.items || []) +
+          '<p class="cm-note">头盔形态按行序自动分配（6 种循环），增删成员不会打乱已有成员的视觉。</p>' +
+        '</div>' +
+      '</div>' +
+
+      /* ⑥ 星舰系统 */
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>星舰系统</h3><span class="cm-hint">六格能力卡，图标按顺序自动分配</span></div>' +
+        '<div class="card-body">' +
+          cmAbGrid2(
+              cmFld('cmAb_tech_title', '区块标题', K.title || ''),
+            cmFld('cmAb_tech_em', '标题强调后缀', K.em || '')) +
+          cmFld('cmAb_tech_eyebrow', '英文小标题', K.eyebrow || '') +
+          cmRep2Html('cmAbTech', CM_TECH_COLS, K.items || []) +
+        '</div>' +
+      '</div>' +
+
+      /* ⑦ 航行资质 · 证书管理（本页重点） */
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>航行资质 · 证书管理</h3><span class="cm-hint">文案 + 图片都要在这里配齐</span></div>' +
+        '<div class="card-body">' +
+          cmAbGrid2(
+              cmFld('cmAb_cert_title', '区块标题', R.title || ''),
+            cmFld('cmAb_cert_em', '标题强调后缀', R.em || '')) +
+          cmFld('cmAb_cert_eyebrow', '英文小标题', R.eyebrow || '') +
+          cmFldTa('cmAb_cert_sub', '区块说明', R.sub || '', 3) +
+          '<div id="cmCertList">' + certHtml + '</div>' +
+          '<button type="button" class="btn btn-sm btn-outline" onclick="cmCertAdd()">+ 新增一张证书</button>' +
+          '<p class="cm-note">未上传图片的证书，官网上按钮显示为「证书待上传」（点击给提示，不会弹出空白浮层）；' +
+          '上传后变成「查看证书」，点击弹出舷窗式查看浮层（证书等比完整展示，不裁切）。<br>' +
+          '图片按内容哈希命名，换图必换名 —— 所以换了新证书，老访客也不会看到旧图。</p>' +
+        '</div>' +
+      '</div>' +
+
+      /* ⑧ 底部 CTA */
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div class="card-header"><h3>底部 CTA</h3><span class="cm-hint">页尾行动号召</span></div>' +
+        '<div class="card-body">' +
+          cmFld('cmAb_cta_title', '主标题', A.title || '') +
+          cmFld('cmAb_cta_sub', '副标题', A.subtitle || '') +
+          cmAbGrid2(
+              cmFld('cmAb_cta_text', '按钮文案', A.ctaText || ''),
+            cmFld('cmAb_cta_url', '按钮链接', A.ctaUrl || '', '站内路由如 /contact，或完整网址')) +
+        '</div>' +
+      '</div>' +
+
+      '<div class="form-actions"><button type="button" class="btn btn-primary" onclick="cmSaveAbout()">保存关于我们页</button></div>';
+
     cmLoadVersion();
   }).catch(function (e) { cmFail(pane, e); });
 }
 
 function cmSaveAbout() {
-  API.content.get(CM_API + '/pages').then(function (rows) {
-    var row = cmPageFind(rows, 'about');
-    var bl = (row && Array.isArray(row.blocks)) ? JSON.parse(JSON.stringify(row.blocks)) : [];
-    var body = cmVal('cmAb_body');
-    var vision = cmVal('cmAb_vision');
-    var mission = cmVal('cmAb_mission');
+  var tags = cmVal('cmAb_prof_tags').split('·').map(function (s) { return s.replace(/^\s+|\s+$/g, ''); })
+    .filter(function (s) { return s; });
 
-    // 只改 prose.body 与 duo.items[0..1].text，其余块（iconGrid 等）原样保留
-    var prose = null, duo = null;
-    for (var i = 0; i < bl.length; i++) {
-      if (bl[i].type === 'prose') prose = bl[i];
-      if (bl[i].type === 'duo') duo = bl[i];
-    }
-    if (prose) prose.body = body;
-    else bl.push({ type: 'prose', eyebrow: 'Company Profile', title: '公司简介', body: body });
-    if (duo) {
-      duo.items = duo.items || [];
-      if (duo.items[0]) duo.items[0].text = vision; else duo.items[0] = { label: '愿景', text: vision };
-      if (duo.items[1]) duo.items[1].text = mission; else duo.items[1] = { label: '使命', text: mission };
-    } else {
-      bl.push({ type: 'duo', items: [{ label: '愿景', text: vision }, { label: '使命', text: mission }] });
-    }
+  var blocks = [
+    { type: 'hero',
+      title: cmVal('cmAb_hero_title'), subtitleBold: cmVal('cmAb_hero_bold'),
+      subtitleRest: cmVal('cmAb_hero_rest'), hint: cmVal('cmAb_hero_hint'),
+      ctaText: cmVal('cmAb_hero_cta') },
+    { type: 'profile',
+      eyebrow: cmVal('cmAb_prof_eyebrow'), title: cmVal('cmAb_prof_title'), em: cmVal('cmAb_prof_em'),
+      body: cmVal('cmAb_prof_body'), tags: tags, caption: cmVal('cmAb_prof_caption') },
+    { type: 'stats', items: cmRepRead('cmAbStats') },
+    { type: 'timeline',
+      eyebrow: cmVal('cmAb_tl_eyebrow'), title: cmVal('cmAb_tl_title'), em: cmVal('cmAb_tl_em'),
+      items: cmRepRead('cmAbTl') },
+    { type: 'crew',
+      eyebrow: cmVal('cmAb_crew_eyebrow'), title: cmVal('cmAb_crew_title'), em: cmVal('cmAb_crew_em'),
+      sub: cmVal('cmAb_crew_sub'), items: cmRepRead('cmAbCrew') },
+    { type: 'tech',
+      eyebrow: cmVal('cmAb_tech_eyebrow'), title: cmVal('cmAb_tech_title'), em: cmVal('cmAb_tech_em'),
+      items: cmRepRead('cmAbTech') },
+    { type: 'credentials',
+      eyebrow: cmVal('cmAb_cert_eyebrow'), title: cmVal('cmAb_cert_title'), em: cmVal('cmAb_cert_em'),
+      sub: cmVal('cmAb_cert_sub'), items: cmCertRead() },
+    { type: 'cta',
+      title: cmVal('cmAb_cta_title'), subtitle: cmVal('cmAb_cta_sub'),
+      ctaText: cmVal('cmAb_cta_text'), ctaUrl: cmVal('cmAb_cta_url') }
+  ];
 
-    var payload = { title: cmVal('cmAb_title'), subtitle: cmVal('cmAb_subtitle'), blocks: bl };
-    var req = _cmAboutId
-      ? API.content.put(CM_API + '/pages/' + _cmAboutId, payload)
-      : API.content.post(CM_API + '/pages', Object.assign({ slug: 'about', status: 1, channel: 'web' }, payload));
-    cmRun(req, '已保存。官网关于我们页最多 60 秒内自动更新。', function () {
-      _cmAboutId = _cmAboutId || (row ? row.id : null);
-    });
-  }).catch(function (e) { cmFail($('contentPane'), e); });
+  var payload = { title: cmVal('cmAb_hero_title') || '关于我们', blocks: blocks };
+  var req = _cmAboutId
+    ? API.content.put(CM_API + '/pages/' + _cmAboutId, payload)
+    : API.content.post(CM_API + '/pages', Object.assign({ slug: 'about', status: 1, channel: 'web' }, payload));
+  cmRun(req, '已保存。官网关于我们页最多 60 秒内自动更新。');
 }

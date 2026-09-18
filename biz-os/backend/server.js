@@ -13,7 +13,9 @@ app.use('/api/wechat/callback', express.raw({ type: '*/*' }));
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // 扩大请求体限制以支持 Logo 图片上传
+// ⚠️ 16mb 而不是 10mb：证书图片走 base64 提交，原始文件上限 8MB
+//    （见 lib/cert-image.js）→ base64 后约 10.7MB，10mb 的闸门会在接口之前就 413。
+app.use(express.json({ limit: '16mb' })); // 扩大请求体限制以支持 Logo / 证书图片上传
 
 // ======== 缓存策略 ========
 // 默认仍然全面禁缓存 —— 这是后台/业务接口一直以来的行为，不要动它。
