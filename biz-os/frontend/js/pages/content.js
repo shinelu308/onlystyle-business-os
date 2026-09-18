@@ -1139,15 +1139,15 @@ var CM_PRODUCTS_FB = {
   loudaren: {
     badges: '主打产品 · SAAS 模式 · 开箱即用 · 多业态资产运营',
     title: '楼达人资产管理平台',
-    desc: '面向写字楼、园区、商业、公寓等多业态资产，提供覆盖「资产数字化台账 — 招商租赁 — 业财一体 — 运营增值」全流程的一站式资管运营系统，让每一平米资产可视、可控、可增值。',
+    desc: '面向写字楼、园区、商业、公寓等多业态资产，提供覆盖「资产数字化台账 — 招商租赁 — 业财一体 — 运营增值」全流程的一站式运营系统，让每一平米资产可视、可控、可增值。',
     ctaText: '进入平台 ↗',
     ctaUrl: 'https://biz.loudaren.com/orgs/#/index?from=system'
   },
   weifeng: {
-    badges: '自研产品 · 四大机器人 · 五步全自动 · 零代码上线',
+    badges: '营销自动化 · 内容生产 · 全渠道分发',
     title: '唯风数字营销自动化平台',
-    desc: '面向多品牌、多语言团队的数字营销中台：多语言内容一键导入、AI 智能译制、可视化审核与多渠道一键发布——机器人干重复活，团队做专业判断。',
-    ctaText: '预约演示',
+    desc: '为企业提供营销内容生产与分发的全流程自动化，从素材管理、智能内容生成到多渠道一键分发与数据回流，让营销更高效、增长可度量。',
+    ctaText: '进入平台 ↗',
     ctaUrl: '/contact'
   }
 };
@@ -1181,9 +1181,9 @@ function renderContentProducts(pane) {
     var L = blk('loudaren'), W = blk('weifeng'), fb = CM_PRODUCTS_FB;
 
     pane.innerHTML = cmToolbar() +
-      '<div class="card" style="margin-bottom:20px;border-left:3px solid #f59e0b;background:#fffbeb">' +
-        '<div class="card-body" style="font-size:13px;color:#92400e;line-height:1.8">' +
-          '⚠️ 产品介绍页已替换为整页设计稿（静态页），<b>此处编辑暂不作用于官网</b>；文案变更请联系开发同步到设计稿源。' +
+      '<div class="card" style="margin-bottom:20px;border-left:3px solid #16a34a;background:#f0fdf4">' +
+        '<div class="card-body" style="font-size:13px;color:#166534;line-height:1.8">' +
+          '✅ 此处保存后<b>实时作用于官网 /products</b>（页头副标题 + 两张产品卡的徽标 / 标题 / 描述 / 按钮文案与链接）。功能矩阵、跃迁航线、机器人与流水线为设计稿内置内容，暂不支持编辑。' +
         '</div>' +
       '</div>' +
       '<div class="card" style="margin-bottom:20px">' +
@@ -1191,7 +1191,7 @@ function renderContentProducts(pane) {
         '<div class="card-body">' + cmFldTa('cmPd_subtitle', '页头副标题', (row && row.subtitle) || fb.subtitle, 3) + '</div>' +
       '</div>' +
       '<div class="card" style="margin-bottom:20px">' +
-        '<div class="card-header"><h3>主打产品 ① · 楼达人资产管理平台</h3><span class="cm-hint">功能矩阵条目暂为内置，后续开放编辑</span></div>' +
+        '<div class="card-header"><h3>主打产品 ① · 楼达人资产管理平台</h3><span class="cm-hint">功能矩阵与跃迁航线为设计稿内置，暂不支持编辑</span></div>' +
         '<div class="card-body">' +
           cmFld('cmPd_l_badges', '徽标（用 · 分隔）', L.badges || fb.loudaren.badges) +
           cmFld('cmPd_l_title', '标题', L.title || fb.loudaren.title) +
@@ -1203,7 +1203,7 @@ function renderContentProducts(pane) {
         '</div>' +
       '</div>' +
       '<div class="card" style="margin-bottom:20px">' +
-        '<div class="card-header"><h3>主打产品 ② · 唯风数字营销自动化平台</h3><span class="cm-hint">四大机器人 / 五步流水线暂为内置，后续开放编辑</span></div>' +
+        '<div class="card-header"><h3>主打产品 ② · 唯风数字营销自动化平台</h3><span class="cm-hint">机器人与流水线为设计稿内置，暂不支持编辑</span></div>' +
         '<div class="card-body">' +
           cmFld('cmPd_w_badges', '徽标（用 · 分隔）', W.badges || fb.weifeng.badges) +
           cmFld('cmPd_w_title', '标题', W.title || fb.weifeng.title) +
