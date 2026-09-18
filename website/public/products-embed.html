@@ -1172,6 +1172,9 @@ footer {
   /* 移动端关闭鼠标视差 */
   .hero-star-3d, .star-3d-body { transition: none !important; }
 }
+
+/* Brand sync (bos-brand-v1): 第二段品牌名用整站品牌渐变字 */
+.nav-logo-text #brandName2 { background: linear-gradient(135deg,#1F5BFF,#3BE0FF); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 </style>
 </head>
 <body>
@@ -1181,28 +1184,8 @@ footer {
   <div class="nav-inner" data-lvt-eid="126dbfd19e">
     <a href="/" target="_top" class="nav-logo" aria-label="ONLYSTYLE 首页" data-lvt-eid="806b31ee69">
       <!-- SVG Logo: 轨道环+箭头 -->
-      <svg class="nav-logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" data-lvt-eid="2586931596">
-        <circle cx="18" cy="18" r="15" stroke="url(#ng1)" stroke-width="1.5" fill="none" opacity="0.7" data-lvt-eid="723ff313ff"></circle>
-        <ellipse cx="18" cy="18" rx="15" ry="6" stroke="url(#ng2)" stroke-width="1" fill="none" opacity="0.5" transform="rotate(-20 18 18)" data-lvt-eid="e3fdb9634d"></ellipse>
-        <circle cx="18" cy="18" r="5" fill="url(#ng3)" data-lvt-eid="9c81890836"></circle>
-        <path d="M22 14 L28 14 L28 20" stroke="url(#ng1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-lvt-eid="b7d3b88387"></path>
-        <path d="M18 18 L27 13" stroke="url(#ng1)" stroke-width="1.5" stroke-linecap="round" data-lvt-eid="4b967c3b4e"></path>
-        <defs data-lvt-eid="0e93fb8722">
-          <linearGradient id="ng1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse" data-lvt-eid="06ebb42d49">
-            <stop offset="0%" stop-color="#1F5BFF" data-lvt-eid="203e900589"></stop>
-            <stop offset="100%" stop-color="#3BE0FF" data-lvt-eid="21415f341f"></stop>
-          </linearGradient>
-          <linearGradient id="ng2" x1="0" y1="0" x2="36" y2="0" gradientUnits="userSpaceOnUse" data-lvt-eid="0a8d4692db">
-            <stop offset="0%" stop-color="#3BE0FF" data-lvt-eid="e32cf9d19a"></stop>
-            <stop offset="100%" stop-color="#1F5BFF" data-lvt-eid="1a8ed6d3d3"></stop>
-          </linearGradient>
-          <radialGradient id="ng3" cx="40%" cy="40%" r="60%" data-lvt-eid="2ae0d422cc">
-            <stop offset="0%" stop-color="#7BA8FF" data-lvt-eid="a76c172d3a"></stop>
-            <stop offset="100%" stop-color="#1F5BFF" data-lvt-eid="e581e9ec90"></stop>
-          </radialGradient>
-        </defs>
-      </svg>
-      <span class="nav-logo-text" data-lvt-eid="6440ac0f26">ONLYSTYLE</span>
+      <span id="brandLogoSlot" style="width:32px;height:32px;display:block;flex:none"></span>
+      <span class="nav-logo-text" data-lvt-eid="6440ac0f26"><span id="brandName1">ONLY</span><span id="brandName2">STYLE</span></span>
     </a>
     <ul class="nav-links" id="navLinks" data-lvt-eid="290f457e6f">
       <li data-lvt-eid="292d6b110e"><a href="/" target="_top" data-lvt-eid="32aeb5094c">首页</a></li>
@@ -2240,6 +2223,26 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     if (el) obs.observe(el);
   });
 })();
+
+/* ---- Brand sync (bos-brand-v1) ---- */
+window.addEventListener('message', function (e) {
+  var d = e && e.data;
+  if (!d || d.type !== 'bos-brand') return;
+  var slot = document.getElementById('brandLogoSlot');
+  if (slot) {
+    if (d.logo) {
+      slot.innerHTML = '<img src="' + d.logo + '" width="32" height="32" alt="" style="display:block;object-fit:contain;flex:none">';
+    } else {
+      slot.innerHTML = '<svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="13" stroke="url(#blgEmbed)" stroke-width="1.2" stroke-dasharray="5 3" opacity="0.8"/><circle cx="16" cy="16" r="8" stroke="url(#blgEmbed)" stroke-width="1.2" opacity="0.5"/><path d="M10 22L16 10L22 22" stroke="url(#blgEmbed)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="10" r="2.5" fill="url(#blgEmbed)"/><defs><linearGradient id="blgEmbed" x1="3" y1="3" x2="29" y2="29" gradientUnits="userSpaceOnUse"><stop stop-color="#1F5BFF"/><stop offset="1" stop-color="#3BE0FF"/></linearGradient></defs></svg>';
+    }
+  }
+  if (d.nameParts && d.nameParts.length >= 2) {
+    var n1 = document.getElementById('brandName1');
+    var n2 = document.getElementById('brandName2');
+    if (n1) n1.textContent = d.nameParts[0];
+    if (n2) n2.textContent = d.nameParts[1];
+  }
+});
 </script>
 
 

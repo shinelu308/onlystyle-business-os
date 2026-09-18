@@ -1181,6 +1181,11 @@ function renderContentProducts(pane) {
     var L = blk('loudaren'), W = blk('weifeng'), fb = CM_PRODUCTS_FB;
 
     pane.innerHTML = cmToolbar() +
+      '<div class="card" style="margin-bottom:20px;border-left:3px solid #f59e0b;background:#fffbeb">' +
+        '<div class="card-body" style="font-size:13px;color:#92400e;line-height:1.8">' +
+          '⚠️ 产品介绍页已替换为整页设计稿（静态页），<b>此处编辑暂不作用于官网</b>；文案变更请联系开发同步到设计稿源。' +
+        '</div>' +
+      '</div>' +
       '<div class="card" style="margin-bottom:20px">' +
         '<div class="card-header"><h3>页面页头</h3><span class="cm-hint">官网 /products 顶部 Hero 的副标题</span></div>' +
         '<div class="card-body">' + cmFldTa('cmPd_subtitle', '页头副标题', (row && row.subtitle) || fb.subtitle, 3) + '</div>' +
