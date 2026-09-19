@@ -44,6 +44,15 @@ function rewriteFile(f) {
   }
   // CSS 里不带引号的 url(/media/...)
   s = s.replace(/url\((\s*)\/media\//g, 'url($1' + SUB + '/media/');
+  // 🔴 站内路由链接也要改写：embed 页的 target=_top 导航（静态 HTML）
+  //    和案例星球返回按钮（编译进 JS 的 href:"/"）都是裸根路径 ——
+  //    子路径部署下点击会跳到 github.io 根目录 = 404。
+  //    （Vue router-link 是运行时按 BASE_URL 算的，本来就对，不用管。）
+  s = s.split('href="/"').join('href="' + SUB + '/"');
+  s = s.split('href:"/"').join('href:"' + SUB + '/"');
+  for (const r of ['cases', 'products', 'about', 'contact']) {
+    s = s.split('href="/' + r + '"').join('href="' + SUB + '/' + r + '"');
+  }
   if (s !== before) fs.writeFileSync(f, s);
 }
 
