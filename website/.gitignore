@@ -15,3 +15,5 @@ outputs/
 # 日志
 npm-debug.log*
 yarn-error.log*
+# GitHub Pages 构建产物（scripts/ghpages-build.cjs 生成，发布到 shinelu308/onlystyle-web）
+dist-gh/

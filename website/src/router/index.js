@@ -77,7 +77,8 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  // BASE_URL：本地/根域部署 = '/'；GitHub Pages 等子路径部署 = /onlystyle-web/（由 --base 注入）
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) return savedPosition
