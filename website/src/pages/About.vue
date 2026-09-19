@@ -123,7 +123,7 @@ watch(about, pushAbout, { deep: true });
   <!-- ⚠️ embed 内容有更新时必须升 ?v= 版本参数，否则用户浏览器会拿旧缓存 -->
   <iframe
     class="ab-frame"
-    src="/about-embed.html?v=a2"
+    src="/about-embed.html?v=a3"
     title="关于我们"
     @load="pushAll"
   ></iframe>
