@@ -156,13 +156,11 @@ async function snapshot() {
   if (ups.size) console.log('   ✓ 拷贝 uploads 资源 ' + ups.size + ' 个 → dist-gh/uploads/');
   // /media/ 引用：星球贴图等已由 vite 从 public/media 拷进 dist，只改写路径
   body = body.split('"/media/').join('"' + SUB + '/media/');
-  // 🔴 快照里的站内路由值也要改写：后台数据里 ctaUrl / nav.to 等存的是裸路由，
-  //    embed 运行时 setAttribute('href') 会覆盖掉静态 HTML 里已改写的链接 → 点击 404。
-  //    （Vue 侧 withBase 是主修复；这里是快照层的兜底，防未来新增路由字段漏归一化。）
-  for (const r of ['cases', 'products', 'about', 'contact']) {
-    body = body.split('"/' + r + '"').join('"' + SUB + '/' + r + '"');
-  }
-  body = body.split('"/"').join('"' + SUB + '/"');
+  // ⚠️ 快照里的路由值（nav.to / ctaUrl 等）保持裸路径（/contact）——
+  //    它们的消费者要么自适配（RouterLink 运行时按 base 算、Vue withBase 归一化、
+  //    embed 侧 dsUrl），要么在数据流末梢补前缀。绝对不能在这里预改写：
+  //    RouterLink 拿到带前缀的 to 会产出 /onlystyle-web/onlystyle-web/... 双前缀，
+  //    全站导航 404（2026-09-19 实测）。
 
   // 3) 内联进 index.html / 404.html：window.__SNAP__ 在业务 JS 之前执行，
   //    前端 content.js 发请求前同步直读（首屏即命中，无 SW 时序问题）
