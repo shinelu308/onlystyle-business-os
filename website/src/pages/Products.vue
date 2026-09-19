@@ -50,6 +50,16 @@ function splitBadges(s, fbArr) {
   const arr = String(s || '').split('·').map((x) => x.trim()).filter(Boolean);
   return arr.length ? arr : fbArr;
 }
+/** 站内根路径链接补 BASE_URL 前缀 —— 后台 ctaUrl 可能存裸路由（/contact），
+ *  本地/根域 BASE_URL='/' 行为不变；子路径部署自动得到 /onlystyle-web/contact
+ *  （embed 内 dsUrl 还有二次兜底）。
+ *  ⚠️ 已带 BASE 前缀的输入原样返回 —— 快照层改写与本函数可能叠加，防双前缀 */
+const withBase = (p) => {
+  const s = String(p || '');
+  if (!s.startsWith('/') || s.startsWith('//')) return s;
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return base && s.startsWith(base + '/') ? s : base + s;
+};
 function normalize(row) {
   const src = row && typeof row === 'object' ? row : {};
   const blk = (key) =>
@@ -62,7 +72,7 @@ function normalize(row) {
       title: b.title || PRODUCTS_FB[key].title,
       desc: b.desc || PRODUCTS_FB[key].desc,
       ctaText: b.ctaText || PRODUCTS_FB[key].ctaText,
-      ctaUrl: b.ctaUrl || PRODUCTS_FB[key].ctaUrl,
+      ctaUrl: withBase(b.ctaUrl || PRODUCTS_FB[key].ctaUrl),
     };
   }
   return out;

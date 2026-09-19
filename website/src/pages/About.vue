@@ -31,6 +31,16 @@ const ABOUT_TYPES = ['hero', 'profile', 'stats', 'timeline', 'crew', 'tech', 'cr
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const str = (v) => (v == null ? '' : String(v));
+/** 站内根路径链接补 BASE_URL 前缀 —— 后台数据里存的是裸路由（/contact），
+ *  下发给 embed 的 <a href> 用；本地/根域 BASE_URL='/' 行为不变，
+ *  子路径部署（GitHub Pages）自动得到 /onlystyle-web/contact。
+ *  ⚠️ 已带 BASE 前缀的输入原样返回 —— 快照层改写与本函数可能叠加，防双前缀 */
+const withBase = (p) => {
+  const s = str(p);
+  if (!s.startsWith('/') || s.startsWith('//')) return s;
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return base && s.startsWith(base + '/') ? s : base + s;
+};
 /** 只挑出要下发的键并转成字符串 —— 不给脏数据留穿透到 innerHTML 的机会 */
 function pick(src, keys) {
   const o = {};
@@ -74,7 +84,11 @@ function normalize(row) {
         })
       ),
     }),
-    cta: pick(out.cta, ['title', 'subtitle', 'ctaText', 'ctaUrl']),
+    cta: (() => {
+      const c = pick(out.cta, ['title', 'subtitle', 'ctaText', 'ctaUrl']);
+      if (c.ctaUrl) c.ctaUrl = withBase(c.ctaUrl);
+      return c;
+    })(),
   };
 }
 
