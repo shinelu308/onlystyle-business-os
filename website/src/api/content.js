@@ -26,7 +26,33 @@ const markDown = () => {
   downUntil = Date.now() + COOLDOWN_MS;
 };
 
+/* ── 构建期快照直读（GitHub Pages 静态托管专用）──────────────────
+ * ghpages-build.cjs 构建时把后台真实数据以 window.__SNAP__ 内联进页面。
+ * 命中即同步返回、不发网络请求：静态托管上 /api/* 本就不存在，
+ * 与其每次请求 404 后再回落兜底（首屏 logo/配置全丢），不如直接用
+ * 构建时烧录的后台快照。非快照环境无此变量，走网络的默认行为完全不变。
+ * 返回值约定：null = 无快照环境（继续走网络）；
+ *            undefined = 快照环境但未含该 key（视为接口不可用，进冷却）。
+ */
+function snapGet(path) {
+  const snap = typeof window !== 'undefined' ? window.__SNAP__ : null;
+  if (!snap) return null;
+  const key = path.replace(/^\//, '').split('?')[0];
+  return Object.prototype.hasOwnProperty.call(snap, key) ? snap[key] : undefined;
+}
+
 async function req(path, { timeout = 6000, method = 'GET', body } = {}) {
+  // 快照直读优先（仅 GET；拦截 /api/leads 等写接口不受影响）
+  if (method === 'GET') {
+    const hit = snapGet(path);
+    if (hit !== null) {
+      if (hit === undefined) {
+        markDown();
+        throw new Error(`snapshot miss: ${path}`);
+      }
+      return hit.data;
+    }
+  }
   if (isApiDown()) throw new Error('content api unavailable (cooling down)');
 
   // 预览模式（后台实时预览面板的 iframe 会带 ?preview=1 打开官网）：
