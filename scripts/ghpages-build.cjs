@@ -69,6 +69,13 @@ function rewriteFile(f) {
   s = s.split('href:"/"').join('href:"' + SUB + '/"');
   for (const r of ['cases', 'products', 'about', 'contact']) {
     s = s.split('href="/' + r + '"').join('href="' + SUB + '/' + r + '"');
+    // 🔴 JS 运行时跳转不是 <a href>，href 模式覆盖不到：
+    //    embed 的 onclick="window.top.location.href='/contact'"、
+    //    Vue 组件里编译后的 ctaUrl:"/contact"（postMessage 下发给 embed 跳转）
+    s = s.split("location.href='/" + r + "'").join("location.href='" + SUB + '/' + r + "'");
+    s = s.split('location.href="/' + r + '"').join('location.href="' + SUB + '/' + r + '"');
+    s = s.split('ctaUrl:"/' + r + '"').join('ctaUrl:"' + SUB + '/' + r + '"');
+    s = s.split("ctaUrl:'/" + r + "'").join("ctaUrl:'" + SUB + '/' + r + "'");
   }
   if (s !== before) fs.writeFileSync(f, s);
 }

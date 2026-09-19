@@ -1833,7 +1833,7 @@ footer {
   <div class="container bottom-cta-content" data-lvt-eid="a475482019">
     <h2 class="bottom-cta-title reveal" data-lvt-eid="d15c045c7b">开启数字化转型</h2>
     <p class="bottom-cta-subtitle reveal reveal-delay-1" data-lvt-eid="75ed7d7596">与唯风一起，用智能技术驱动资产增值</p>
-    <button class="btn-cta-large reveal reveal-delay-2" data-lvt-eid="2578ed9642" onclick="window.top.location.href='/contact'">联系我们</button>
+    <button class="btn-cta-large reveal reveal-delay-2" data-lvt-eid="2578ed9642" onclick="dsGo('/contact')">联系我们</button>
   </div>
 </section>
 
@@ -2252,7 +2252,23 @@ function dsSetTags(id, badges, cls) {
     return '<span class="product-tag ' + cls + '">' + b + '</span>';
   }).join('');
 }
+var DS_BASE = (function () {
+  // ⚠️ 探测串不带前导斜杠：ghpages-build 会把 '/products-embed.html' 改写成
+  //    子路径版，导致 pathname 里的命中位置变成 0（i > 0 判定失效）。
+  var i = location.pathname.lastIndexOf('products-embed.html');
+  if (i < 2) return '';
+  var b = location.pathname.slice(0, i);
+  return b.charAt(b.length - 1) === '/' ? b.slice(0, -1) : b;
+})();
+function dsUrl(u) {
+  // 子路径部署自适配：embed 加载于 /onlystyle-web/products-embed.html 时
+  // DS_BASE='/onlystyle-web'；本地/根域 = ''。站内根路径链接补前缀，外链不动。
+  if (!u || /^https?:/i.test(u) || u.indexOf('//') === 0) return u;
+  if (DS_BASE && u.charAt(0) === '/' && u.charAt(1) !== '/' && u.indexOf(DS_BASE + '/') !== 0) return DS_BASE + u;
+  return u;
+}
 function dsGo(url) {
+  url = dsUrl(url);
   if (!url) return;
   if (/^https?:/i.test(url)) window.open(url, '_blank');
   else if (window.top !== window) window.top.location.href = url;
@@ -2269,7 +2285,7 @@ window.addEventListener('message', function (e) {
   var lc = document.getElementById('dsLCta');
   if (lc) {
     if (L.ctaText) lc.textContent = L.ctaText;
-    if (L.ctaUrl) { lc.setAttribute('href', L.ctaUrl); lc.removeAttribute('target'); lc.removeAttribute('rel'); }
+    if (L.ctaUrl) { lc.setAttribute('href', dsUrl(L.ctaUrl)); lc.removeAttribute('target'); lc.removeAttribute('rel'); }
   }
   if (W.badges && W.badges.length) dsSetTags('dsWTags', W.badges, 'cyan');
   if (W.title) dsSetText('dsWTitle', W.title);
