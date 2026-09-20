@@ -16,9 +16,15 @@ website/dist/
 #   !design/mockups/*.html
 design/
 
-# ----- 数据库：含 content_token 与业务数据，绝不入库 -----
+# ----- 数据库 -----
+# 2026-09-19 起主库入库：用户自部署服务器（www.onlystyle.com.cn）靠 git pull
+# 同步内容中台数据 —— 菜单删除记录 / 导航 / logo 配置 / 页面内容全在
+# broadband_os.db 里，不入库服务器内容就是旧的。
+# 历史备份（*.db.*）仍不入库。仓库为私有；若将来转公开，先轮换
+# content_settings.admin.content_token 再推。
 biz-os/backend/*.db
 biz-os/backend/*.db.*
+!biz-os/backend/broadband_os.db
 # ⚠️ 上传目录的忽略规则只在 biz-os/.gitignore 里管（含「品牌图形例外放行」）。
 #    此处不要重复写 biz-os/backend/uploads/ ——
 #    ① 两处同管容易漏改；② 外层写 uploads/ 排除整个目录后，
