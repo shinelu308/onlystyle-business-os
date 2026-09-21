@@ -130,29 +130,41 @@ async function initializeDatabase() {
   try { _db.run("ALTER TABLE supplier_lines ADD COLUMN install_location TEXT DEFAULT ''"); } catch(e) { /* 已存在则忽略 */ }
   try { _db.run("ALTER TABLE supplier_lines ADD COLUMN remarks TEXT DEFAULT ''"); } catch(e) { /* 已存在则忽略 */ }
   // 迁移：移除 staff 表 role 字段的 CHECK 约束（支持自定义角色名称如"技术"）
-  try {
-    _db.run("ALTER TABLE staff RENAME TO staff_old");
-    _db.exec(`
-      CREATE TABLE staff (
-        staff_id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        phone TEXT DEFAULT '',
-        email TEXT DEFAULT '',
-        dept_id TEXT,
-        position TEXT DEFAULT '',
-        role TEXT NOT NULL DEFAULT 'operator',
-        status TEXT DEFAULT 'active' CHECK(status IN ('active','disabled')),
-        created_at TEXT DEFAULT (datetime('now','localtime')),
-        updated_at TEXT DEFAULT (datetime('now','localtime')),
-        FOREIGN KEY (dept_id) REFERENCES departments(dept_id)
-      );
-    `);
-    _db.run("INSERT INTO staff SELECT * FROM staff_old");
-    _db.run("DROP TABLE staff_old");
-    console.log('[Migrate] staff 表 role 约束已移除，支持自定义角色');
-  } catch(e) { /* 表可能已被迁移 */ }
+  // 🔴 必须带「按需触发」守卫，且回填必须显式列名 —— 这里出过一次重大生产事故：
+  //    旧写法无条件执行 RENAME/CREATE/INSERT/DROP。第 2 次启动时，staff 已经多了
+  //    wechat_openid/avatar 两列（共 14 列），而重建出的新表只有 12 列，
+  //    `INSERT INTO staff SELECT * FROM staff_old` 因列数不匹配直接抛错，异常又被
+  //    catch 静默吞掉 → staff 被改名走、新表留空 = 全部账号凭空消失、后台无法登录。
+  var staffDdl = _db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='staff'");
+  if (staffDdl && staffDdl.sql && /CHECK\s*\(\s*role\b/i.test(staffDdl.sql)) {
+    try {
+      _db.run("ALTER TABLE staff RENAME TO staff_old");
+      _db.exec(`
+        CREATE TABLE staff (
+          staff_id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          username TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          phone TEXT DEFAULT '',
+          email TEXT DEFAULT '',
+          dept_id TEXT,
+          position TEXT DEFAULT '',
+          role TEXT NOT NULL DEFAULT 'operator',
+          status TEXT DEFAULT 'active' CHECK(status IN ('active','disabled')),
+          created_at TEXT DEFAULT (datetime('now','localtime')),
+          updated_at TEXT DEFAULT (datetime('now','localtime')),
+          FOREIGN KEY (dept_id) REFERENCES departments(dept_id)
+        );
+      `);
+      // 显式列名，绝不 SELECT * —— 新旧表列数一旦不同，* 就会静默炸库
+      _db.run(`INSERT INTO staff (staff_id, name, username, password, phone, email, dept_id, position, role, status, created_at, updated_at)
+               SELECT staff_id, name, username, password, phone, email, dept_id, position, role, status, created_at, updated_at FROM staff_old`);
+      _db.run("DROP TABLE staff_old");
+      console.log('[Migrate] staff 表 role 约束已移除，支持自定义角色');
+    } catch(e) {
+      console.error('[Migrate] staff 表重建失败（已跳过，不影响启动）: ' + e.message);
+    }
+  }
   // 迁移：为 staff 表添加 wechat_openid 字段
   try { _db.run("ALTER TABLE staff ADD COLUMN wechat_openid TEXT DEFAULT ''"); console.log('[Migrate] staff 表添加 wechat_openid 列'); } catch(e) { /* 已存在则忽略 */ }
   // 迁移：为 staff 表添加 avatar 字段（3D 卡通头像编号 av01~av12，空 = 首字母头像）
@@ -293,14 +305,28 @@ function initSchema() {
   `);
 }
 
+/** 写一条「演示数据已初始化」标记 —— 见 seedData 顶部的说明 */
+function markDemoSeeded() {
+  _db.run("INSERT OR REPLACE INTO system_settings (setting_key, setting_value, setting_group, description) " +
+          "VALUES ('demo_seed_done', '1', 'system', '演示数据已初始化标记（清空业务数据后不再自动灌入）')");
+}
+
 function seedData() {
-  // ⚠️ 安全检测：只有当所有主表都为空时才插入演示数据
-  // 只要有任何用户数据存在，就绝不覆盖
+  // ⚠️ 安全检测：只有当所有主表都为空、**且从未初始化过**时，才插入演示数据。
+  //
+  // 🔴 为什么必须有 demo_seed_done 这个显式标记（不能只看「表是否为空」）：
+  //    运营在后台把演示数据清空后，supplier_lines / spatial_nodes / customers
+  //    会同时变成 0 行 —— 若只靠「表为空」判断，下一次重启就会被误判成全新库，
+  //    演示数据原地复活，等于白清。有了标记才真正「清一次，永久干净」。
+  var marker = _db.get("SELECT COUNT(*) as c FROM system_settings WHERE setting_key = 'demo_seed_done'");
   var lineCount = _db.get('SELECT COUNT(*) as c FROM supplier_lines');
   var nodeCount = _db.get('SELECT COUNT(*) as c FROM spatial_nodes');
   var custCount = _db.get('SELECT COUNT(*) as c FROM customers');
-  if ((lineCount && lineCount.c > 0) || (nodeCount && nodeCount.c > 0) || (custCount && custCount.c > 0)) {
-    console.log('[DB] 检测到已有数据，跳过演示数据插入 (lines=' + (lineCount?lineCount.c:0) + ', nodes=' + (nodeCount?nodeCount.c:0) + ', customers=' + (custCount?custCount.c:0) + ')');
+  var hasData = (lineCount && lineCount.c > 0) || (nodeCount && nodeCount.c > 0) || (custCount && custCount.c > 0);
+  if ((marker && marker.c > 0) || hasData) {
+    // 标记出现之前就已经有数据的老库，补写一次标记，避免以后清空又被重灌
+    if (!marker || marker.c === 0) { markDemoSeeded(); console.log('[DB] 老库补写 demo_seed_done 标记'); }
+    console.log('[DB] 检测到已有数据/已初始化，跳过演示数据插入 (lines=' + (lineCount?lineCount.c:0) + ', nodes=' + (nodeCount?nodeCount.c:0) + ', customers=' + (custCount?custCount.c:0) + ')');
     return;
   }
 
@@ -440,7 +466,7 @@ function seedData() {
       ['wechat_template_id_expire', 'XXXXXXXXX_template_expire', 'wechat', '到期提醒模板ID'],
       ['wechat_template_id_renew', 'XXXXXXXXX_template_renew', 'wechat', '续约成功模板ID'],
       ['wecom_webhook_url', 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxx', 'wechat', '企微机器人Webhook'],
-      ['wechat_redirect_uri', 'https://bos.example.com/wechat/callback', 'wechat', '微信OAuth回调地址'],
+      ['wechat_redirect_uri', 'https://bos.onlystyle.com.cn/wechat/callback', 'wechat', '微信OAuth回调地址'],
       ['wechat_token', '', 'wechat', '微信服务器配置Token（用于回调验证）'],
       // 业务配置
       ['customer_types', '["园区租户","连锁店","散客","楼宇"]', 'biz', '客户分类（JSON数组）'],
@@ -453,6 +479,7 @@ function seedData() {
   }
 
   console.log('[Seed] 演示数据初始化完成！');
+  markDemoSeeded();
 }
 
 /**

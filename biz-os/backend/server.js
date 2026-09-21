@@ -24,9 +24,12 @@ app.use(express.json({ limit: '16mb' })); // 扩大请求体限制以支持 Logo
 //      被 no-store 一起带上会变成每次打开页面都回源查库。要短 max-age + ETag 协商缓存。
 //   2) /uploads 下的上传素材 —— 文件名一律带时间戳（logo_<ts>.png / device_<ts>_<i>.png），
 //      内容不可变，每次访问都回源纯属浪费带宽。
+//      ⚠️ 例外里的例外：/uploads/_dl/ 是「更新包下载区」，同一个文件名（onlystyle-update.zip）
+//         会被反复覆盖，绝不能用 immutable —— 否则浏览器/CDN 会一直把旧包给你，
+//         表现为「明明重新打包了，下载下来还是老的」这种极难排查的问题。必须 no-store。
 // 注意：后台写接口 /api/content/admin/* 与 /api/leads 必须继续 no-store。
 const CONTENT_CACHEABLE = /^\/api\/content\/(?!admin)/;
-const UPLOADS_CACHEABLE = /^\/uploads\//;
+const UPLOADS_CACHEABLE = /^\/uploads\/(?!_dl\/)/;
 app.use(function(req, res, next) {
   const readable = req.method === 'GET' || req.method === 'HEAD';
   if (readable && UPLOADS_CACHEABLE.test(req.path)) {
@@ -60,8 +63,8 @@ app.use('/uploads', express.static(uploadsDir));
 /**
  * 官网的媒体素材（星球贴图等）也要从**后端这个源**提供一份。
  *
- * 为什么：后台是在后端这个源上打开的（开发 = 3100；线上 = 8081 的 nginx，
- * 它对后台 server 块是 `location / { proxy_pass 3100 }` 的**全量反代**）。
+ * 为什么：后台是在后端这个源上打开的（开发 = 3100；
+ * 线上 = bos.onlystyle.com.cn 经全局 nginx 全量反代到 3100）。
  * 后台「案例 → 选择星球」的缩略图用的就是星球库给的 `/media/galaxy/*.webp` ——
  * 后端不挂这一层的话，官网能显示、后台里 8 个缩略图全是空的深色圆。
  *   ⚠️ 这个坑很难自然发现：`getComputedStyle().backgroundImage` 在 404 时
@@ -69,7 +72,7 @@ app.use('/uploads', express.static(uploadsDir));
  *
  * 两个候选目录：开发指向源码 `website/public/media`；线上包里只有构建产物
  * `website/dist/media`（Vite 会把 public/ 整个拷进 dist）。谁存在挂谁。
- * 线上官网 8080 由 nginx 直接从 dist 发，不走这里；这里是给后台那一侧用的。
+ * 线上官网 www.onlystyle.com.cn 由 pm2 静态服务从 dist 直接发，不走这里；这里是给后台那一侧用的。
  */
 for (const d of [
   path.join(__dirname, '..', '..', 'website', 'public', 'media'),

@@ -1,0 +1,71 @@
+============================================================
+ ONLYSTYLE · 累积更新包
+============================================================
+ 生成时间 : 2026-09-21 23:35
+ 文件数量 : 37（覆盖 25 / 新增 12）
+ 基线     : origin/main (464d295)
+
+【怎么用】
+ 1) 解压到本机仓库根目录，例如：
+    E:\开发项目\WorkBuddy\2026-09-15-13-36-12\
+    （压缩包内的目录结构已与仓库一致，直接覆盖即可，无需自己找位置）
+    ⚠️ 覆盖前先确认本机对这些文件没有未提交的改动（有就先 commit 或 git stash），
+       否则你刚在本地改的东西会被服务器版本盖掉。
+ 2) 提交并推送：
+      git add -A
+      git commit -m "sync: 服务器累积更新"
+      git push
+
+【为什么只有一个包】
+ 本包 = 服务器上「与你本地仓库基线不同的全部文件」。
+   · 你还没同步过的 → 一直在包里（自动叠加，不会漏）
+   · 你已同步并 push 过的 → 自动从包里消失（不会重复收）
+ 所以以后永远只下载这一个地址，不需要再管 v1 / v2 / v3。
+
+【不含什么】
+ · 数据库 broadband_os.db —— 它的同步方向是「本地 → 服务器」
+   （用 scripts/content-sync.cjs），不是反过来。本包只含代码/配置。
+ · node_modules / dist / 日志 / 备份 —— 服务器上会重新装、重新构建。
+
+------------------------------------------------------------
+ 文件清单（37 个）
+------------------------------------------------------------
+  [覆盖] .gitignore
+  [覆盖] biz-os/.gitignore
+  [覆盖] biz-os/backend/content-schema.js
+  [覆盖] biz-os/backend/database.js
+  [覆盖] biz-os/backend/routes/dashboard.js
+  [覆盖] biz-os/backend/routes/leads.js
+  [覆盖] biz-os/backend/routes/settings.js
+  [覆盖] biz-os/backend/routes/wechat.js
+  [覆盖] biz-os/backend/server.js
+  [覆盖] biz-os/backend/services/wechatService.js
+  [新增] biz-os/frontend/assets/apple-touch-icon.png
+  [新增] biz-os/frontend/assets/favicon.png
+  [覆盖] biz-os/frontend/index.html
+  [覆盖] biz-os/frontend/js/api.js
+  [覆盖] biz-os/frontend/js/app.js
+  [覆盖] biz-os/frontend/js/pages/content.js
+  [覆盖] biz-os/frontend/js/pages/leads.js
+  [覆盖] biz-os/frontend/js/pages/settings.js
+  [覆盖] deploy/README.md
+  [覆盖] deploy/bootstrap.sh
+  [覆盖] deploy/deploy-guide.html
+  [覆盖] deploy/deploy.cjs
+  [覆盖] deploy/deploy.config.example.txt
+  [新增] deploy/nginx/README.md
+  [新增] deploy/nginx/bos.onlystyle.com.cn.conf
+  [新增] deploy/nginx/onlystyle-proxy.inc
+  [新增] deploy/nginx/onlystyle-upstream.conf
+  [新增] deploy/nginx/www.onlystyle.com.cn.conf
+  [覆盖] deploy/selfcheck.cjs
+  [覆盖] deploy/verify-pack.cjs
+  [新增] scripts/content-sync.cjs
+  [新增] scripts/make-update-pack.cjs
+  [新增] scripts/migrate-lead-customers.cjs
+  [覆盖] website/index.html
+  [新增] website/public/apple-touch-icon.png
+  [新增] website/public/favicon.png
+  [覆盖] website/src/App.vue
+
+============================================================

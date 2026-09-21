@@ -314,6 +314,20 @@ function applyBrandingSettings() {
       // 登录页那个 56×56 是「品牌渐变小方块」，塞进一张透明 logo 会蓝压蓝看不清底，
       // 换图后改成中性浅底（同时也少掉一处不该有的品牌渐变）。
       $('loginLogo').className = 'login-logo has-img';
+
+      // 标签页图标（favicon）也跟同一张全局 logo 走 —— 否则会出现
+      // 「侧栏已换新 logo、浏览器标签页还是旧图标」。
+      // ⚠️ 必须「删旧 link 再插新 link」：有些浏览器只改 href 不会重新加载图标。
+      var curIcon = document.querySelector('link[rel="icon"]');
+      if (!curIcon || curIcon.getAttribute('href') !== map.logo_url) {
+        var oldIcons = document.querySelectorAll('link[rel="icon"]');
+        for (var j = 0; j < oldIcons.length; j++) oldIcons[j].parentNode.removeChild(oldIcons[j]);
+        var ico = document.createElement('link');
+        ico.setAttribute('rel', 'icon');
+        ico.setAttribute('type', 'image/png');
+        ico.setAttribute('href', map.logo_url);
+        document.head.appendChild(ico);
+      }
     }
     // 登录页标题
     if (map.company_name) $('loginTitle').textContent = map.company_name;

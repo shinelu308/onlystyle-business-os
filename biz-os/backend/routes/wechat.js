@@ -76,7 +76,7 @@ function getWechatToken() {
 
 // ========== 1. 微信服务器验证（GET 回调）==========
 // 用户需在微信公众平台 → 设置 → 公众号设置 → 功能设置 → 配置
-// URL: http://223.122.93.253:3100/api/wechat/callback
+// URL: https://bos.onlystyle.com.cn/api/wechat/callback
 router.get('/callback', (req, res) => {
   var signature = req.query.signature;
   var timestamp = req.query.timestamp;

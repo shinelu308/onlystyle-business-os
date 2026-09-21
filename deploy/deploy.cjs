@@ -15,8 +15,11 @@
  * 可选参数：
  *   --dry-run       只打包、只报体积，不连服务器
  *   --skip-build    跳过官网构建，用现有的 website/dist
- *   --web  <端口>    覆盖官网端口
- *   --admin <端口>   覆盖后台端口
+ *   --domain <域名>  覆盖域名（默认取 deploy.config.txt 的 DOMAIN）
+ *
+ * 现网拓扑：本机（Windows）只负责「构建 + 打包 + 上传」；
+ * 服务器上是两个 pm2 进程：onlystyle-api(3100) + onlystyle-web(8085)，
+ * 公网入口由**另一台代理机**的 nginx upstream 反代（见 deploy/nginx/）。
  */
 'use strict';
 
@@ -72,18 +75,15 @@ function loadConfig() {
     if (i < 0) continue;
     cfg[t.slice(0, i).trim().toUpperCase()] = t.slice(i + 1).trim();
   }
-  if (!cfg.SERVER_IP) die('deploy.config.txt 里的 SERVER_IP 是空的 —— 请填上服务器公网 IP');
+  if (!cfg.SERVER_IP) die('deploy.config.txt 里的 SERVER_IP 是空的 —— 请填上应用服务器 IP');
   if (!/^[\d.a-zA-Z-]+$/.test(cfg.SERVER_IP)) die(`SERVER_IP 格式不像 IP 或域名：${cfg.SERVER_IP}`);
   cfg.SSH_PORT = cfg.SSH_PORT || '22';
   cfg.SSH_USER = cfg.SSH_USER || 'root';
-  cfg.WEB_PORT = valOf('--web') || cfg.WEB_PORT || '8080';
-  cfg.ADMIN_PORT = valOf('--admin') || cfg.ADMIN_PORT || '8081';
-  cfg.ADMIN_USER = cfg.ADMIN_USER || 'onlystyle';
-  cfg.DOMAIN = cfg.DOMAIN || '';
-  cfg.USE_HTTPS = /^(1|true|yes|是|y)$/i.test(cfg.USE_HTTPS || '') ? '1' : '0';
-  ok(`${cfg.SSH_USER}@${cfg.SERVER_IP}:${cfg.SSH_PORT}   官网 ${cfg.WEB_PORT} / 后台 ${cfg.ADMIN_PORT}`);
-  if (cfg.DOMAIN) ok(`域名：${cfg.DOMAIN}${cfg.USE_HTTPS === '1' ? '（启用 HTTPS）' : ''}`);
-  else info('未配置域名 —— 将用「公网IP:端口」方式访问');
+  cfg.APP_DIR = cfg.APP_DIR || '/opt/business-os';
+  cfg.DOMAIN = valOf('--domain') || cfg.DOMAIN || 'onlystyle.com.cn';
+  ok(`${cfg.SSH_USER}@${cfg.SERVER_IP}:${cfg.SSH_PORT}   安装目录 ${cfg.APP_DIR}`);
+  ok(`域名 ${cfg.DOMAIN}：官网 www.${cfg.DOMAIN} → 8085 / 后台 bos.${cfg.DOMAIN} → 3100`);
+  info('公网入口在代理机的 nginx 上（deploy/nginx/），本脚本不装 nginx');
   return cfg;
 }
 
@@ -189,6 +189,24 @@ function packTarball() {
     }
     if (n) say('    + 证书图片（随包发布）: ' + n + ' 张');
   }
+
+  // pm2 进程定义（onlystyle-api:3100 + onlystyle-web:8085）—— 部署的**单一真相源**。
+  // 必须随包发给服务器：bootstrap.sh 只负责把它落到项目根再 pm2 start，
+  // 自己不生成任何端口/进程配置（两边各写一份必然漂移）。
+  const ecoSrc = path.join(ROOT, 'ecosystem.config.js');
+  if (!fs.existsSync(ecoSrc)) die('项目根缺 ecosystem.config.js（pm2 定义）—— 它是部署必需文件，请先提交到仓库');
+  fs.copyFileSync(ecoSrc, path.join(app, 'ecosystem.config.js'));
+  total += fs.statSync(path.join(app, 'ecosystem.config.js')).size;
+  say('    + pm2 定义（随包发布）: ecosystem.config.js');
+
+  // 官网服务入口（静态 dist + /api、/uploads 反代）—— pm2 onlystyle-web 执行的就是它。
+  // 漏了它线上官网进程根本起不来（module not found / exit 1）。
+  const webServe = path.join(ROOT, 'website', 'serve.cjs');
+  if (!fs.existsSync(webServe)) die('缺 website/serve.cjs（官网服务入口，pm2 onlystyle-web 需要）');
+  fs.mkdirSync(path.join(app, 'website'), { recursive: true });   // dist 拷贝在后面才建目录
+  fs.copyFileSync(webServe, path.join(app, 'website', 'serve.cjs'));
+  total += fs.statSync(path.join(app, 'website', 'serve.cjs')).size;
+  say('    + 官网服务入口（随包发布）: website/serve.cjs');
 
   const dist = path.join(ROOT, 'website', 'dist');
   if (!fs.existsSync(dist)) die('website/dist 不存在，无法打包');
@@ -299,10 +317,7 @@ function upload(cfg, tarball) {
 }
 
 function remoteRun(cfg) {
-  const parts = [`--web-port ${cfg.WEB_PORT}`, `--admin-port ${cfg.ADMIN_PORT}`, `--admin-user '${cfg.ADMIN_USER}'`];
-  if (cfg.ADMIN_PASS) parts.push(`--admin-pass '${cfg.ADMIN_PASS}'`);
-  if (cfg.DOMAIN) parts.push(`--domain '${cfg.DOMAIN}'`);
-  if (cfg.USE_HTTPS === '1') parts.push('--https');
+  const parts = [`--app-dir '${cfg.APP_DIR}'`, `--domain '${cfg.DOMAIN}'`];
   // tr -d '\r' 顺手把 Windows 换行去掉，避免服务器上 bash 认不出 shebang
   const cmd = `tr -d '\\r' < ${REMOTE_BOOT} > /tmp/boot.run.sh && ` +
               `bash /tmp/boot.run.sh ${parts.join(' ')}`;
@@ -335,10 +350,9 @@ function remoteRun(cfg) {
 
   if (good) {
     console.log(`\n${C.g}${C.b}  部署成功！${C.r}`);
-    console.log(`  ${C.c}官网  http://${cfg.SERVER_IP}:${cfg.WEB_PORT}${C.r}`);
-    console.log(`  ${C.c}后台  http://${cfg.SERVER_IP}:${cfg.ADMIN_PORT}${C.r}`);
-    if (cfg.DOMAIN) console.log(`  ${C.c}域名  http://${cfg.DOMAIN}${C.r}`);
-    console.log(`\n  ${C.d}打不开就看云控制台防火墙有没有放行这两个端口。${C.r}\n`);
+    console.log(`  ${C.c}服务器自测  后端 http://${cfg.SERVER_IP}:3100 · 官网 http://${cfg.SERVER_IP}:8085${C.r}`);
+    console.log(`  ${C.c}外网入口    https://www.${cfg.DOMAIN}  ·  https://bos.${cfg.DOMAIN}${C.r}`);
+    console.log(`\n  ${C.d}外网入口需先在【代理服务器】安装 deploy/nginx/ 里的配置（见其 README.md）。${C.r}\n`);
   } else {
     console.log(`\n${C.y}${C.b}  部署过程返回了错误 —— 请把上面的输出截图给我。${C.r}\n`);
     process.exitCode = 1;

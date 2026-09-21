@@ -137,22 +137,82 @@ router.get('/role-permissions', (req, res) => {
   res.json(defaultPerms);
 });
 
-// 保存角色权限配置
+// 合法的页面权限 key —— 必须与前端 pages/settings.js 的 PAGE_LABELS 一致。
+// 前端矩阵是按 PAGE_LABELS 渲染的：这里多一个 key 前端会找不到列，少一个则权限静默失效。
+const ROLE_PAGE_KEYS = ['dashboard', 'suppliers', 'spatial', 'customers', 'leads', 'contracts', 'content', 'settings'];
+
+// 保存角色权限配置（同时承担「角色新增 / 改名 / 删除」的落库）
+//
+// 校验要点（每一条都对应一类真实故障）：
+//  ① pages 必须是「已知页面 key」的数组 —— 否则矩阵渲染空列、权限静默失效；
+//  ② 必须保留 admin 角色且含 settings —— 否则保存后没有任何人能进入系统设置，**直接自锁**；
+//  ③ name 必须非空、≤20 字、不重名 —— 矩阵与人员列表都按 name 展示，重名会分不清；
+//  ④ 删掉/改名后仍被人员引用的角色 → 返回 warnings（不阻断），
+//     避免出现「人还在、权限没了」的静默故障。
 router.put('/role-permissions', (req, res) => {
   const db = getDatabase();
-  const { permissions } = req.body;
-  if (!permissions || typeof permissions !== 'object') {
-    return res.status(400).json({ error: 'permissions 必须是对象' });
+  const body = req.body || {};
+  const permissions = body.permissions;
+
+  if (!permissions || typeof permissions !== 'object' || Array.isArray(permissions)) {
+    return res.status(400).json({ error: 'permissions 必须是一个对象（角色key -> {name, pages}）' });
   }
+  const roleKeys = Object.keys(permissions);
+  if (!roleKeys.length) return res.status(400).json({ error: '至少需要保留一个角色' });
+
+  const clean = {};
+  const seenNames = {};
+  for (let i = 0; i < roleKeys.length; i++) {
+    const rk = roleKeys[i];
+    const r = permissions[rk];
+    if (!r || typeof r !== 'object') return res.status(400).json({ error: `角色 "${rk}" 的配置格式不对` });
+
+    const name = String(r.name == null ? '' : r.name).trim();
+    if (!name) return res.status(400).json({ error: `角色 "${rk}" 缺少名称` });
+    if (name.length > 20) return res.status(400).json({ error: `角色名称 "${name}" 超过 20 个字` });
+    if (seenNames[name]) return res.status(400).json({ error: `角色名称 "${name}" 重复了` });
+    seenNames[name] = true;
+
+    const rawPages = Array.isArray(r.pages) ? r.pages : [];
+    const pages = [];
+    for (let p = 0; p < rawPages.length; p++) {
+      const pk = String(rawPages[p]);
+      if (ROLE_PAGE_KEYS.indexOf(pk) < 0) {
+        return res.status(400).json({ error: `角色 "${name}" 含未知权限项 "${pk}"` });
+      }
+      if (pages.indexOf(pk) < 0) pages.push(pk); // 去重
+    }
+    clean[rk] = { name: name, pages: pages };
+  }
+
+  // ② 防自锁：没有 admin 或 admin 丢掉 settings，保存后就没人能再改权限了
+  if (!clean.admin) {
+    return res.status(400).json({ error: '必须保留 admin（管理员）角色，否则将无人能进入「系统设置」' });
+  }
+  if (clean.admin.pages.indexOf('settings') < 0) {
+    return res.status(400).json({ error: '管理员角色必须保留「系统设置」权限，否则保存后无人能再修改权限' });
+  }
+
+  // ④ 非阻断告警：被删除或被改 key 的角色仍挂在人员身上
+  const warnings = [];
   try {
-    var exists = db.get("SELECT * FROM system_settings WHERE setting_key = 'role_permissions'");
-    var jsonStr = JSON.stringify(permissions);
+    const staffRows = db.all('SELECT staff_id, name, role FROM staff') || [];
+    for (let s = 0; s < staffRows.length; s++) {
+      if (!clean[staffRows[s].role]) {
+        warnings.push(`${staffRows[s].name}(${staffRows[s].staff_id}) 仍在使用角色 "${staffRows[s].role}"，保存后将失去所有页面权限`);
+      }
+    }
+  } catch (e) { /* 读不到人员表不应影响权限保存 */ }
+
+  try {
+    const exists = db.get("SELECT * FROM system_settings WHERE setting_key = 'role_permissions'");
+    const jsonStr = JSON.stringify(clean);
     if (exists) {
       db.run("UPDATE system_settings SET setting_value=?, updated_at=datetime('now','localtime') WHERE setting_key='role_permissions'", jsonStr);
     } else {
       db.run("INSERT INTO system_settings (setting_key, setting_value, setting_group, description) VALUES ('role_permissions', ?, 'system', '角色权限配置')", jsonStr);
     }
-    res.json({ success: true });
+    res.json({ success: true, roles: Object.keys(clean).length, warnings: warnings });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }

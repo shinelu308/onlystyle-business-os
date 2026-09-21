@@ -1,18 +1,32 @@
 /**
- * 线索接口（官网表单写入口 + 后台读/改）
+ * 线索接口（官网表单写入口 + 后台读/改/转正）
  *
- * 归属：架构方案 §6 要求「leads 直接复用 BOS 的客户体系，官网线索和销售跟进进同一个池子」。
- * 落地方式：
- *   1. 永远先写 leads 表（原始留痕，谁也别丢）
- *   2. 按手机号匹配已有客户 → 命中就挂 customer_id（归因到老客户）
- *   3. 没命中且填了公司名 → 建一条客户（cust_type='官网线索'）并挂上
- *   4. 没命中又没公司名 → 留在 leads 里人工分诊，不污染客户表
+ * 🔴 模型：**线索池 与 客户库彻底分家**（这里改过一次设计，别再退回去）
+ *   线索 = 还没被我们确认为客户的人（官网表单、渠道介绍…）→ 只住 leads 表
+ *   客户 = 已被人工确认的业务主体                      → 只住 customers 表
+ *
+ *   旧设计是「官网提交时若填了公司名，就直接往 customers 插一条 cust_type='官网线索'」，
+ *   后果有三（都是用户实际反馈出来的）：
+ *     ① 客户管理列表里混进一堆根本没签约的线索，得人工分辨哪个是真客户；
+ *     ② 数据看板「在管客户总数」/ stats.total_customers 被这些未签约线索撑虚；
+ *     ③ cust_type 语义被污染 —— 它描述「客户是什么类型」，不是「这条属于什么阶段」；
+ *        而 '官网线索' 又不在 /api/customers/config/types 的可选列表里，
+ *        编辑那条客户时下拉根本匹配不上，处处别扭。
+ *
+ *   现在的流程：
+ *     1. 官网提交 → **永远只写 leads**（原始留痕，谁也别丢）
+ *     2. 按手机号匹配已有客户 → 命中就挂 customer_id。这是**归因**：
+ *        老客户主动来询，不是这条线索带来的新客户，所以不计入「本月新增客户」。
+ *     3. 未命中 → 留在线索池，人工分诊
+ *     4. 人工点「转为客户」→ 才真正创建 customers 记录（POST /:id/convert）
  *
  * 接口一览：
- *   POST /           公开（官网表单）。**限流**，否则客户池会被机器人灌满
- *   GET  /           后台列表（鉴权）。status 筛选 + q 关键词 + limit/offset
- *   GET  /stats      后台统计（鉴权）
- *   PUT  /:id        后台改状态 / 写跟进备注（鉴权）
+ *   POST /              公开（官网表单）。**限流**，否则线索池会被机器人灌满
+ *   GET  /              后台列表（鉴权）。status 筛选 + q 关键词 + limit/offset
+ *   GET  /stats         后台统计（鉴权）
+ *   POST /:id/convert   线索转正为客户（鉴权）← 唯一会创建客户的入口
+ *   PUT  /:id           后台改状态 / 写跟进备注（鉴权）
+ *   DELETE /:id         后台删除线索（鉴权）
  *
  * ⚠️ 鉴权用 lib/admin-auth.js（与 /api/content/admin/* 同一份实现）。
  *    此前 GET / 没挂鉴权 = 匿名可读全部客户手机号，是个洞。
@@ -97,22 +111,14 @@ router.post('/', (req, res) => {
   try {
     const db = getDatabase();
 
-    // ── 1. 找已有客户（手机号匹配）──
+    // ── 1. 归因：手机号命中已有客户才挂 customer_id（老客户来询，不产生新客户）──
+    //     🔴 绝不在这里建客户。线索没被确认之前就不该有 customers 记录，
+    //        否则客户管理和看板都会被未签约线索撑虚。建客户请走 POST /:id/convert。
     let customerId = '';
     const existing = db.get('SELECT customer_id FROM customers WHERE contact_phone = ? LIMIT 1', phone);
-    if (existing) {
-      customerId = existing.customer_id;
-    } else if (company) {
-      // ── 2. 有公司名才建客户，避免散客灌满客户表 ──
-      customerId = newId('C');
-      db.run(
-        `INSERT INTO customers (customer_id, company_name, cust_type, contact_person, contact_phone)
-         VALUES (?, ?, ?, ?, ?)`,
-        customerId, company, '官网线索', name, phone
-      );
-    }
+    if (existing) customerId = existing.customer_id;
 
-    // ── 3. 写线索（原始留痕）──
+    // ── 2. 写线索（原始留痕）──
     db.run(
       `INSERT INTO leads (name, phone, company, interest, message, source_page, utm, status, customer_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?)`,
@@ -120,7 +126,7 @@ router.post('/', (req, res) => {
     );
 
     const row = db.get('SELECT * FROM leads ORDER BY id DESC LIMIT 1');
-    console.log(`[Lead] ${name} / ${phone}${company ? ' / ' + company : ''}${customerId ? ' → 客户 ' + customerId : ''}`);
+    console.log(`[Lead] ${name} / ${phone}${company ? ' / ' + company : ''}${customerId ? ' （归因到老客户 ' + customerId + '）' : ' （待分诊）'}`);
 
     res.json({ ok: true, data: { id: row?.id, customer_id: customerId || null } });
   } catch (e) {
@@ -151,6 +157,13 @@ router.get('/stats', auth, (req, res) => {
         today: one("SELECT COUNT(*) AS c FROM leads WHERE date(created_at) = date('now','localtime')"),
         week: one("SELECT COUNT(*) AS c FROM leads WHERE date(created_at) >= date('now','localtime','-6 days')"),
         pending: byStatus.new || 0,
+        // 已转正：真的建了客户（converted_at 非空）
+        converted: one("SELECT COUNT(*) AS c FROM leads WHERE converted_at IS NOT NULL AND converted_at <> ''"),
+        // 已归因：手机号命中老客户。这是「老客户来询」，不是这条线索带来的新客户，
+        // 所以它虽然挂上了 customer_id，也绝不能算成线索转化。
+        attributed: one("SELECT COUNT(*) AS c FROM leads WHERE customer_id IS NOT NULL AND customer_id <> ''"),
+        // 待分诊：既没归因、也没转正 —— 才是真正需要人工处理的那批
+        unattributed: one("SELECT COUNT(*) AS c FROM leads WHERE (customer_id IS NULL OR customer_id = '') AND (converted_at IS NULL OR converted_at = '')"),
         byStatus,
         statuses: STATUSES,
       },
@@ -191,6 +204,99 @@ router.get('/', auth, (req, res) => {
     // ⚠️ 信封内放对象而不是裸数组：后台用 API.content.get 会自动拆 { ok, data } 信封，
     //    裸数组会把 total / statuses 丢掉。统一成 data:{ items, total, statuses }。
     res.json({ ok: true, data: { items: rows, total: total, statuses: STATUSES } });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+/* ══════════ 后台：线索转正为客户 ══════════
+   这是**唯一**会创建 customers 记录的入口（官网表单不再自动建）。
+
+   三种情形都要正确处理，否则会建出重复客户：
+     ① 线索已挂老客户（提交时手机号命中过）→ 不新建，只标记转正 + 状态置为已成交
+     ② 手机号现在已存在于客户表（比如别人先手工建了）→ 直接归因，不新建
+     ③ 都没有 → 新建客户。cust_type 必须在可配置列表里，
+        否则客户表单的下拉会匹配不上（旧设计就是这么坏掉的）。
+   幂等：已转正的线索再调一次，直接返回原客户，不会重复建。 */
+router.post('/:id/convert', auth, (req, res) => {
+  try {
+    const db = getDatabase();
+    const id = parseInt(req.params.id, 10);
+    if (!id) return res.status(400).json({ ok: false, error: 'id 不合法' });
+
+    const lead = db.get('SELECT * FROM leads WHERE id = ?', id);
+    if (!lead) return res.status(404).json({ ok: false, error: '线索不存在' });
+
+    // 幂等：已转正直接返回
+    if (lead.converted_at) {
+      return res.json({ ok: true, data: { already: true, created: false, customer_id: lead.customer_id, lead: lead } });
+    }
+
+    const body = req.body || {};
+    let customerId = clean(lead.customer_id, 40);
+    let created = false;
+
+    const linked = customerId
+      ? db.get('SELECT customer_id FROM customers WHERE customer_id = ?', customerId)
+      : null;
+
+    if (!linked) {
+      // ② 手机号已存在客户 → 归因，不新建（避免建出重复客户）
+      const byPhone = lead.phone
+        ? db.get('SELECT customer_id FROM customers WHERE contact_phone = ? LIMIT 1', lead.phone)
+        : null;
+
+      if (byPhone) {
+        customerId = byPhone.customer_id;
+      } else {
+        // ③ 新建客户
+        let types = ['园区租户', '连锁店', '散客', '楼宇'];
+        const typeRow = db.get("SELECT setting_value FROM system_settings WHERE setting_key = 'customer_types'");
+        if (typeRow && typeRow.setting_value) {
+          try {
+            const parsed = JSON.parse(typeRow.setting_value);
+            if (Array.isArray(parsed) && parsed.length) types = parsed;
+          } catch (e) { /* 配置损坏时退回默认，不能因为配置坏了就转不了正 */ }
+        }
+
+        const custType = clean(body.cust_type, 40) || (types.indexOf('散客') >= 0 ? '散客' : types[0]);
+        if (types.indexOf(custType) < 0) {
+          return res.status(400).json({ ok: false, error: '客户类型不在可选列表里：' + custType });
+        }
+
+        // 公司名缺失时用联系人姓名兜底，但绝不允许建出没有名字的客户
+        const company = clean(body.company_name, 120) || clean(lead.company, 120) || clean(lead.name, 120);
+        if (!company) return res.status(400).json({ ok: false, error: '这条线索既没有公司名也没有联系人，无法建客户' });
+
+        customerId = clean(body.customer_id, 40) || newId('C');
+        if (db.get('SELECT customer_id FROM customers WHERE customer_id = ?', customerId)) {
+          return res.status(400).json({ ok: false, error: '客户编号 ' + customerId + ' 已存在，请换一个' });
+        }
+
+        db.run(
+          `INSERT INTO customers (customer_id, company_name, cust_type, parent_id, wechat_openid, contact_person, contact_phone, address)
+           VALUES (?, ?, ?, NULL, NULL, ?, ?, '')`,
+          customerId, company, custType, clean(lead.name, 40), clean(lead.phone, 30)
+        );
+        created = true;
+        console.log(`[Lead] 转正 #${id} ${lead.name} → 新建客户 ${customerId}（${custType}）`);
+      }
+    }
+
+    // 转正 = 成交：状态一并置为 won（后续仍可在列表里手工改）
+    db.run(
+      "UPDATE leads SET customer_id = ?, converted_at = datetime('now','localtime'), status = 'won', updated_at = datetime('now','localtime') WHERE id = ?",
+      customerId, id
+    );
+
+    res.json({
+      ok: true,
+      data: {
+        customer_id: customerId,
+        created: created,
+        lead: db.get('SELECT * FROM leads WHERE id = ?', id)
+      }
+    });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

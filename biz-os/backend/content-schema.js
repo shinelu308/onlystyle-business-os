@@ -180,6 +180,7 @@ const TABLES = `
     utm         TEXT DEFAULT '',
     status      TEXT DEFAULT 'new',
     customer_id TEXT DEFAULT '',
+    converted_at TEXT DEFAULT '',
     follow_note TEXT DEFAULT '',
     updated_at  TEXT DEFAULT '',
     created_at  TEXT DEFAULT (datetime('now','localtime'))
@@ -930,6 +931,10 @@ function migrateLeadColumns(db) {
   var ddl = [];
   if (cols.indexOf('follow_note') < 0) ddl.push("ALTER TABLE leads ADD COLUMN follow_note TEXT DEFAULT ''");
   if (cols.indexOf('updated_at') < 0) ddl.push("ALTER TABLE leads ADD COLUMN updated_at TEXT DEFAULT ''");
+  // converted_at：非空 = 这条线索已「转正」成 customers 里的客户。
+  // 与 customer_id 的区别：customer_id 非空也可能是「手机号命中老客户」的**归因**
+  // （那是老客户主动来询，不产生新客户），只有 converted_at 才代表真的建了客户。
+  if (cols.indexOf('converted_at') < 0) ddl.push("ALTER TABLE leads ADD COLUMN converted_at TEXT DEFAULT ''");
   ddl.forEach(function (sql) { db.run(sql); });
   if (ddl.length) console.log('[Content] leads 迁移：新增 ' + ddl.length + ' 列');
 }

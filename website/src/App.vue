@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import SiteNav from '@/components/SiteNav.vue'
 import SiteFooter from '@/components/SiteFooter.vue'
 import { initReveal } from '@/composables/useReveal.js'
+import { useSite } from '@/composables/useSite.js'
 
 const route = useRoute()
 
@@ -38,6 +39,34 @@ watchEffect(() => {
     }
     el.setAttribute('content', m.description)
   }
+})
+
+/**
+ * 标签页图标（favicon）与「全局 logo」保持一致。
+ *
+ * 后台「系统设置 → 品牌标识」上传的图，由 /api/content/site 投影成 brand.logo
+ * （导航/页脚用的是同一份），这里把它同步到 <link rel="icon"> —— 后台换图，
+ * 标签页图标自动跟随，不会再出现「图标和 logo 各是各的」。
+ *
+ * 没上传图时不动：index.html 里引用的 /favicon.png 是用同一张 logo 生成的
+ * 构建期静态兜底（public/favicon.png），所以首屏也不会是浏览器默认图标。
+ *
+ * ⚠️ 用 useSite() 而不是自己 fetch —— 与 SiteNav/SiteFooter 共享同一份缓存，
+ *    否则会白白多发一次 /api/content/site。
+ * ⚠️ 换图标必须「删旧 link 再插新 link」：只改 href 有的浏览器不会重新加载图标。
+ */
+const { data: site } = useSite()
+watchEffect(() => {
+  const logo = site.value?.brand?.logo
+  if (!logo) return
+  const cur = document.querySelector('link[rel="icon"]')
+  if (cur && cur.getAttribute('href') === logo) return
+  document.querySelectorAll('link[rel="icon"]').forEach((n) => n.remove())
+  const el = document.createElement('link')
+  el.setAttribute('rel', 'icon')
+  el.setAttribute('type', 'image/png')
+  el.setAttribute('href', logo)
+  document.head.appendChild(el)
 })
 
 // 每次换页后重新登记滚动进场动画（懒加载组件渲染完再算，下一帧执行）

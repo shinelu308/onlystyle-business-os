@@ -23,6 +23,9 @@
   var currentUser = null;
   var currentPage = 'dashboard';
   var _permissions = {}; // { role: [page1, page2, ...] }
+  // 角色 key -> 显示名。自定义角色（后台新增的）在侧栏和人员列表里都要显示正确名称，
+  // 不能只靠写死的 roleMap —— 否则新角色会显示成 "finance" 这种原始 key。
+  var _roleNames = {};
 
   /* ===== 侧栏分组（系统设置 / 内容管理 用同一套展开逻辑）=====
      之前只写死了一个系统设置分组，各处都硬编码 settingsMenu/settingsArrow。
@@ -233,12 +236,15 @@
   function loadPermissions(callback) {
     API.get('/api/settings/role-permissions').then(function(data) {
       var result = {};
+      var names = {};
       for (var role in data) {
         if (data.hasOwnProperty(role) && data[role].pages) {
           result[role] = data[role].pages;
+          names[role] = data[role].name || role;
         }
       }
       _permissions = result;
+      _roleNames = names;
       if (typeof callback === 'function') callback();
     }).catch(function() {
       // 默认权限保底（与 routes/settings.js 的 defaultPerms 保持一致，含 content）
@@ -393,7 +399,8 @@
       info.style.display = 'flex';
       var initial = user.name.charAt(0);
       var roleMap = { admin: '管理员', manager: '经理', operator: '专员', viewer: '观察员' };
-      var roleText = roleMap[user.role] || user.role;
+      // 优先用「角色与权限」里的动态名称（支持自定义角色），写死的只作接口不可用时的兜底
+      var roleText = _roleNames[user.role] || roleMap[user.role] || user.role;
       $('userAvatar').innerHTML = user.avatar ? '<img src="/assets/avatars/' + user.avatar + '.png" alt="">' : initial;
       $('userName').textContent = user.name;
       $('userRole').textContent = roleText;

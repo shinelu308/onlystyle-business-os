@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ONLYSTYLE 业务管理系统</title>
+  <!-- 标签页图标：默认 /assets/favicon.png（与全局 logo 同源、构建期生成），
+       登录后由 js/api.js 的 applyBrandingSettings() 同步成后台当前 logo。
+       ⚠️ 以前这里完全没有 favicon 引用 → 浏览器只能显示默认占位图标。 -->
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="stylesheet" href="css/style.css?v=31">
 </head>
 <body>
@@ -239,17 +244,17 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=8"></script>
+  <script src="js/api.js?v=9"></script>
   <script src="js/pages/dashboard.js?v=9"></script>
   <script src="js/pages/suppliers.js?v=7"></script>
   <script src="js/pages/spatial.js?v=4"></script>
   <script src="js/pages/customers.js?v=10"></script>
-  <script src="js/pages/leads.js?v=1"></script>
+  <script src="js/pages/leads.js?v=2"></script>
   <script src="js/pages/contracts.js?v=11"></script>
   <script src="js/pages/departments.js?v=1"></script>
   <script src="js/pages/staff.js?v=2"></script>
   <script src="js/pages/content.js?v=14"></script>
-  <script src="js/pages/settings.js?v=24"></script>
-  <script src="js/app.js?v=19"></script>
+  <script src="js/pages/settings.js?v=25"></script>
+  <script src="js/app.js?v=20"></script>
 </body>
 </html>

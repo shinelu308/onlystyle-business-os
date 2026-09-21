@@ -232,9 +232,13 @@ function cmReload() { _renderContentTab(_contentCurrentTab); }
    · 所有写操作走 cmRun 收口，成功后自动刷新预览。
    ================================================================ */
 function cmPreviewOrigin() {
-  // 本地：3100 后台 / 3201 官网（Vite preview）；线上：8081 后台 / 8080 官网（nginx）；同域反代则直接用当前域
+  // 本地：3100 后台 / 3201 官网（Vite preview）；历史单机 nginx：8081 后台 / 8080 官网。
+  // 🔴 线上是「前后端分域」独立部署：后台 bos.onlystyle.com.cn、官网 www.onlystyle.com.cn。
+  //    两者不同源，必须把 iframe 显式指向官网域 —— 否则落到最后一行 location.origin，
+  //    预览框里加载的是后台自己（看起来"预览坏了"，实际是域指错了）。
   if (location.port === '3100') return location.protocol + '//' + location.hostname + ':3201';
   if (location.port === '8081') return location.protocol + '//' + location.hostname + ':8080';
+  if (/^bos\./.test(location.hostname)) return location.protocol + '//' + location.hostname.replace(/^bos\./, 'www.');
   return location.origin;
 }
 function cmPreviewUrl(tab) {

@@ -149,8 +149,10 @@ function renderDeptTab(container) {
       '<div class="table-wrapper"><table><thead><tr><th>编号</th><th>姓名</th><th>账号</th><th>部门</th><th>职位</th><th>角色</th><th>状态</th><th style="text-align:right">操作</th></tr></thead><tbody>' + staffRows + '</tbody></table></div>',
       '<button class="btn btn-ghost btn-sm" onclick="showStaffSettingsForm()">' + ST_ICONS.plus + ' 新增人员</button>');
 
-    // ===== 板块三：角色与权限（可编辑）=====
-    html += renderRolePermEditor(rolePerms);
+    // ===== 板块三：角色与权限（可新增 / 可编辑 / 可删除）=====
+    // 传 staff 进去是为了在每张角色卡上显示「N 人」——删除角色前必须让人看到
+    // 到底有多少人挂在这个角色上，否则会静默造成「人还在、权限没了」。
+    html += renderRolePermEditor(rolePerms, staff);
 
     container.innerHTML = html;
   }
@@ -182,14 +184,22 @@ function renderDeptTreeSettings(nodes, level) {
 }
 
 // ===== 角色权限编辑器 =====
-function renderRolePermEditor(rolePerms) {
+function renderRolePermEditor(rolePerms, staff) {
   var pageKeys = Object.keys(PAGE_LABELS);
   var roleKeys = Object.keys(rolePerms);
+
+  // 每个角色被多少人员使用（删除角色前必须让人看到，否则会静默造成「人还在、权限没了」）
+  var usage = {};
+  var staffList = staff || [];
+  for (var su = 0; su < staffList.length; su++) {
+    var sr = staffList[su].role || '';
+    usage[sr] = (usage[sr] || 0) + 1;
+  }
 
   // 可用颜色列表（新角色轮换使用）
   var colors = ['danger','warning','info','secondary','success','primary'];
 
-  // 角色卡片概览（含删除按钮）
+  // 角色卡片概览（含编辑 / 删除）
   var cardsHtml = '';
   var iconMap = { admin: ST_ICONS.crown, manager: ST_ICONS.userCheck, operator: ST_ICONS.pen, viewer: ST_ICONS.eye };
   for (var ri = 0; ri < roleKeys.length; ri++) {
@@ -206,12 +216,19 @@ function renderRolePermEditor(rolePerms) {
       badges += '<span class="badge ' + colorName + '" style="margin:2px;font-size:11.5px">' + label + '</span>';
     }
     var tint = ST_TINTS[colorName] || ST_TINTS.secondary;
+    var used = usage[rk] || 0;
+    // admin 是「防自锁」锚点：不提供删除入口（后端也会拒），避免误点后无人能进系统设置
+    var delBtn = (rk === 'admin')
+      ? '<span style="font-size:11.5px;color:var(--text-muted)" title="管理员角色不可删除">不可删除</span>'
+      : '<button class="st2-textbtn danger" onclick="deleteRole(\'' + rk + '\')" style="font-size:11.5px" title="删除此角色">删除</button>';
     cardsHtml +=
       '<div class="settings-card settings-card-compact" style="display:block;margin-bottom:10px;position:relative">' +
         '<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">' +
           '<div style="background:' + tint.bg + ';color:' + tint.fg + ';width:36px;height:36px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center">' + icon + '</div>' +
-          '<div style="flex:1"><strong style="font-size:14px">' + r.name + '</strong></div>' +
-          '<button class="st2-textbtn danger" onclick="deleteRole(\'' + rk + '\')" style="font-size:11.5px" title="删除此角色">删除</button>' +
+          '<div style="flex:1"><strong style="font-size:14px">' + escapeHtml(r.name) + '</strong>' +
+            '<span class="badge secondary" style="margin-left:8px;font-size:11px">' + used + ' 人</span></div>' +
+          '<button class="st2-textbtn" onclick="editRole(\'' + rk + '\')" style="font-size:11.5px" title="修改角色名称">编辑</button>' +
+          delBtn +
         '</div>' +
         '<div>' + badges + '</div>' +
       '</div>';
@@ -226,7 +243,7 @@ function renderRolePermEditor(rolePerms) {
   for (var ri = 0; ri < roleKeys.length; ri++) {
     var rk = roleKeys[ri];
     var r = rolePerms[rk];
-    matrixHtml += '<tr><td style="font-weight:600;font-size:13px">' + r.name + '</td>';
+    matrixHtml += '<tr><td style="font-weight:600;font-size:13px">' + escapeHtml(r.name) + '</td>';
     for (var pi = 0; pi < pageKeys.length; pi++) {
       var hasAccess = r.pages.indexOf(pageKeys[pi]) >= 0;
       matrixHtml += '<td style="text-align:center;cursor:pointer" onclick="toggleRolePage(\'' + rk + '\',\'' + pageKeys[pi] + '\')" title="点击切换">' +
@@ -241,17 +258,19 @@ function renderRolePermEditor(rolePerms) {
       '<div class="settings-card-icon">' + ST_ICONS.shield + '</div>' +
       '<div class="settings-card-body">' +
         '<h4>角色与权限</h4>' +
-        '<p class="settings-desc">点击开关切换权限，点击表头批量操作。角色可添加/删除。</p>' +
+        '<p class="settings-desc">角色可 <b>添加 / 编辑 / 删除</b>；权限开关点击即切换，点表头可整列批量切换。改动需点「保存权限配置」才会生效。</p>' +
         cardsHtml +
         matrixHtml +
+        '<div id="rolePermDirty" style="display:none;font-size:12px;color:#d97706;margin:10px 0 0">● 有未保存的修改，点「保存权限配置」后生效</div>' +
         '<div class="st2-savebar">' +
           '<button class="btn btn-ghost" onclick="addNewRole()">' + ST_ICONS.plus + ' 添加角色</button>' +
           '<button class="btn btn-primary" onclick="saveRolePermissions()">保存权限配置</button>' +
         '</div>' +
       '</div></div>';
 
-  // 存储当前权限数据到全局供编辑使用
+  // 存储当前权限数据到全局，供增/改/删与重渲染使用
   window._editingPerms = rolePerms;
+  window._editingRoleStaff = staffList;
   return html;
 }
 
@@ -290,6 +309,8 @@ window.confirmAddRole = function() {
   var perms = window._editingPerms;
   if (!perms) { showAlert('权限数据未加载，请刷新页面重试'); closeModal(); return; }
 
+  if (name.length > 20) { showAlert('角色名称不要超过 20 个字'); return; }
+
   // 检查名称是否重复
   for (var key in perms) {
     if (perms.hasOwnProperty(key) && perms[key].name === name) {
@@ -298,8 +319,15 @@ window.confirmAddRole = function() {
     }
   }
 
-  // 生成唯一 key
-  var baseKey = name.replace(/\s+/g, '_').toLowerCase();
+  // 生成唯一 key。key 会被当作 DOM id（perm-<key>-<page>）与 onclick 参数使用，
+  // 也直接存进 staff.role —— 所以优先 ASCII 化；中文名无法 ASCII 化时退化成 role_N，
+  // 避免把中文塞进 id / 属性值里（能跑，但后续写 CSS 选择器、URL 时会踩坑）。
+  var baseKey = name.replace(/\s+/g, '_').toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (!baseKey) {
+    var seq = 1;
+    while (perms['role_' + seq] !== undefined) seq++;
+    baseKey = 'role_' + seq;
+  }
   var newKey = baseKey;
   var counter = 1;
   while (perms[newKey] !== undefined) {
@@ -307,20 +335,61 @@ window.confirmAddRole = function() {
     counter++;
   }
 
-  // 所有页面 key 列表（内联以保证可靠性）
-  var allPages = ['dashboard','suppliers','spatial','customers','contracts','settings'];
-  perms[newKey] = { name: name, pages: allPages.slice() };
+  // 新角色默认给「全部页面」。
+  // ⚠️ 这里以前硬编码了 6 个 key（漏掉 leads / content），导致新建角色天生少两个模块、
+  //    与权限矩阵的列数对不上。必须与 PAGE_LABELS 同源。
+  perms[newKey] = { name: name, pages: Object.keys(PAGE_LABELS) };
 
   closeModal();
-  // 刷新角色权限卡片
-  var card = document.getElementById('rolePermCard');
-  if (card && card.parentNode) {
-    var temp = document.createElement('div');
-    temp.innerHTML = renderRolePermEditor(perms);
-    var newCard = temp.firstChild;
-    if (newCard) card.parentNode.replaceChild(newCard, card);
-  }
+  _refreshRoleCard();
   window._newRoleInput = null;
+};
+
+// 编辑角色（改显示名称）。
+// ⚠️ 只改 name、绝不动 key —— key 是 staff.role 的引用值，
+//    一改 key，所有挂该角色的人就变成「未知角色」、权限全部失效。
+window.editRole = function(roleKey) {
+  var perms = window._editingPerms;
+  if (!perms || !perms[roleKey]) return;
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.value = perms[roleKey].name;
+  input.placeholder = '角色名称，如 "财务"';
+  input.style.cssText = 'width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-lg);font-size:15px;font-family:inherit;margin-bottom:16px';
+  openModal('编辑角色名称',
+    '<div style="margin-bottom:8px;font-size:14px;color:var(--text-secondary)">修改「' + escapeHtml(perms[roleKey].name) + '」的显示名称。角色标识不变，已分配该角色的人员不受影响。</div>' +
+    '<div id="editRoleInputWrapper"></div>' +
+    '<div class="form-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="confirmEditRole(\'' + roleKey + '\')">保存修改</button></div>');
+  var wrapper = document.getElementById('editRoleInputWrapper');
+  if (wrapper) {
+    wrapper.appendChild(input);
+    input.focus();
+    input.select();
+    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') confirmEditRole(roleKey); });
+  }
+};
+
+window.confirmEditRole = function(roleKey) {
+  var perms = window._editingPerms;
+  if (!perms || !perms[roleKey]) { closeModal(); return; }
+  var input = document.querySelector('#editRoleInputWrapper input');
+  if (!input) { closeModal(); return; }
+  var name = input.value.trim();
+  if (!name) { showAlert('角色名称不能为空'); return; }
+  if (name.length > 20) { showAlert('角色名称不要超过 20 个字'); return; }
+  if (name === perms[roleKey].name) { closeModal(); return; }
+
+  // 重名校验（后端也会拦，这里提前给出更清楚的提示）
+  for (var key in perms) {
+    if (perms.hasOwnProperty(key) && key !== roleKey && perms[key].name === name) {
+      showAlert('角色名称 "' + name + '" 已被占用，请换一个');
+      return;
+    }
+  }
+  perms[roleKey].name = name;
+  closeModal();
+  _refreshRoleCard();
 };
 
 // 删除角色
@@ -329,27 +398,43 @@ window.deleteRole = function(roleKey) {
   if (!perms || !perms[roleKey]) return;
   var roleName = perms[roleKey].name;
 
-  // 不允许删除 admin 角色
+  // 不允许删除 admin 角色（后端同样会拒 —— 删了就没人能进系统设置了）
   if (roleKey === 'admin') {
     showAlert('管理员角色不可删除');
     return;
   }
 
-  showConfirm('确认删除角色 "' + roleName + '"？所有拥有此角色的人员将受到影响。', function(confirmed) {
+  // 统计还有多少人在用该角色 —— 必须让人看到，
+  // 否则删完那些人会静默失去全部页面权限（矩阵里看不出任何异常）。
+  var staff = window._editingRoleStaff || [];
+  var usedBy = [];
+  for (var i = 0; i < staff.length; i++) {
+    if (staff[i].role === roleKey) usedBy.push(staff[i].name || staff[i].staff_id);
+  }
+  var msg = '确认删除角色 "' + roleName + '"？';
+  if (usedBy.length) {
+    msg += '注意：还有 ' + usedBy.length + ' 人正在使用该角色（' + usedBy.join('、') + '），删除并保存后他们将失去所有页面权限，需要你重新分配角色。';
+  }
+
+  showConfirm(msg, function(confirmed) {
     if (!confirmed) return;
     delete perms[roleKey];
-    // 刷新角色权限卡片
-    var container = document.getElementById('rolePermCard');
-    if (container) {
-      var temp = document.createElement('div');
-      temp.innerHTML = renderRolePermEditor(perms);
-      var newCard = temp.firstChild;
-      if (newCard) {
-        container.parentNode.replaceChild(newCard, container);
-      }
-    }
+    _refreshRoleCard();
   });
 };
+
+// 重渲染「角色与权限」卡片（新增 / 改名 / 删除后统一走这里），并标记「有未保存修改」
+function _refreshRoleCard() {
+  var card = document.getElementById('rolePermCard');
+  if (card && card.parentNode) {
+    var temp = document.createElement('div');
+    temp.innerHTML = renderRolePermEditor(window._editingPerms, window._editingRoleStaff);
+    var newCard = temp.firstChild;
+    if (newCard) card.parentNode.replaceChild(newCard, card);
+  }
+  var dirty = document.getElementById('rolePermDirty');
+  if (dirty) dirty.style.display = 'block';
+}
 
 window.toggleRolePage = function(roleKey, pageKey) {
   var perms = window._editingPerms;
@@ -399,8 +484,15 @@ window.saveRolePermissions = function() {
   if (!perms) { showAlert('没有可保存的权限数据'); return; }
   showConfirm('确认保存权限配置？保存后所有用户需重新登录才能生效。', function(confirmed) {
     if (!confirmed) return;
-    API.put('/api/settings/role-permissions', { permissions: perms }).then(function() {
-      showAlert('✅ 权限配置保存成功');
+    API.put('/api/settings/role-permissions', { permissions: perms }).then(function(r) {
+      var msg = '✅ 权限配置保存成功';
+      // 后端会返回非阻断告警（例如删掉了仍被人员引用的角色），必须让人看到
+      if (r && r.warnings && r.warnings.length) {
+        msg += '；注意：' + r.warnings.join('；');
+      }
+      var dirty = document.getElementById('rolePermDirty');
+      if (dirty) dirty.style.display = 'none';
+      showAlert(msg);
     }).catch(function(e) {
       showAlert('❌ 保存失败: ' + e.message);
     });

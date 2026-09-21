@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ONLYSTYLE · 赋能产业未来</title>
   <meta name="description" content="ONLYSTYLE 上海唯风信息技术有限公司，为企业提供全链路数字化方案、行业智能化升级与 AI 交付服务。" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!-- 🔴 以前这里指向 /favicon.svg，但 public/ 下从来没有这个文件 → 404 →
+       浏览器只能显示默认占位图标（用户反馈的「标签页图标和全局 logo 不一致」）。
+       现在 /favicon.png 与 /apple-touch-icon.png 均由「全局 logo」生成（见 public/），
+       运行时还会由 App.vue 同步成后台当前 logo，换图自动跟随。 -->
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <!-- 预渲染时会逐页注入各自的 title / description / og / JSON-LD -->
 </head>
 <body>

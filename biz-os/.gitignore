@@ -3,16 +3,20 @@ node_modules/
 .DS_Store
 .codebuddy/
 backend/_test_*.js
-# ----- 上传目录：全部入库（2026-09-19 起）-----
-# 用户自部署服务器（www.onlystyle.com.cn）靠 git pull 同步业务资产：
-# logo_brand.*.png（官网导航+页脚+后台侧栏+登录页四处共用品牌图）、
-# certs/（官网 about 页证书）、device_* / logo_*（业务线上传素材）。
-# 服务器缺这些 = 图片 404（曾因「默认全忽略只放行 logo」导致部署缺图）。
+# ----- 上传目录：默认全部忽略（本机开发素材 / 用户上传 / 截图）-----
+# ⚠️ 但**品牌图形**必须入库：它是随包发布的线上必需品
+#    （官网导航 + 页脚 + 后台侧栏 + 登录页四处共用同一张，
+#      deploy.cjs 会把它单独拷进安装包）。不入库的后果：
+#    别人 clone 后 node deploy/selfcheck.cjs 第 8 节必红，也打不出完整安装包。
 #
-# 🔴 历史教训（若将来恢复忽略必须遵守）：
-#    必须写 uploads/* + !例外，不能写 uploads/ —— 写成 uploads/ 是
-#    「排除整个目录」，git 根本不进这个目录，!例外 一起失效。
-#    根级 .gitignore 里也不要重复写 biz-os/backend/uploads/。
-# 🔴 文件名内容寻址（logo_brand.<sha256前8位>.png）：/uploads/* 带 immutable
-#    一年缓存，换图必须换名才能让老访客看到。
+# 🔴 这里必须写 uploads/* 而不是 uploads/：
+#    写成 uploads/ 是「排除整个目录」，git 根本不会进这个目录，
+#    下面的 !例外 一起失效 —— .gitignore 最经典的坑。
+# 🔴 同理，根级 .gitignore 里也不要再写一遍 biz-os/backend/uploads/。
+#
+# 文件名是内容寻址的（logo_brand.<sha256前8位>.png）：/uploads/* 带 immutable
+# 一年缓存，换图必须换名才能让老访客看到 —— 所以例外规则用通配。
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/logo_brand.*.png
 *.backup

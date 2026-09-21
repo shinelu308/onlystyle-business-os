@@ -95,11 +95,27 @@ router.get('/', (req, res) => {
     ORDER BY oversell_ratio DESC
   `);
 
+  // ---- 线索池（**不计入客户口径**）----
+  // 「在管客户总数」只统计 customers 表 = 已被确认的业务主体。
+  // 未签约线索住在 leads 表，必须分开陈述，否则 KPI 会被撑虚。
+  // 历史 bug：官网表单提交时直接往 customers 插一条 cust_type='官网线索'，
+  // 于是没签约的线索也被算进了在管客户总数（现已改为线索只进 leads 表）。
+  //
+  // ⚠️ 必须放在 stats 之前：下面 stats 里要用到它，而 const 有暂时性死区，
+  //    写在后面会直接 ReferenceError（已经把看板整个 500 过一次）。
+  const pendingLeads = db.get(
+    "SELECT COUNT(*) as c FROM leads WHERE status NOT IN ('won','lost')"
+  ).c;
+
   // ---------- 5. 兼容用统计数据（原有字段，含义不变） ----------
   const stats = {
     total_lines: db.get('SELECT COUNT(*) as c FROM supplier_lines').c,
     total_nodes: db.get('SELECT COUNT(*) as c FROM spatial_nodes').c,
+    // total_customers 只算 customers 表（已确认的客户）。
+    // 线索单列在 total_leads / pending_leads，任何地方都不要把两者相加。
     total_customers: db.get('SELECT COUNT(*) as c FROM customers').c,
+    total_leads: db.get('SELECT COUNT(*) as c FROM leads').c,
+    pending_leads: pendingLeads,
     active_contracts: db.get("SELECT COUNT(*) as c FROM contracts WHERE status IN ('进行中','即将到期')").c,
     expired_today: db.get("SELECT COUNT(*) as c FROM contracts WHERE status = '已到期'").c,
     red_alert_count: redZoneLines.length,
@@ -108,8 +124,8 @@ router.get('/', (req, res) => {
   };
 
   /* ============================================================
-     v2 部分
-     ============================================================ */
+    v2 部分
+    ============================================================ */
 
   // ---- KPI 1：在管客户总数 + 本月新增 ----
   const newThisMonth = db.get(
@@ -272,7 +288,12 @@ router.get('/', (req, res) => {
         label: '在管客户总数', value: db.get('SELECT COUNT(*) as c FROM customers').c,
         unit: '家', tag: '活跃', tagClass: 'tag-blue',
         delta: newThisMonth > 0 ? { dir: 'up', text: String(newThisMonth) } : null,
-        note: newThisMonth > 0 ? '本月新增' : '本月暂无新增'
+        // 明确写出「线索不计入」——否则用户看到线索页有 N 条，
+        // 又看到客户数没变，会以为数字错了。数字没错，是口径分开了。
+        note: (newThisMonth > 0 ? '本月新增 ' + newThisMonth + ' 家' : '本月暂无新增') +
+              (pendingLeads > 0
+                ? ' · 另有 <b class="kpi-emph">' + pendingLeads + '</b> 条线索待跟进（未计入）'
+                : '')
       },
       expiring: {
         label: rangeDays + ' 天内到期合同', value: expiringInWindow,

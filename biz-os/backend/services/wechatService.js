@@ -201,7 +201,7 @@ async function sendExpiryNotice(openid, companyName, productName, endDate, contr
   };
 
   return await sendTemplate(openid, config.templateExpire, data,
-    'https://bos.example.com/renew?contract=' + contractId);
+    'https://bos.onlystyle.com.cn/renew?contract=' + contractId);
 }
 
 /**
