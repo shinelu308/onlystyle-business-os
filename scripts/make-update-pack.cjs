@@ -37,6 +37,9 @@ const ROOT = path.resolve(__dirname, '..');
 const OUT_REL = 'biz-os/backend/uploads/_dl/onlystyle-update.zip';
 const OUT = path.join(ROOT, OUT_REL);
 const URL = 'https://www.onlystyle.com.cn/uploads/_dl/onlystyle-update.zip';
+// 包内说明文件。故意放在仓库 .gitignore 已忽略的 `_sync-to-local/` 下 ——
+// 否则解压后 `git add -A` 会把它当新文件提交进仓库（已经发生过一次）。
+const MANIFEST_REL = '_sync-to-local/README-UPDATE.txt';
 
 // ===== 绝不进包（防御性：即使被 git 跟踪/未忽略也拦掉）=====
 const DENY = [
@@ -246,6 +249,7 @@ function main() {
     '    （压缩包内的目录结构已与仓库一致，直接覆盖即可，无需自己找位置）',
     '    ⚠️ 覆盖前先确认本机对这些文件没有未提交的改动（有就先 commit 或 git stash），',
     '       否则你刚在本地改的东西会被服务器版本盖掉。',
+    '    （本说明文件放在 _sync-to-local/ 下，该目录已被 .gitignore 忽略，git add -A 不会收它）',
     ' 2) 提交并推送：',
     '      git add -A',
     '      git commit -m "sync: 服务器累积更新"',
@@ -273,11 +277,18 @@ function main() {
     manifest.push(` 需在本机删除（${deletedSafe.length} 个）`);
     manifest.push('------------------------------------------------------------');
     deletedSafe.forEach((p) => manifest.push(`  ${p}`));
+    manifest.push('');
+    manifest.push('（含义：文件在你仓库里有、但服务器工作区里已经没有了 —— 通常是已经不需要的');
+    manifest.push('  文件，例如上一版 zip 里误被 git add 进仓库的 MANIFEST.txt。确认后 git rm 掉即可。）');
   }
   manifest.push('');
   manifest.push('============================================================');
   manifest.push('');
-  fs.writeFileSync(path.join(stage, 'MANIFEST.txt'), manifest.join('\n'), 'utf8');
+  // ⚠️ 说明文件必须放在 `_sync-to-local/` 里 —— 那个目录在你仓库的 .gitignore 中。
+  //    之前放在包根目录叫 MANIFEST.txt，结果你 `git add -A` 时把它一起提交进仓库了
+  //    （现在仓库根上就躺着一个多余的 MANIFEST.txt）。
+  fs.mkdirSync(path.join(stage, '_sync-to-local'), { recursive: true });
+  fs.writeFileSync(path.join(stage, MANIFEST_REL), manifest.join('\n'), 'utf8');
 
   // --- 打包 ---
   // 先打到临时名、再原子改名覆盖旧包。两步原因：
@@ -288,7 +299,7 @@ function main() {
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   const tmpZip = OUT + '.part';
   forceRemove(tmpZip);
-  const zr = spawnSync('zip', ['-q', '-X', '-r', tmpZip, 'MANIFEST.txt'].concat(entries.map((e) => e.p)), {
+  const zr = spawnSync('zip', ['-q', '-X', '-r', tmpZip, MANIFEST_REL].concat(entries.map((e) => e.p)), {
     cwd: stage,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,

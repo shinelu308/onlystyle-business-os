@@ -143,7 +143,20 @@ function packTarball() {
   let total = 0;
 
   // 后端：排除 node_modules（服务器自己装）、uploads（本机开发素材）、历史 .backup 快照
-  const beSkip = (name) => name !== 'node_modules' && name !== 'uploads' && !/\.backup$/.test(name);
+  //
+  // 🔴 必须排除数据库（*.db / *.db.*）—— 这是个会直接吃掉线上数据的坑：
+  //    打包用的是**你本机的库**，而服务器上的同名文件是**线上生产库**
+  //    （真实员工账号与密码、客户、合同都在里面）。
+  //    一旦随包发上去，服务器安装时就被整文件覆盖，表现为
+  //    「只是部署个代码，线上业务数据却变成了我本地开发库的样子」—— 而且不可逆。
+  //    数据库的正确同步方向是「只同步内容域」（scripts/content-sync.cjs），
+  //    绝不在部署包里做整库搬运。
+  const beSkip = (name) =>
+    name !== 'node_modules' &&
+    name !== 'uploads' &&
+    !/\.backup$/.test(name) &&
+    !/\.db$/i.test(name) &&        // broadband_os.db
+    !/\.db[.\-]/i.test(name);      // broadband_os.db.920 / broadband_os.db.<日期>.backup 之类
   total += copyTree(path.join(ROOT, 'biz-os', 'backend'), path.join(app, 'biz-os', 'backend'), beSkip);
   total += copyTree(path.join(ROOT, 'biz-os', 'frontend'), path.join(app, 'biz-os', 'frontend'), () => true);
 

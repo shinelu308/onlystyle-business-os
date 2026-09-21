@@ -201,7 +201,26 @@ check(!/[^\x00-\x7F]/.test(fs.readFileSync(path.join(ROOT, 'deploy', 'deploy.bat
 
 // ---------------------------------------------------------------------------
 console.log('\n\x1b[1m[8] 品牌素材随包发布\x1b[0m');
-check(/name !== 'uploads'/.test(dsrc), 'beSkip 仍然排除整个 uploads 目录');
+// 🔴 数据库绝不能进安装包 —— 打包用的是本机开发库，服务器上同名文件是线上生产库，
+//    随包发上去就是「部署一次、线上业务数据被整库覆盖」。这里把这个不变量钉死。
+//    做法与 BRAND_ASSET 一致：把过滤函数源码抠出来真的跑一遍，而不是用正则去猜源码长相。
+// 注意两个坑：
+//  ① 函数体最后一行带行内注释（// broadband_os.db），所以不能在 `;` 处直接收尾，要把本行剩余吃掉；
+//  ② 抠出来的是「=> 之后到 ; 之前」的表达式，用 return 拼装时**必须加括号**：
+//     不加括号的话 `return` 后面紧跟换行会被 ASI 补成分号，函数直接返回 undefined，
+//     过滤函数恒为 undefined，看上去「没崩」但所有断言之于形同虚设。
+const beSkipMatch = dsrc.match(/const beSkip = \(name\) =>([\s\S]*?);\s*(?:\/\/[^\n]*)?\n/);
+let beSkip = null;
+// ⚠️ 这里是 new Function(...) 本身（即那个过滤函数），**不要再补一对调用括号** ——
+//    补了就会立刻执行成布尔值，后面的 beSkip(...) 直接 TypeError。
+try { beSkip = new Function('name', 'return (' + beSkipMatch[1].trim() + ')'); } catch (e) { beSkip = null; }
+const skipTest = (n) => (typeof beSkip === 'function' ? beSkip(n) : null);
+check(typeof beSkip === 'function', '能从 deploy.cjs 抠出 beSkip 过滤函数', beSkipMatch ? '' : '抠不到');
+check(skipTest('broadband_os.db') === false, '🔴 beSkip 拒绝 broadband_os.db（否则部署会覆盖线上生产库）');
+check(skipTest('broadband_os.db.920') === false, 'beSkip 拒绝历史库快照 broadband_os.db.920');
+check(skipTest('broadband_os.db.2026-09-20.backup') === false, 'beSkip 拒绝 .db.<日期>.backup 快照');
+check(skipTest('server.js') === true, 'beSkip 仍放行普通后端代码 server.js');
+check(skipTest('uploads') === false, 'beSkip 仍然排除整个 uploads 目录');
 check(/BRAND_ASSET = \/\^logo_brand/.test(dsrc), 'deploy.cjs 定义了品牌素材白名单 BRAND_ASSET');
 const brandCopyAt = dsrc.indexOf('BRAND_ASSET.test(f)');
 check(brandCopyAt > 0 && tarAt > 0 && brandCopyAt < tarAt, '品牌素材拷贝发生在打包 tar 之前');
